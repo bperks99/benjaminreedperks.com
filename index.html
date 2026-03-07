@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benjamin Reed Perks</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #1a1a18;
+    --paper: #f5f3ee;
+    --warm-white: #faf9f6;
+    --mid: #9a9690;
+    --accent: #c8a96e;
+    --rule: rgba(26,26,24,0.12);
+    --font: 'Century Gothic', 'AppleGothic', 'Gill Sans', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--warm-white);
+    color: var(--ink);
+    font-family: var(--font);
+    font-weight: 300;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* CUSTOM CURSOR */
+  .cursor {
+    position: fixed;
+    width: 7px; height: 7px;
+    background: var(--ink);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 30px; height: 30px;
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transition: transform 0.35s cubic-bezier(.25,.46,.45,.94), width 0.3s, height 0.3s, border-color 0.2s;
+    transform: translate(-50%, -50%);
+  }
+  .cursor-ring.expand { width: 52px; height: 52px; border-color: var(--accent); }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 56px;
+  }
+  .nav-logo {
+    font-family: var(--font);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink);
+    opacity: 0;
+    animation: fadeUp 1s 0.3s forwards;
+  }
+  .nav-links {
+    display: flex; gap: 44px;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: var(--font);
+    font-weight: 300;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--ink);
+    opacity: 0;
+    animation: fadeUp 1s forwards;
+    position: relative;
+  }
+  .nav-links li:nth-child(1) a { animation-delay: 0.4s; }
+  .nav-links li:nth-child(2) a { animation-delay: 0.5s; }
+  .nav-links li:nth-child(3) a { animation-delay: 0.6s; }
+  .nav-links a::after {
+    content: '';
+    position: absolute; bottom: -3px; left: 0; right: 0;
+    height: 1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.3s ease;
+  }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* HERO */
+  #hero {
+    height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 56px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(var(--rule) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-family: var(--font);
+    font-weight: 300;
+    font-size: 0.65rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--mid);
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeUp 1s 0.5s forwards;
+  }
+  .hero-name {
+    font-family: var(--font);
+    font-weight: 300;
+    font-size: clamp(3.5rem, 8vw, 7rem);
+    line-height: 1.0;
+    letter-spacing: -0.01em;
+    margin-bottom: 0;
+    opacity: 0;
+    animation: fadeUp 1.1s 0.7s forwards;
+  }
+  .hero-name span { color: var(--accent); }
+  .hero-sub {
+    margin-top: 28px;
+    font-family: var(--font);
+    font-weight: 300;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--mid);
+    opacity: 0;
+    animation: fadeUp 1s 0.95s forwards;
+  }
+  .hero-vline {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 56%;
+    width: 1px;
+    background: var(--rule);
+  }
+  .hero-hline {
+    position: absolute;
+    left: 0; right: 0;
+    top: 40%;
+    height: 1px;
+    background: var(--rule);
+  }
+  .scroll-hint {
+    position: absolute;
+    bottom: 80px; right: 56px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    opacity: 0;
+    animation: fadeUp 1s 1.3s forwards;
+  }
+  .scroll-hint span {
+    font-size: 0.58rem; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--mid); writing-mode: vertical-rl;
+  }
+  .scroll-line {
+    width: 1px; height: 56px;
+    background: linear-gradient(to bottom, var(--mid), transparent);
+    animation: pulse 2s 1.5s infinite;
+  }
+
+  /* SECTION SHARED */
+  .section-label {
+    font-family: var(--font);
+    font-weight: 300;
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--mid);
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 64px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--rule);
+  }
+
+  /* PORTFOLIO */
+  #portfolio {
+    padding: 120px 56px;
+    background: var(--warm-white);
+  }
+  .portfolio-intro {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 48px; align-items: end;
+    margin-bottom: 80px;
+  }
+  .portfolio-intro h2 {
+    font-family: var(--font);
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    font-weight: 300;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  .portfolio-intro h2 em { font-style: normal; color: var(--accent); }
+  .portfolio-intro p {
+    font-size: 0.78rem;
+    line-height: 2;
+    color: var(--mid);
+    max-width: 360px;
+    margin-left: auto;
+  }
+
+  /* BOOK */
+  .book-wrapper {
+    display: flex; flex-direction: column; align-items: center;
+    perspective: 2200px;
+  }
+  .book {
+    position: relative;
+    width: min(860px, 90vw);
+    height: min(580px, 60vw);
+    transform-style: preserve-3d;
+  }
+
+  .page {
+    position: absolute; top: 0;
+    width: 50%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.95s cubic-bezier(.645,.045,.355,1);
+    cursor: pointer;
+  }
+  .page.right-side { left: 50%; transform-origin: left center; }
+  .page.left-side  { left: 0;   transform-origin: right center; }
+  .page.flipped    { transform: rotateY(-180deg); }
+
+  .page-front, .page-back {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    overflow: hidden;
+    border: 1px solid rgba(26,26,24,0.1);
+    box-shadow: inset -4px 0 12px rgba(0,0,0,0.04);
+  }
+  .page-back { transform: rotateY(180deg); }
+
+  .page-inner {
+    width: 100%; height: 100%;
+    background: var(--paper);
+    display: flex; flex-direction: column;
+    padding: 44px;
+    position: relative;
+  }
+  .page-inner.dark { background: var(--ink); color: var(--paper); }
+
+  .page-tag {
+    font-family: var(--font);
+    font-weight: 300;
+    font-size: 0.58rem; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .page-title {
+    font-family: var(--font);
+    font-size: 1.25rem; font-weight: 300;
+    line-height: 1.2; margin-bottom: 8px;
+  }
+  .page-location {
+    font-size: 0.68rem; letter-spacing: 0.12em;
+    color: var(--mid); margin-bottom: 22px;
+  }
+  .img-box {
+    flex: 1;
+    background: rgba(26,26,24,0.04);
+    border: 1px solid var(--rule);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .img-box svg { width: 70%; height: 70%; opacity: 0.2; }
+  .img-box .img-lbl {
+    position: absolute; bottom: 8px; right: 10px;
+    font-size: 0.52rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--mid);
+    font-family: var(--font);
+  }
+  .img-box .img-hover {
+    position: absolute; inset: 0;
+    background: rgba(245,243,238,0.92);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 8px;
+    font-size: 0.62rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--mid);
+    opacity: 0; transition: opacity 0.25s;
+    font-family: var(--font);
+  }
+  .img-box:hover .img-hover { opacity: 1; }
+  .page-desc {
+    margin-top: 16px;
+    font-size: 0.72rem; line-height: 1.85;
+    color: var(--mid);
+  }
+  .page-num {
+    position: absolute; bottom: 16px;
+    font-family: var(--font); font-size: 0.68rem;
+    color: var(--mid); letter-spacing: 0.08em;
+  }
+  .page-num.l { left: 22px; }
+  .page-num.r { right: 22px; }
+
+  .book-spine {
+    position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.03));
+    transform: translateX(-50%);
+    z-index: 20;
+    box-shadow: 0 0 8px rgba(0,0,0,0.06);
+  }
+  .book-shadow {
+    width: min(760px, 85vw); height: 14px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.12) 0%, transparent 70%);
+    margin-top: -2px;
+  }
+  .book-controls {
+    display: flex; align-items: center; gap: 36px;
+    margin-top: 28px;
+  }
+  .book-btn {
+    font-family: var(--font); font-weight: 300;
+    font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
+    background: none; border: none;
+    color: var(--ink); cursor: none; padding: 8px 0;
+    position: relative; transition: color 0.2s;
+  }
+  .book-btn::after {
+    content: ''; position: absolute; bottom: 4px; left: 0; right: 0;
+    height: 1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
+  }
+  .book-btn:hover:not(:disabled)::after { transform: scaleX(1); }
+  .book-btn:disabled { color: var(--mid); }
+  .page-indicator {
+    font-family: var(--font); font-size: 0.72rem;
+    color: var(--mid); letter-spacing: 0.12em;
+    min-width: 80px; text-align: center;
+  }
+
+  /* corner marks */
+  .cm { position: absolute; width: 16px; height: 16px; border-style: solid; border-color: rgba(26,26,24,0.15); border-width: 0; }
+  .cm.tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }
+  .cm.tr { top: 16px; right: 16px; border-top-width: 1px; border-right-width: 1px; }
+  .cm.bl { bottom: 16px; left: 16px; border-bottom-width: 1px; border-left-width: 1px; }
+  .cm.br { bottom: 16px; right: 16px; border-bottom-width: 1px; border-right-width: 1px; }
+  .cm.light { border-color: rgba(245,243,238,0.2); }
+
+  /* RESUME */
+  #resume {
+    padding: 120px 56px;
+    background: var(--ink);
+    color: var(--paper);
+  }
+  #resume .section-label { color: rgba(245,243,238,0.35); }
+  #resume .section-label::after { background: rgba(245,243,238,0.1); }
+  #resume h2 {
+    font-family: var(--font);
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: 300;
+    letter-spacing: -0.01em;
+    margin-bottom: 80px;
+  }
+  #resume h2 em { font-style: normal; color: var(--accent); }
+
+  .resume-block { margin-bottom: 72px; }
+  .resume-block-title {
+    font-family: var(--font);
+    font-size: 0.6rem; font-weight: 300;
+    letter-spacing: 0.28em; text-transform: uppercase;
+    color: rgba(245,243,238,0.35);
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(245,243,238,0.08);
+  }
+  .resume-entry {
+    display: grid; grid-template-columns: 160px 1fr;
+    gap: 32px; padding: 32px 0;
+    border-bottom: 1px solid rgba(245,243,238,0.07);
+    transition: padding-left 0.3s;
+  }
+  .resume-entry:hover { padding-left: 8px; }
+  .resume-year {
+    font-family: var(--font); font-size: 0.72rem;
+    color: var(--accent); letter-spacing: 0.1em;
+    padding-top: 3px;
+  }
+  .resume-org {
+    font-family: var(--font); font-size: 0.92rem;
+    font-weight: 300; margin-bottom: 5px;
+    letter-spacing: 0.04em;
+  }
+  .resume-role {
+    font-family: var(--font); font-weight: 300;
+    font-size: 0.65rem; letter-spacing: 0.15em;
+    color: rgba(245,243,238,0.4); margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .resume-desc {
+    font-size: 0.75rem; line-height: 1.85;
+    color: rgba(245,243,238,0.5);
+  }
+  .resume-dl {
+    display: inline-flex; align-items: center; gap: 12px;
+    margin-top: 48px;
+    font-family: var(--font); font-weight: 300;
+    font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--paper); text-decoration: none;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--accent);
+    transition: color 0.25s;
+  }
+  .resume-dl:hover { color: var(--accent); }
+
+  /* CONTACT */
+  #contact {
+    padding: 120px 56px;
+    background: var(--warm-white);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px; align-items: center;
+    min-height: 60vh;
+  }
+  #contact h2 {
+    font-family: var(--font);
+    font-size: clamp(2.2rem, 5vw, 4.5rem);
+    font-weight: 300; line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+  #contact h2 em { font-style: normal; color: var(--accent); }
+  .contact-list { display: flex; flex-direction: column; }
+  .contact-row {
+    display: grid; grid-template-columns: 110px 1fr;
+    gap: 20px; padding: 26px 0;
+    border-bottom: 1px solid var(--rule);
+    align-items: baseline;
+  }
+  .contact-row:first-child { border-top: 1px solid var(--rule); }
+  .contact-lbl {
+    font-family: var(--font); font-weight: 300;
+    font-size: 0.6rem; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--mid);
+  }
+  .contact-val {
+    font-family: var(--font); font-size: 0.88rem;
+    font-weight: 300; letter-spacing: 0.04em;
+    text-decoration: none; color: var(--ink);
+    transition: color 0.25s;
+  }
+  .contact-val:hover { color: var(--accent); }
+
+  /* FOOTER */
+  footer {
+    padding: 36px 56px;
+    border-top: 1px solid var(--rule);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer-copy {
+    font-family: var(--font); font-weight: 300;
+    font-size: 0.6rem; letter-spacing: 0.16em;
+    color: var(--mid);
+  }
+  .footer-sig {
+    font-family: var(--font); font-size: 0.72rem;
+    font-weight: 300; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--mid);
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50%       { opacity: 1; }
+  }
+  .reveal {
+    opacity: 0; transform: translateY(36px);
+    transition: opacity 0.85s ease, transform 0.85s ease;
+  }
+  .reveal.visible { opacity: 1; transform: none; }
+  .d1 { transition-delay: 0.1s; }
+  .d2 { transition-delay: 0.2s; }
+  .d3 { transition-delay: 0.3s; }
+
+  @media (max-width: 760px) {
+    nav { padding: 20px 24px; }
+    #hero, #portfolio, #resume, #contact { padding-left: 24px; padding-right: 24px; }
+    .portfolio-intro { grid-template-columns: 1fr; }
+    .portfolio-intro p { margin-left: 0; }
+    .resume-entry { grid-template-columns: 1fr; gap: 6px; }
+    #contact { grid-template-columns: 1fr; }
+    footer { padding: 28px 24px; flex-direction: column; gap: 8px; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#hero" class="nav-logo">Benjamin Reed Perks</a>
+  <ul class="nav-links">
+    <li><a href="#portfolio">Portfolio</a></li>
+    <li><a href="#resume">Resume</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-vline"></div>
+  <div class="hero-hline"></div>
+  <p class="hero-eyebrow">Architecture &amp; Design</p>
+  <h1 class="hero-name">Benjamin<br>Reed <span>Perks</span></h1>
+  <p class="hero-sub">New York &nbsp;·&nbsp; Architecture &nbsp;·&nbsp; Design</p>
+  <div class="scroll-hint">
+    <div class="scroll-line"></div>
+    <span>Scroll</span>
+  </div>
+</section>
+
+<!-- PORTFOLIO -->
+<section id="portfolio">
+  <div class="section-label reveal">Selected Works</div>
+  <div class="portfolio-intro">
+    <h2 class="reveal">Portfolio<br><em>2020–2024</em></h2>
+    <p class="reveal d2">A curated selection of architectural and design projects. Turn the pages to explore drawings, renderings, and process documentation.</p>
+  </div>
+
+  <div class="book-wrapper reveal">
+    <div class="book" id="book">
+      <div class="book-spine"></div>
+
+      <!-- COVER -->
+      <div class="page right-side" id="page-0" style="z-index:10;">
+        <div class="page-front">
+          <div class="page-inner dark" style="justify-content:space-between;">
+            <div class="cm tl light"></div><div class="cm tr light"></div>
+            <div class="cm bl light"></div><div class="cm br light"></div>
+            <div>
+              <p style="font-size:0.58rem;letter-spacing:0.28em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;font-family:var(--font);font-weight:300;">Portfolio</p>
+              <p style="font-family:var(--font);font-size:1.9rem;font-weight:300;line-height:1.15;color:var(--paper);">Benjamin<br>Reed Perks</p>
+            </div>
+            <div>
+              <p style="font-family:var(--font);font-weight:300;font-size:0.62rem;letter-spacing:0.18em;color:rgba(245,243,238,0.35);">Architecture &amp; Design</p>
+              <p style="font-family:var(--font);font-weight:300;font-size:0.6rem;letter-spacing:0.14em;color:rgba(245,243,238,0.2);margin-top:6px;">2020 — 2024</p>
+            </div>
+            <p style="font-family:var(--font);font-weight:300;font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(245,243,238,0.25);text-align:right;">Click to open →</p>
+          </div>
+        </div>
+        <div class="page-back">
+          <div class="page-inner">
+            <p class="page-tag">Project 01</p>
+            <p class="page-title">Studio Residence</p>
+            <p class="page-location">Brooklyn, New York</p>
+            <div class="img-box">
+              <svg viewBox="0 0 200 140" fill="none">
+                <rect x="20" y="20" width="160" height="100" stroke="#1a1a18" stroke-width="0.8"/>
+                <line x1="20" y1="60" x2="180" y2="60" stroke="#1a1a18" stroke-width="0.4"/>
+                <rect x="80" y="60" width="40" height="60" stroke="#1a1a18" stroke-width="0.4"/>
+                <rect x="30" y="30" width="30" height="20" stroke="#1a1a18" stroke-width="0.4"/>
+                <rect x="140" y="30" width="30" height="20" stroke="#1a1a18" stroke-width="0.4"/>
+              </svg>
+              <span class="img-lbl">Floor Plan</span>
+              <div class="img-hover">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                Add Image
+              </div>
+            </div>
+            <span class="page-num r">01</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPREAD 1 -->
+      <div class="page left-side" id="page-1" style="z-index:9;">
+        <div class="page-front">
+          <div class="page-inner">
+            <p class="page-tag">Project 01 — Drawings</p>
+            <div class="img-box" style="flex:1; margin-bottom:16px;">
+              <svg viewBox="0 0 200 160" fill="none">
+                <line x1="10" y1="140" x2="190" y2="140" stroke="#1a1a18" stroke-width="1"/>
+                <rect x="40" y="40" width="120" height="100" stroke="#1a1a18" stroke-width="0.8"/>
+                <line x1="40" y1="80" x2="160" y2="80" stroke="#1a1a18" stroke-width="0.4"/>
+                <line x1="100" y1="40" x2="100" y2="140" stroke="#1a1a18" stroke-width="0.4"/>
+                <path d="M40 40 L100 10 L160 40" stroke="#1a1a18" stroke-width="0.8" fill="none"/>
+                <rect x="80" y="80" width="40" height="60" stroke="#1a1a18" stroke-width="0.4"/>
+              </svg>
+              <span class="img-lbl">Section A–A</span>
+              <div class="img-hover">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                Add Image
+              </div>
+            </div>
+            <p class="page-desc">A compact live/work unit exploring the threshold between public and private space through a folded section.</p>
+            <span class="page-num l">02</span>
+          </div>
+        </div>
+        <div class="page-back">
+          <div class="page-inner">
+            <p class="page-tag">Project 02</p>
+            <p class="page-title">Cultural Pavilion</p>
+            <p class="page-location">Hudson Valley, New York</p>
+            <div class="img-box" style="flex:1;">
+              <svg viewBox="0 0 200 140" fill="none">
+                <ellipse cx="100" cy="100" rx="80" ry="24" stroke="#1a1a18" stroke-width="0.5"/>
+                <path d="M20 100 L100 20 L180 100" stroke="#1a1a18" stroke-width="0.8" fill="none"/>
+                <line x1="100" y1="20" x2="100" y2="100" stroke="#1a1a18" stroke-width="0.4" stroke-dasharray="3 3"/>
+                <line x1="20" y1="100" x2="180" y2="100" stroke="#1a1a18" stroke-width="0.4"/>
+              </svg>
+              <span class="img-lbl">Site Axonometric</span>
+              <div class="img-hover">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                Add Image
+              </div>
+            </div>
+            <span class="page-num r">03</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SPREAD 2 -->
+      <div class="page left-side" id="page-2" style="z-index:8;">
+        <div class="page-front">
+          <div class="page-inner">
+            <p class="page-tag">Project 02 — Renderings</p>
+            <div class="img-box" style="flex:1; margin-bottom:16px;">
+              <svg viewBox="0 0 200 160" fill="none">
+                <polygon points="40,130 100,50 160,130" stroke="#1a1a18" stroke-width="0.8" fill="rgba(26,26,24,0.03)"/>
+                <polygon points="40,130 160,130 175,112 55,112" stroke="#1a1a18" stroke-width="0.5" fill="rgba(26,26,24,0.06)"/>
+                <line x1="40" y1="130" x2="55" y2="112" stroke="#1a1a18" stroke-width="0.5"/>
+                <line x1="160" y1="130" x2="175" y2="112" stroke="#1a1a18" stroke-width="0.5"/>
+                <line x1="100" y1="50" x2="115" y2="32" stroke="#1a1a18" stroke-width="0.4" stroke-dasharray="2 2"/>
+              </svg>
+              <span class="img-lbl">Perspective View</span>
+              <div class="img-hover">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                Add Image
+              </div>
+            </div>
+            <p class="page-desc">A lightweight seasonal pavilion using glulam structure and tensile membranes to frame views of the landscape.</p>
+            <span class="page-num l">04</span>
+          </div>
+        </div>
+        <div class="page-back">
+          <div class="page-inner dark" style="justify-content:center; align-items:center; text-align:center;">
+            <div class="cm tl light"></div><div class="cm br light"></div>
+            <p style="font-family:var(--font);font-size:1.2rem;font-weight:300;color:var(--paper);line-height:1.6;max-width:220px;">More projects<br>coming soon.</p>
+            <p style="font-family:var(--font);font-weight:300;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,243,238,0.25);margin-top:20px;">End of Portfolio</p>
+            <span class="page-num r" style="color:rgba(245,243,238,0.25);">05</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="book-shadow"></div>
+    <div class="book-controls">
+      <button class="book-btn" id="btn-prev" disabled>← Prev</button>
+      <span class="page-indicator" id="page-indicator">Cover</span>
+      <button class="book-btn" id="btn-next">Next →</button>
+    </div>
+  </div>
+</section>
+
+<!-- RESUME -->
+<section id="resume">
+  <div class="section-label reveal">Curriculum Vitae</div>
+  <h2 class="reveal">Resume &amp;<br><em>Experience</em></h2>
+
+  <div class="resume-block reveal d1">
+    <p class="resume-block-title">Work Experience</p>
+    <div class="resume-entry">
+      <p class="resume-year">2022 – Present</p>
+      <div>
+        <p class="resume-org">Studio / Firm Name</p>
+        <p class="resume-role">Associate Architect</p>
+        <p class="resume-desc">Leading design development on residential and mixed-use projects from schematic design through construction administration. Add your own details here.</p>
+      </div>
+    </div>
+    <div class="resume-entry">
+      <p class="resume-year">2020 – 2022</p>
+      <div>
+        <p class="resume-org">Previous Firm</p>
+        <p class="resume-role">Architectural Designer</p>
+        <p class="resume-desc">Contributed to design and documentation of cultural and civic projects. Expertise in computational design and parametric workflows.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="resume-block reveal d2">
+    <p class="resume-block-title">Education</p>
+    <div class="resume-entry">
+      <p class="resume-year">2018 – 2020</p>
+      <div>
+        <p class="resume-org">University Name</p>
+        <p class="resume-role">Master of Architecture</p>
+        <p class="resume-desc">Thesis focused on adaptive reuse and the preservation of industrial heritage in post-industrial urban contexts.</p>
+      </div>
+    </div>
+    <div class="resume-entry">
+      <p class="resume-year">2014 – 2018</p>
+      <div>
+        <p class="resume-org">University Name</p>
+        <p class="resume-role">Bachelor of Architecture</p>
+        <p class="resume-desc">Graduated with honors. Studio focus on urban housing and public space.</p>
+      </div>
+    </div>
+  </div>
+
+  <a href="#" class="resume-dl reveal d3">Download Full CV &nbsp;↗</a>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <h2 class="reveal">Let's work<br><em>together.</em></h2>
+  <div class="contact-list reveal d1">
+    <div class="contact-row">
+      <span class="contact-lbl">Email</span>
+      <a href="mailto:hello@benjaminreedperks.com" class="contact-val">hello@benjaminreedperks.com</a>
+    </div>
+    <div class="contact-row">
+      <span class="contact-lbl">Instagram</span>
+      <a href="#" class="contact-val">@benjaminreedperks</a>
+    </div>
+    <div class="contact-row">
+      <span class="contact-lbl">LinkedIn</span>
+      <a href="#" class="contact-val">linkedin.com/in/brperks</a>
+    </div>
+    <div class="contact-row">
+      <span class="contact-lbl">Location</span>
+      <span class="contact-val">New York, NY</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p class="footer-copy">© 2024 Benjamin Reed Perks. All rights reserved.</p>
+  <p class="footer-sig">BRP</p>
+</footer>
+
+<script>
+  // Cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+  });
+  (function animRing() {
+    rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
+    requestAnimationFrame(animRing);
+  })();
+  document.querySelectorAll('a, button, .img-box').forEach(el => {
+    el.addEventListener('mouseenter', () => ring.classList.add('expand'));
+    el.addEventListener('mouseleave', () => ring.classList.remove('expand'));
+  });
+
+  // Scroll reveal
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+  // Book
+  const pages = [
+    { el: document.getElementById('page-0'), label: 'Cover' },
+    { el: document.getElementById('page-1'), label: 'Spread 1 – 2' },
+    { el: document.getElementById('page-2'), label: 'Spread 3 – 4' },
+  ];
+  let cur = 0;
+  const btnP = document.getElementById('btn-prev');
+  const btnN = document.getElementById('btn-next');
+  const ind  = document.getElementById('page-indicator');
+
+  function goNext() {
+    if (cur >= pages.length - 1) return;
+    pages[cur].el.style.zIndex = 20;
+    pages[cur].el.classList.add('flipped');
+    cur++;
+    update();
+  }
+  function goPrev() {
+    if (cur <= 0) return;
+    cur--;
+    pages[cur].el.classList.remove('flipped');
+    pages[cur].el.style.zIndex = pages.length - cur;
+    update();
+  }
+  function update() {
+    btnP.disabled = cur === 0;
+    btnN.disabled = cur === pages.length - 1;
+    ind.textContent = pages[cur].label;
+  }
+  btnN.addEventListener('click', goNext);
+  btnP.addEventListener('click', goPrev);
+  pages[0].el.addEventListener('click', () => { if (cur === 0) goNext(); });
+</script>
+</body>
+</html>
