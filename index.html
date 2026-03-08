@@ -12,110 +12,83 @@
     --paper: #f5f3ee;
     --warm-white: #faf9f6;
     --mid: #9a9690;
-    --accent: #c8a96e;
+    --accent: #a8b8d8;
     --rule: rgba(26,26,24,0.12);
     --font: 'Century Gothic', 'AppleGothic', 'Gill Sans', sans-serif;
   }
 
-  html, body {
-    height: 100%;
-    overflow: hidden;
-    font-family: var(--font);
-    font-weight: 300;
-    cursor: none;
-  }
+  html, body { height: 100%; overflow: hidden; font-family: var(--font); font-weight: 300; cursor: none; }
 
-  /* CUSTOM CURSOR */
-  .cursor {
+  /* ── CURSOR ── */
+  #cursor {
     position: fixed;
-    width: 8px; height: 8px; background: var(--accent);
-    
+    width: 10px; height: 10px;
+    background: var(--accent);
     border-radius: 50%;
     pointer-events: none;
-    z-index: 9999;
+    z-index: 99999;
+    top: 0; left: 0;
     transform: translate(-50%, -50%);
-    
   }
-  .cursor-ring {
+  #cursor-ring {
     position: fixed;
-    width: 30px; height: 30px;
-    border: 1px solid rgba(200, 169, 110, 0.55);
+    width: 34px; height: 34px;
+    border: 1.5px solid var(--accent);
     border-radius: 50%;
     pointer-events: none;
-    z-index: 9998;
-    transition: transform 0.35s cubic-bezier(.25,.46,.45,.94), width 0.3s, height 0.3s, border-color 0.2s;
+    z-index: 99998;
+    top: 0; left: 0;
     transform: translate(-50%, -50%);
-    
+    opacity: 0.5;
+    transition: width 0.25s, height 0.25s, opacity 0.25s;
   }
-  .cursor-ring.expand { width: 52px; height: 52px; border-color: var(--accent); }
+  #cursor-ring.expand { width: 56px; height: 56px; opacity: 1; }
 
-  /* PAGES — each is a full viewport */
-  .page-view {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    transition: opacity 0.55s ease, transform 0.55s ease;
+  /* ── VIEWS ── */
+  .view {
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
   }
-  .page-view.hidden {
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(24px);
-  }
-  .page-view.active {
-    opacity: 1;
-    pointer-events: all;
-    transform: translateY(0);
-  }
+  .view.active { opacity: 1; pointer-events: all; }
 
-  /* NAV */
+  /* ── NAV ── */
   nav {
     position: fixed; top: 0; left: 0; right: 0;
-    z-index: 200;
+    z-index: 1000;
     display: flex; align-items: center; justify-content: space-between;
     padding: 28px 56px;
   }
   .nav-logo {
     font-family: var(--font); font-weight: 300;
-    font-size: 0.75rem; letter-spacing: 0.22em;
-    text-transform: uppercase;
-    background: none; border: none;
-    color: #fff;
-    opacity: 0; animation: fadeUp 1s 0.3s forwards;
-    transition: color 0.4s; cursor: none;
+    font-size: 0.75rem; letter-spacing: 0.22em; text-transform: uppercase;
+    background: none; border: none; color: #fff;
+    cursor: none; transition: color 0.3s;
   }
-  nav.light .nav-logo { color: var(--ink); }
-
   .nav-links { display: flex; gap: 44px; list-style: none; }
-  .nav-links .nav-btn {
+  .nav-links button {
     font-family: var(--font); font-weight: 300;
-    font-size: 0.68rem; letter-spacing: 0.2em;
-    text-transform: uppercase;
-    background: none; border: none;
-    color: #fff;
-    opacity: 0; animation: fadeUp 1s forwards;
-    position: relative; transition: color 0.4s; cursor: none;
+    font-size: 0.68rem; letter-spacing: 0.2em; text-transform: uppercase;
+    background: none; border: none; color: #fff;
+    cursor: none; position: relative; transition: color 0.3s;
   }
-  nav.light .nav-links .nav-btn { color: var(--ink); }
-  .nav-links li:nth-child(1) .nav-btn { animation-delay: 0.4s; }
-  .nav-links li:nth-child(2) .nav-btn { animation-delay: 0.5s; }
-  .nav-links li:nth-child(3) .nav-btn { animation-delay: 0.6s; }
-  .nav-links .nav-btn::after {
-    content: '';
-    position: absolute; bottom: -3px; left: 0; right: 0;
+  .nav-links button::after {
+    content: ''; position: absolute; bottom: -3px; left: 0; right: 0;
     height: 1px; background: var(--accent);
-    transform: scaleX(0); transform-origin: left;
-    transition: transform 0.3s ease;
+    transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
   }
-  .nav-links .nav-btn:hover::after,
-  .nav-links .nav-btn.active-link::after { transform: scaleX(1); }
+  .nav-links button:hover::after,
+  .nav-links button.active::after { transform: scaleX(1); }
+  /* Dark nav for contact page */
+  nav.dark .nav-logo,
+  nav.dark .nav-links button { color: var(--ink); }
 
-  /* ─── PORTFOLIO PAGE ─── */
+  /* ══════════════ PORTFOLIO VIEW ══════════════ */
   #view-portfolio {
     background: #0e0e0c;
     display: flex; align-items: center; justify-content: center;
   }
-
   .portfolio-card {
     background: var(--warm-white);
     width: min(860px, 88vw);
@@ -123,115 +96,37 @@
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     padding: 40px 40px 28px;
-    position: relative;
-    box-shadow: 0 40px 100px rgba(0,0,0,0.55);
-    opacity: 0; animation: fadeUp 1s 0.6s forwards;
+    box-shadow: 0 40px 100px rgba(0,0,0,0.6);
   }
-
-  /* BOOK */
-  .book-wrapper {
-    display: flex; flex-direction: column; align-items: center;
-    perspective: 2200px; width: 100%;
-  }
-  .book {
-    position: relative; width: 100%;
-    height: min(400px, 50vh);
-    transform-style: preserve-3d;
-  }
-  .page {
-    position: absolute; top: 0;
-    width: 50%; height: 100%;
-    transform-style: preserve-3d;
-    transition: transform 0.95s cubic-bezier(.645,.045,.355,1);
-    cursor: pointer;
-  }
+  .book-wrapper { display: flex; flex-direction: column; align-items: center; perspective: 2200px; width: 100%; }
+  .book { position: relative; width: 100%; height: min(400px, 50vh); transform-style: preserve-3d; }
+  .page { position: absolute; top: 0; width: 50%; height: 100%; transform-style: preserve-3d; transition: transform 0.95s cubic-bezier(.645,.045,.355,1); cursor: none; }
   .page.right-side { left: 50%; transform-origin: left center; }
   .page.left-side  { left: 0;   transform-origin: right center; }
   .page.flipped    { transform: rotateY(-180deg); }
-
-  .page-front, .page-back {
-    position: absolute; inset: 0;
-    backface-visibility: hidden; overflow: hidden;
-    border: 1px solid rgba(26,26,24,0.1);
-    box-shadow: inset -4px 0 12px rgba(0,0,0,0.04);
-  }
+  .page-front, .page-back { position: absolute; inset: 0; backface-visibility: hidden; overflow: hidden; border: 1px solid rgba(26,26,24,0.1); }
   .page-back { transform: rotateY(180deg); }
-
-  .page-inner {
-    width: 100%; height: 100%;
-    background: var(--paper);
-    display: flex; flex-direction: column;
-    padding: 36px; position: relative;
-  }
+  .page-inner { width: 100%; height: 100%; background: var(--paper); display: flex; flex-direction: column; padding: 36px; position: relative; }
   .page-inner.dark { background: var(--ink); color: var(--paper); }
-
-  .page-tag {
-    font-family: var(--font); font-weight: 300;
-    font-size: 0.58rem; letter-spacing: 0.25em;
-    text-transform: uppercase; color: var(--accent); margin-bottom: 14px;
-  }
+  .page-tag { font-family: var(--font); font-weight: 300; font-size: 0.58rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
   .page-title { font-family: var(--font); font-size: 1.1rem; font-weight: 300; line-height: 1.2; margin-bottom: 6px; }
   .page-location { font-size: 0.65rem; letter-spacing: 0.12em; color: var(--mid); margin-bottom: 16px; }
-
-  .img-box {
-    flex: 1; background: rgba(26,26,24,0.04);
-    border: 1px solid var(--rule);
-    display: flex; align-items: center; justify-content: center;
-    position: relative; overflow: hidden;
-  }
+  .img-box { flex: 1; background: rgba(26,26,24,0.04); border: 1px solid var(--rule); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
   .img-box svg { width: 70%; height: 70%; opacity: 0.2; }
-  .img-box .img-lbl {
-    position: absolute; bottom: 8px; right: 10px;
-    font-size: 0.52rem; letter-spacing: 0.15em;
-    text-transform: uppercase; color: var(--mid); font-family: var(--font);
-  }
-  .img-box .img-hover {
-    position: absolute; inset: 0;
-    background: rgba(245,243,238,0.92);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 8px;
-    font-size: 0.62rem; letter-spacing: 0.14em;
-    text-transform: uppercase; color: var(--mid);
-    opacity: 0; transition: opacity 0.25s; font-family: var(--font);
-  }
+  .img-lbl { position: absolute; bottom: 8px; right: 10px; font-size: 0.52rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid); font-family: var(--font); }
+  .img-hover { position: absolute; inset: 0; background: rgba(245,243,238,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mid); opacity: 0; transition: opacity 0.25s; font-family: var(--font); }
   .img-box:hover .img-hover { opacity: 1; }
   .page-desc { margin-top: 12px; font-size: 0.68rem; line-height: 1.8; color: var(--mid); }
-  .page-num {
-    position: absolute; bottom: 14px;
-    font-family: var(--font); font-size: 0.65rem; color: var(--mid); letter-spacing: 0.08em;
-  }
+  .page-num { position: absolute; bottom: 14px; font-family: var(--font); font-size: 0.65rem; color: var(--mid); letter-spacing: 0.08em; }
   .page-num.l { left: 20px; } .page-num.r { right: 20px; }
-
-  .book-spine {
-    position: absolute; left: 50%; top: 0; bottom: 0; width: 3px;
-    background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.03));
-    transform: translateX(-50%); z-index: 20;
-    box-shadow: 0 0 8px rgba(0,0,0,0.06);
-  }
-  .book-shadow {
-    width: 85%; height: 12px;
-    background: radial-gradient(ellipse, rgba(0,0,0,0.18) 0%, transparent 70%);
-    margin-top: -2px;
-  }
+  .book-spine { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.03)); transform: translateX(-50%); z-index: 20; }
+  .book-shadow { width: 85%; height: 12px; background: radial-gradient(ellipse, rgba(0,0,0,0.18) 0%, transparent 70%); margin-top: -2px; }
   .book-controls { display: flex; align-items: center; gap: 36px; margin-top: 18px; }
-  .book-btn {
-    font-family: var(--font); font-weight: 300;
-    font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
-    background: none; border: none; color: var(--ink); cursor: none;
-    padding: 8px 0; position: relative; transition: color 0.2s;
-  }
-  .book-btn::after {
-    content: ''; position: absolute; bottom: 4px; left: 0; right: 0;
-    height: 1px; background: var(--accent);
-    transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
-  }
+  .book-btn { font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; background: none; border: none; color: var(--ink); cursor: none; padding: 8px 0; position: relative; transition: color 0.2s; }
+  .book-btn::after { content: ''; position: absolute; bottom: 4px; left: 0; right: 0; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.3s; }
   .book-btn:hover:not(:disabled)::after { transform: scaleX(1); }
   .book-btn:disabled { color: var(--mid); }
-  .page-indicator {
-    font-family: var(--font); font-size: 0.72rem;
-    color: var(--mid); letter-spacing: 0.12em; min-width: 80px; text-align: center;
-  }
-
+  .page-indicator { font-family: var(--font); font-size: 0.72rem; color: var(--mid); letter-spacing: 0.12em; min-width: 80px; text-align: center; }
   .cm { position: absolute; width: 16px; height: 16px; border-style: solid; border-color: rgba(26,26,24,0.15); border-width: 0; }
   .cm.tl { top: 14px; left: 14px; border-top-width: 1px; border-left-width: 1px; }
   .cm.tr { top: 14px; right: 14px; border-top-width: 1px; border-right-width: 1px; }
@@ -239,174 +134,58 @@
   .cm.br { bottom: 14px; right: 14px; border-bottom-width: 1px; border-right-width: 1px; }
   .cm.light { border-color: rgba(245,243,238,0.2); }
 
-  /* ─── RESUME PAGE ─── */
-  #view-resume {
-    background: var(--ink); color: var(--paper);
-    overflow-y: auto;
-  }
-  .resume-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 100px 56px 80px;
-  }
-
-  /* Header */
-  .resume-header {
-    display: flex; justify-content: space-between; align-items: flex-end;
-    margin-bottom: 56px;
-    padding-bottom: 32px;
-    border-bottom: 1px solid rgba(245,243,238,0.1);
-  }
-  .resume-header h2 {
-    font-family: var(--font); font-size: clamp(1.8rem, 3.5vw, 2.8rem);
-    font-weight: 300; letter-spacing: -0.01em; line-height: 1.1;
-  }
+  /* ══════════════ RESUME VIEW ══════════════ */
+  #view-resume { background: var(--ink); color: var(--paper); overflow-y: auto; }
+  .resume-inner { max-width: 1100px; margin: 0 auto; padding: 100px 56px 80px; }
+  .resume-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid rgba(245,243,238,0.1); }
+  .resume-header h2 { font-family: var(--font); font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 300; letter-spacing: -0.01em; line-height: 1.1; }
   .resume-header h2 em { font-style: normal; color: var(--accent); }
-  .resume-header-meta {
-    display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
-    font-family: var(--font); font-size: 0.65rem;
-    letter-spacing: 0.2em; text-transform: uppercase;
-    color: rgba(245,243,238,0.3);
-  }
-
-  /* Two columns */
+  .resume-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-family: var(--font); font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(245,243,238,0.3); }
   .resume-columns {
-    display: grid; grid-template-columns: 1.4fr 1fr; gap: 56px;
+    display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0;
   }
-
+  .resume-col-divider {
+    background: rgba(245,243,238,0.1);
+    margin: 0 48px;
+  }
   .resume-block { margin-bottom: 48px; }
-  .resume-block-title {
-    font-family: var(--font); font-size: 0.55rem; font-weight: 300;
-    letter-spacing: 0.3em; text-transform: uppercase;
-    color: rgba(245,243,238,0.3);
-    padding-bottom: 12px; margin-bottom: 4px;
-    border-bottom: 1px solid rgba(245,243,238,0.08);
-  }
+  .resume-block-title { font-family: var(--font); font-size: 0.55rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(245,243,238,0.3); padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(245,243,238,0.08); }
+  .resume-entry { padding: 20px 0; border-bottom: 1px solid rgba(245,243,238,0.06);  }
 
-  .resume-entry {
-    padding: 20px 0;
-    border-bottom: 1px solid rgba(245,243,238,0.06);
-    transition: padding-left 0.3s;
-  }
-  .resume-entry:hover { padding-left: 6px; }
-
-  .resume-entry-header {
-    display: flex; justify-content: space-between;
-    align-items: flex-start; gap: 16px;
-    margin-bottom: 12px;
-  }
-  .resume-org {
-    font-family: var(--font); font-size: 0.85rem; font-weight: 300;
-    letter-spacing: 0.03em; margin-bottom: 3px;
-    color: var(--paper);
-  }
-  .resume-org-sub {
-    font-family: var(--font); font-size: 0.65rem;
-    letter-spacing: 0.1em; color: rgba(245,243,238,0.35);
-    margin-bottom: 5px;
-  }
-  .resume-role {
-    font-family: var(--font); font-weight: 300;
-    font-size: 0.6rem; letter-spacing: 0.18em;
-    color: var(--accent); text-transform: uppercase;
-  }
-  .resume-year {
-    font-family: var(--font); font-size: 0.6rem;
-    color: rgba(245,243,238,0.35); letter-spacing: 0.08em;
-    white-space: nowrap; text-align: right;
-    flex-shrink: 0; padding-top: 2px; line-height: 1.7;
-  }
-
-  .resume-bullets {
-    list-style: none; padding: 0;
-    display: flex; flex-direction: column; gap: 6px;
-  }
-  .resume-bullets li {
-    font-size: 0.72rem; line-height: 1.75;
-    color: rgba(245,243,238,0.5);
-    padding-left: 14px; position: relative;
-  }
-  .resume-bullets li::before {
-    content: '—';
-    position: absolute; left: 0;
-    color: var(--accent); font-size: 0.6rem;
-    top: 1px;
-  }
-
-  /* Skills grid */
-  .skills-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
-    padding: 20px 0;
-  }
-  .skill-group-label {
-    font-family: var(--font); font-size: 0.58rem;
-    letter-spacing: 0.18em; text-transform: uppercase;
-    color: rgba(245,243,238,0.3); margin-bottom: 10px;
-  }
-  .skill-list {
-    list-style: none; padding: 0;
-    display: flex; flex-direction: column; gap: 7px;
-  }
-  .skill-list li {
-    font-family: var(--font); font-size: 0.72rem;
-    color: rgba(245,243,238,0.6); letter-spacing: 0.04em;
-    padding-left: 12px; position: relative;
-  }
-  .skill-list li::before {
-    content: '·'; position: absolute; left: 0;
-    color: var(--accent);
-  }
-
-  .resume-dl {
-    display: inline-flex; align-items: center; gap: 12px; margin-top: 40px;
-    font-family: var(--font); font-weight: 300;
-    font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase;
-    color: var(--paper); text-decoration: none;
-    padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s;
-  }
+  .resume-entry-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
+  .resume-org { font-family: var(--font); font-size: 0.85rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 3px; color: var(--paper); }
+  .resume-org-sub { font-family: var(--font); font-size: 0.65rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 5px; }
+  .resume-role { font-family: var(--font); font-weight: 300; font-size: 0.6rem; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
+  .resume-year { font-family: var(--font); font-size: 0.6rem; color: rgba(245,243,238,0.35); letter-spacing: 0.08em; white-space: nowrap; text-align: right; flex-shrink: 0; padding-top: 2px; line-height: 1.7; }
+  .resume-bullets { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .resume-bullets li { font-size: 0.72rem; line-height: 1.75; color: rgba(245,243,238,0.5); padding-left: 14px; position: relative; }
+  .resume-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--accent); font-size: 0.6rem; top: 1px; }
+  .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 0; }
+  .skill-group-label { font-family: var(--font); font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(245,243,238,0.3); margin-bottom: 10px; }
+  .skill-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+  .skill-list li { font-family: var(--font); font-size: 0.72rem; color: rgba(245,243,238,0.6); letter-spacing: 0.04em; padding-left: 12px; position: relative; }
+  .skill-list li::before { content: '·'; position: absolute; left: 0; color: var(--accent); }
+  .resume-dl { display: inline-flex; align-items: center; gap: 12px; margin-top: 40px; font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s; }
   .resume-dl:hover { color: var(--accent); }
 
-  /* ─── CONTACT PAGE ─── */
-  #view-contact {
-    background: var(--warm-white);
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 80px; align-items: center; padding: 0 56px;
-  }
-  #view-contact h2 {
-    font-family: var(--font); font-size: clamp(2.2rem, 5vw, 4.5rem);
-    font-weight: 300; line-height: 1.05; letter-spacing: -0.01em; color: var(--ink);
-  }
+  /* ══════════════ CONTACT VIEW ══════════════ */
+  #view-contact { background: var(--warm-white); display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; padding: 0 56px; }
+  #view-contact h2 { font-family: var(--font); font-size: clamp(2.2rem, 5vw, 4.5rem); font-weight: 300; line-height: 1.05; letter-spacing: -0.01em; color: var(--ink); }
   #view-contact h2 em { font-style: normal; color: var(--accent); }
   .contact-list { display: flex; flex-direction: column; }
-  .contact-row {
-    display: grid; grid-template-columns: 110px 1fr;
-    gap: 20px; padding: 26px 0;
-    border-bottom: 1px solid var(--rule); align-items: baseline;
-  }
+  .contact-row { display: grid; grid-template-columns: 110px 1fr; gap: 20px; padding: 26px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
   .contact-row:first-child { border-top: 1px solid var(--rule); }
-  .contact-lbl {
-    font-family: var(--font); font-weight: 300;
-    font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mid);
-  }
-  .contact-val {
-    font-family: var(--font); font-size: 0.88rem; font-weight: 300;
-    letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s;
-  }
+  .contact-lbl { font-family: var(--font); font-weight: 300; font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mid); }
+  .contact-val { font-family: var(--font); font-size: 0.88rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
   .contact-val:hover { color: var(--accent); }
 
-  /* ANIMATIONS */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(22px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
   @media (max-width: 760px) {
     nav { padding: 20px 24px; }
     .resume-inner { padding: 90px 24px 60px; }
-    .resume-columns { grid-template-columns: 1fr; gap: 0; }
+    .resume-columns { grid-template-columns: 1fr; } .resume-col-divider { display: none; }
     .resume-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-    .resume-header-meta { align-items: flex-start; }
-    .skills-grid { grid-template-columns: 1fr; }
     #view-contact { grid-template-columns: 1fr; padding: 80px 24px; gap: 40px; }
     .portfolio-card { padding: 24px 16px 16px; }
   }
@@ -414,178 +193,173 @@
 </head>
 <body>
 
-<div class="cursor" id="cursor"></div>
-<div class="cursor-ring" id="cursorRing"></div>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
 
-<!-- NAV -->
 <nav id="main-nav">
-  <button class="nav-logo" data-view="portfolio">Benjamin Reed Perks</button>
+  <button class="nav-logo" onclick="switchView('portfolio')">Benjamin Reed Perks</button>
   <ul class="nav-links">
-    <li><button data-view="portfolio" class="nav-btn active-link">Portfolio</button></li>
-    <li><button data-view="resume" class="nav-btn">Resume</button></li>
-    <li><button data-view="contact" class="nav-btn">Contact</button></li>
+    <li><button id="nav-portfolio" class="active" onclick="switchView('portfolio')">Portfolio</button></li>
+    <li><button id="nav-resume" onclick="switchView('resume')">Resume</button></li>
+    <li><button id="nav-contact" onclick="switchView('contact')">Contact</button></li>
   </ul>
 </nav>
 
 <!-- ══════════════ PORTFOLIO ══════════════ -->
-<div class="page-view active" id="view-portfolio">
-  <div class="portfolio-card">
-    <div class="book-wrapper">
-      <div class="book" id="book">
-        <div class="book-spine"></div>
+<div class="view active" id="view-portfolio">
+  <div style="background:#0e0e0c; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+    <div class="portfolio-card">
+      <div class="book-wrapper">
+        <div class="book" id="book">
+          <div class="book-spine"></div>
 
-        <!-- COVER -->
-        <div class="page right-side" id="page-0" style="z-index:10;">
-          <div class="page-front">
-            <div class="page-inner dark" style="justify-content:space-between;">
-              <div class="cm tl light"></div><div class="cm tr light"></div>
-              <div class="cm bl light"></div><div class="cm br light"></div>
-              <div>
-                <p style="font-size:0.58rem;letter-spacing:0.28em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;font-family:var(--font);font-weight:300;">Portfolio</p>
-                <p style="font-family:var(--font);font-size:1.7rem;font-weight:300;line-height:1.15;color:var(--paper);">Benjamin<br>Reed Perks</p>
-              </div>
-              <div>
-                <p style="font-family:var(--font);font-weight:300;font-size:0.62rem;letter-spacing:0.18em;color:rgba(245,243,238,0.35);">Architecture &amp; Design</p>
-                <p style="font-family:var(--font);font-weight:300;font-size:0.6rem;letter-spacing:0.14em;color:rgba(245,243,238,0.2);margin-top:6px;">2020 — 2024</p>
-              </div>
-              <p style="font-family:var(--font);font-weight:300;font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(245,243,238,0.25);text-align:right;">Click to open →</p>
-            </div>
-          </div>
-          <div class="page-back">
-            <div class="page-inner">
-              <p class="page-tag">Project 01</p>
-              <p class="page-title">Studio Residence</p>
-              <p class="page-location">Brooklyn, New York</p>
-              <div class="img-box">
-                <svg viewBox="0 0 200 140" fill="none">
-                  <rect x="20" y="20" width="160" height="100" stroke="#1a1a18" stroke-width="0.8"/>
-                  <line x1="20" y1="60" x2="180" y2="60" stroke="#1a1a18" stroke-width="0.4"/>
-                  <rect x="80" y="60" width="40" height="60" stroke="#1a1a18" stroke-width="0.4"/>
-                  <rect x="30" y="30" width="30" height="20" stroke="#1a1a18" stroke-width="0.4"/>
-                  <rect x="140" y="30" width="30" height="20" stroke="#1a1a18" stroke-width="0.4"/>
-                </svg>
-                <span class="img-lbl">Floor Plan</span>
-                <div class="img-hover">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                  Add Image
+          <!-- COVER -->
+          <div class="page right-side" id="page-0" style="z-index:10;">
+            <div class="page-front">
+              <div class="page-inner dark" style="justify-content:space-between;">
+                <div class="cm tl light"></div><div class="cm tr light"></div>
+                <div class="cm bl light"></div><div class="cm br light"></div>
+                <div>
+                  <p style="font-size:0.58rem;letter-spacing:0.28em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;font-family:var(--font);font-weight:300;">Portfolio</p>
+                  <p style="font-family:var(--font);font-size:1.7rem;font-weight:300;line-height:1.15;color:var(--paper);">Benjamin<br>Reed Perks</p>
                 </div>
+                <div>
+                  <p style="font-family:var(--font);font-weight:300;font-size:0.62rem;letter-spacing:0.18em;color:rgba(245,243,238,0.35);">Architecture &amp; Design</p>
+                  <p style="font-family:var(--font);font-weight:300;font-size:0.6rem;letter-spacing:0.14em;color:rgba(245,243,238,0.2);margin-top:6px;">2020 — 2024</p>
+                </div>
+                <p style="font-family:var(--font);font-weight:300;font-size:0.58rem;letter-spacing:0.2em;text-transform:uppercase;color:rgba(245,243,238,0.25);text-align:right;">Click to open →</p>
               </div>
-              <span class="page-num r">01</span>
+            </div>
+            <div class="page-back">
+              <div class="page-inner">
+                <p class="page-tag">Project 01</p>
+                <p class="page-title">Studio Residence</p>
+                <p class="page-location">Brooklyn, New York</p>
+                <div class="img-box">
+                  <svg viewBox="0 0 200 140" fill="none">
+                    <rect x="20" y="20" width="160" height="100" stroke="#1a1a18" stroke-width="0.8"/>
+                    <line x1="20" y1="60" x2="180" y2="60" stroke="#1a1a18" stroke-width="0.4"/>
+                    <rect x="80" y="60" width="40" height="60" stroke="#1a1a18" stroke-width="0.4"/>
+                    <rect x="30" y="30" width="30" height="20" stroke="#1a1a18" stroke-width="0.4"/>
+                    <rect x="140" y="30" width="30" height="20" stroke="#1a1a18" stroke-width="0.4"/>
+                  </svg>
+                  <span class="img-lbl">Floor Plan</span>
+                  <div class="img-hover">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Add Image
+                  </div>
+                </div>
+                <span class="page-num r">01</span>
+              </div>
             </div>
           </div>
+
+          <!-- SPREAD 1 -->
+          <div class="page left-side" id="page-1" style="z-index:9;">
+            <div class="page-front">
+              <div class="page-inner">
+                <p class="page-tag">Project 01 — Drawings</p>
+                <div class="img-box" style="flex:1; margin-bottom:14px;">
+                  <svg viewBox="0 0 200 160" fill="none">
+                    <line x1="10" y1="140" x2="190" y2="140" stroke="#1a1a18" stroke-width="1"/>
+                    <rect x="40" y="40" width="120" height="100" stroke="#1a1a18" stroke-width="0.8"/>
+                    <line x1="40" y1="80" x2="160" y2="80" stroke="#1a1a18" stroke-width="0.4"/>
+                    <line x1="100" y1="40" x2="100" y2="140" stroke="#1a1a18" stroke-width="0.4"/>
+                    <path d="M40 40 L100 10 L160 40" stroke="#1a1a18" stroke-width="0.8" fill="none"/>
+                    <rect x="80" y="80" width="40" height="60" stroke="#1a1a18" stroke-width="0.4"/>
+                  </svg>
+                  <span class="img-lbl">Section A–A</span>
+                  <div class="img-hover">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Add Image
+                  </div>
+                </div>
+                <p class="page-desc">A compact live/work unit exploring the threshold between public and private space through a folded section.</p>
+                <span class="page-num l">02</span>
+              </div>
+            </div>
+            <div class="page-back">
+              <div class="page-inner">
+                <p class="page-tag">Project 02</p>
+                <p class="page-title">Cultural Pavilion</p>
+                <p class="page-location">Hudson Valley, New York</p>
+                <div class="img-box" style="flex:1;">
+                  <svg viewBox="0 0 200 140" fill="none">
+                    <ellipse cx="100" cy="100" rx="80" ry="24" stroke="#1a1a18" stroke-width="0.5"/>
+                    <path d="M20 100 L100 20 L180 100" stroke="#1a1a18" stroke-width="0.8" fill="none"/>
+                    <line x1="100" y1="20" x2="100" y2="100" stroke="#1a1a18" stroke-width="0.4" stroke-dasharray="3 3"/>
+                    <line x1="20" y1="100" x2="180" y2="100" stroke="#1a1a18" stroke-width="0.4"/>
+                  </svg>
+                  <span class="img-lbl">Site Axonometric</span>
+                  <div class="img-hover">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Add Image
+                  </div>
+                </div>
+                <span class="page-num r">03</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- SPREAD 2 -->
+          <div class="page left-side" id="page-2" style="z-index:8;">
+            <div class="page-front">
+              <div class="page-inner">
+                <p class="page-tag">Project 02 — Renderings</p>
+                <div class="img-box" style="flex:1; margin-bottom:14px;">
+                  <svg viewBox="0 0 200 160" fill="none">
+                    <polygon points="40,130 100,50 160,130" stroke="#1a1a18" stroke-width="0.8" fill="rgba(26,26,24,0.03)"/>
+                    <polygon points="40,130 160,130 175,112 55,112" stroke="#1a1a18" stroke-width="0.5" fill="rgba(26,26,24,0.06)"/>
+                    <line x1="40" y1="130" x2="55" y2="112" stroke="#1a1a18" stroke-width="0.5"/>
+                    <line x1="160" y1="130" x2="175" y2="112" stroke="#1a1a18" stroke-width="0.5"/>
+                    <line x1="100" y1="50" x2="115" y2="32" stroke="#1a1a18" stroke-width="0.4" stroke-dasharray="2 2"/>
+                  </svg>
+                  <span class="img-lbl">Perspective View</span>
+                  <div class="img-hover">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    Add Image
+                  </div>
+                </div>
+                <p class="page-desc">A lightweight seasonal pavilion using glulam structure and tensile membranes to frame views of the landscape.</p>
+                <span class="page-num l">04</span>
+              </div>
+            </div>
+            <div class="page-back">
+              <div class="page-inner dark" style="justify-content:center; align-items:center; text-align:center;">
+                <div class="cm tl light"></div><div class="cm br light"></div>
+                <p style="font-family:var(--font);font-size:1.1rem;font-weight:300;color:var(--paper);line-height:1.6;max-width:220px;">More projects<br>coming soon.</p>
+                <p style="font-family:var(--font);font-weight:300;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,243,238,0.25);margin-top:20px;">End of Portfolio</p>
+                <span class="page-num r" style="color:rgba(245,243,238,0.25);">05</span>
+              </div>
+            </div>
+          </div>
+
         </div>
-
-        <!-- SPREAD 1 -->
-        <div class="page left-side" id="page-1" style="z-index:9;">
-          <div class="page-front">
-            <div class="page-inner">
-              <p class="page-tag">Project 01 — Drawings</p>
-              <div class="img-box" style="flex:1; margin-bottom:14px;">
-                <svg viewBox="0 0 200 160" fill="none">
-                  <line x1="10" y1="140" x2="190" y2="140" stroke="#1a1a18" stroke-width="1"/>
-                  <rect x="40" y="40" width="120" height="100" stroke="#1a1a18" stroke-width="0.8"/>
-                  <line x1="40" y1="80" x2="160" y2="80" stroke="#1a1a18" stroke-width="0.4"/>
-                  <line x1="100" y1="40" x2="100" y2="140" stroke="#1a1a18" stroke-width="0.4"/>
-                  <path d="M40 40 L100 10 L160 40" stroke="#1a1a18" stroke-width="0.8" fill="none"/>
-                  <rect x="80" y="80" width="40" height="60" stroke="#1a1a18" stroke-width="0.4"/>
-                </svg>
-                <span class="img-lbl">Section A–A</span>
-                <div class="img-hover">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                  Add Image
-                </div>
-              </div>
-              <p class="page-desc">A compact live/work unit exploring the threshold between public and private space through a folded section.</p>
-              <span class="page-num l">02</span>
-            </div>
-          </div>
-          <div class="page-back">
-            <div class="page-inner">
-              <p class="page-tag">Project 02</p>
-              <p class="page-title">Cultural Pavilion</p>
-              <p class="page-location">Hudson Valley, New York</p>
-              <div class="img-box" style="flex:1;">
-                <svg viewBox="0 0 200 140" fill="none">
-                  <ellipse cx="100" cy="100" rx="80" ry="24" stroke="#1a1a18" stroke-width="0.5"/>
-                  <path d="M20 100 L100 20 L180 100" stroke="#1a1a18" stroke-width="0.8" fill="none"/>
-                  <line x1="100" y1="20" x2="100" y2="100" stroke="#1a1a18" stroke-width="0.4" stroke-dasharray="3 3"/>
-                  <line x1="20" y1="100" x2="180" y2="100" stroke="#1a1a18" stroke-width="0.4"/>
-                </svg>
-                <span class="img-lbl">Site Axonometric</span>
-                <div class="img-hover">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                  Add Image
-                </div>
-              </div>
-              <span class="page-num r">03</span>
-            </div>
-          </div>
+        <div class="book-shadow"></div>
+        <div class="book-controls">
+          <button class="book-btn" id="btn-prev" disabled>← Prev</button>
+          <span class="page-indicator" id="page-indicator">Cover</span>
+          <button class="book-btn" id="btn-next">Next →</button>
         </div>
-
-        <!-- SPREAD 2 -->
-        <div class="page left-side" id="page-2" style="z-index:8;">
-          <div class="page-front">
-            <div class="page-inner">
-              <p class="page-tag">Project 02 — Renderings</p>
-              <div class="img-box" style="flex:1; margin-bottom:14px;">
-                <svg viewBox="0 0 200 160" fill="none">
-                  <polygon points="40,130 100,50 160,130" stroke="#1a1a18" stroke-width="0.8" fill="rgba(26,26,24,0.03)"/>
-                  <polygon points="40,130 160,130 175,112 55,112" stroke="#1a1a18" stroke-width="0.5" fill="rgba(26,26,24,0.06)"/>
-                  <line x1="40" y1="130" x2="55" y2="112" stroke="#1a1a18" stroke-width="0.5"/>
-                  <line x1="160" y1="130" x2="175" y2="112" stroke="#1a1a18" stroke-width="0.5"/>
-                  <line x1="100" y1="50" x2="115" y2="32" stroke="#1a1a18" stroke-width="0.4" stroke-dasharray="2 2"/>
-                </svg>
-                <span class="img-lbl">Perspective View</span>
-                <div class="img-hover">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                  Add Image
-                </div>
-              </div>
-              <p class="page-desc">A lightweight seasonal pavilion using glulam structure and tensile membranes to frame views of the landscape.</p>
-              <span class="page-num l">04</span>
-            </div>
-          </div>
-          <div class="page-back">
-            <div class="page-inner dark" style="justify-content:center; align-items:center; text-align:center;">
-              <div class="cm tl light"></div><div class="cm br light"></div>
-              <p style="font-family:var(--font);font-size:1.1rem;font-weight:300;color:var(--paper);line-height:1.6;max-width:220px;">More projects<br>coming soon.</p>
-              <p style="font-family:var(--font);font-weight:300;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,243,238,0.25);margin-top:20px;">End of Portfolio</p>
-              <span class="page-num r" style="color:rgba(245,243,238,0.25);">05</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-      <div class="book-shadow"></div>
-      <div class="book-controls">
-        <button class="book-btn" id="btn-prev" disabled>← Prev</button>
-        <span class="page-indicator" id="page-indicator">Cover</span>
-        <button class="book-btn" id="btn-next">Next →</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ══════════════ RESUME ══════════════ -->
-<div class="page-view hidden" id="view-resume">
+<div class="view" id="view-resume">
   <div class="resume-inner">
-
     <div class="resume-header">
       <h2>Benjamin Reed<br><em>Perks</em></h2>
       <div class="resume-header-meta">
         <span>Architecture &amp; Design</span>
-        <span>New York, NY</span>
+        <span>Philadelphia, PA</span>
       </div>
     </div>
-
     <div class="resume-columns">
-
-      <!-- LEFT COLUMN -->
       <div class="resume-col-left">
-
         <div class="resume-block">
           <p class="resume-block-title">Work Experience</p>
-
           <div class="resume-entry">
             <div class="resume-entry-header">
               <div>
@@ -600,7 +374,6 @@
               <li>Led introductory training sessions in 3D modeling, printer operation, and slicer software for incoming students</li>
             </ul>
           </div>
-
           <div class="resume-entry">
             <div class="resume-entry-header">
               <div>
@@ -615,7 +388,6 @@
               <li>Ran Junior Camp summer program for 10–15 children, ages 8–14</li>
             </ul>
           </div>
-
           <div class="resume-entry">
             <div class="resume-entry-header">
               <div>
@@ -630,7 +402,6 @@
               <li>Conducted research on building codes and materials specifications</li>
             </ul>
           </div>
-
           <div class="resume-entry">
             <div class="resume-entry-header">
               <div>
@@ -646,7 +417,10 @@
             </ul>
           </div>
         </div>
+      </div>
 
+      <div class="resume-col-divider"></div>
+      <div class="resume-col-right">
         <div class="resume-block">
           <p class="resume-block-title">Education</p>
           <div class="resume-entry">
@@ -664,12 +438,6 @@
             </ul>
           </div>
         </div>
-
-      </div>
-
-      <!-- RIGHT COLUMN -->
-      <div class="resume-col-right">
-
         <div class="resume-block">
           <p class="resume-block-title">Athletics</p>
           <div class="resume-entry">
@@ -688,7 +456,6 @@
             </ul>
           </div>
         </div>
-
         <div class="resume-block">
           <p class="resume-block-title">Skills</p>
           <div class="skills-grid">
@@ -713,7 +480,6 @@
             </div>
           </div>
         </div>
-
         <div class="resume-block">
           <p class="resume-block-title">Service</p>
           <div class="resume-entry" style="border-bottom:none; padding-bottom:0;">
@@ -722,21 +488,19 @@
             </ul>
           </div>
         </div>
-
       </div>
     </div>
-
     <a href="#" class="resume-dl">Download Full CV &nbsp;↗</a>
   </div>
 </div>
 
 <!-- ══════════════ CONTACT ══════════════ -->
-<div class="page-view hidden" id="view-contact">
+<div class="view" id="view-contact">
   <h2>Let's work<br><em>together.</em></h2>
   <div class="contact-list">
     <div class="contact-row">
       <span class="contact-lbl">Email</span>
-      <a href="/cdn-cgi/l/email-protection#4d25282121220d2f2823272c2024233f2828293d283f263e632e2220" class="contact-val"><span class="__cf_email__" data-cfemail="a2cac7cececde2c0c7ccc8c3cfcbccd0c7c7c6d2c7d0c9d18cc1cdcf">[email&#160;protected]</span></a>
+      <a href="mailto:hello@benjaminreedperks.com" class="contact-val">hello@benjaminreedperks.com</a>
     </div>
     <div class="contact-row">
       <span class="contact-lbl">Instagram</span>
@@ -748,79 +512,90 @@
     </div>
     <div class="contact-row">
       <span class="contact-lbl">Location</span>
-      <span class="contact-val">New York, NY</span>
+      <span class="contact-val">Philadelphia, PA</span>
     </div>
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
   // ── Cursor ──
-  const cursor = document.getElementById('cursor');
-  const ring   = document.getElementById('cursorRing');
-  let mx = 0, my = 0, rx = 0, ry = 0;
-  document.addEventListener('mousemove', e => {
-    mx = e.clientX; my = e.clientY;
-    cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+  const dot  = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+
+  document.addEventListener('mousemove', function(e) {
+    dot.style.left  = e.clientX + 'px';
+    dot.style.top   = e.clientY + 'px';
+    ring.style.left = e.clientX + 'px';
+    ring.style.top  = e.clientY + 'px';
   });
-  (function animRing() {
-    rx += (mx - rx) * 0.12; ry += (my - ry) * 0.12;
-    ring.style.left = rx + 'px'; ring.style.top = ry + 'px';
-    requestAnimationFrame(animRing);
-  })();
-  document.querySelectorAll('a, button, .img-box').forEach(el => {
-    el.addEventListener('mouseenter', () => ring.classList.add('expand'));
-    el.addEventListener('mouseleave', () => ring.classList.remove('expand'));
+
+  document.querySelectorAll('button, a, .img-box').forEach(function(el) {
+    el.addEventListener('mouseenter', function() { ring.classList.add('expand'); });
+    el.addEventListener('mouseleave', function() { ring.classList.remove('expand'); });
   });
 
   // ── View switching ──
-  const nav      = document.getElementById('main-nav');
-  const navLinks = document.querySelectorAll('.nav-links .nav-btn[data-view]');
-  const logoLink = document.querySelector('.nav-logo[data-view]');
-  const viewIds  = { portfolio: 'view-portfolio', resume: 'view-resume', contact: 'view-contact' };
+  var currentView = 'portfolio';
+  var nav = document.getElementById('main-nav');
 
   function switchView(key) {
-    Object.values(viewIds).forEach(id => {
-      document.getElementById(id).classList.remove('active');
-      document.getElementById(id).classList.add('hidden');
+    // hide all
+    document.querySelectorAll('.view').forEach(function(v) {
+      v.classList.remove('active');
     });
-    const target = document.getElementById(viewIds[key]);
-    target.classList.remove('hidden');
-    requestAnimationFrame(() => requestAnimationFrame(() => target.classList.add('active')));
+    // show target
+    document.getElementById('view-' + key).classList.add('active');
 
-    // Nav text color
-    nav.classList.toggle('light', key === 'contact');
+    // update nav button underlines
+    ['portfolio','resume','contact'].forEach(function(k) {
+      var btn = document.getElementById('nav-' + k);
+      if (btn) btn.classList.toggle('active', k === key);
+    });
 
-    navLinks.forEach(b => b.classList.toggle('active-link', b.dataset.view === key));
+    // nav text color: dark on contact (light bg), white on others
+    if (key === 'contact') {
+      nav.classList.add('dark');
+    } else {
+      nav.classList.remove('dark');
+    }
+
+    currentView = key;
   }
 
-  navLinks.forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
-  logoLink.addEventListener('click', () => switchView('portfolio'));
-
   // ── Book flip ──
-  const pages = [
+  var pages = [
     { el: document.getElementById('page-0'), label: 'Cover' },
     { el: document.getElementById('page-1'), label: 'Spread 1 – 2' },
     { el: document.getElementById('page-2'), label: 'Spread 3 – 4' },
   ];
-  let cur = 0;
-  const btnP = document.getElementById('btn-prev');
-  const btnN = document.getElementById('btn-next');
-  const ind  = document.getElementById('page-indicator');
+  var cur = 0;
+  var btnP = document.getElementById('btn-prev');
+  var btnN = document.getElementById('btn-next');
+  var ind  = document.getElementById('page-indicator');
 
   function goNext() {
     if (cur >= pages.length - 1) return;
     pages[cur].el.style.zIndex = 20;
     pages[cur].el.classList.add('flipped');
-    cur++; update();
+    cur++; updateBook();
   }
   function goPrev() {
     if (cur <= 0) return;
     cur--;
     pages[cur].el.classList.remove('flipped');
     pages[cur].el.style.zIndex = pages.length - cur;
-    update();
+    updateBook();
   }
-  function update() {
+  function updateBook() {
     btnP.disabled = cur === 0;
     btnN.disabled = cur === pages.length - 1;
-    ind
+    ind.textContent = pages[cur].label;
+  }
+
+  btnN.addEventListener('click', goNext);
+  btnP.addEventListener('click', goPrev);
+  document.getElementById('page-0').addEventListener('click', function() { if (cur === 0) goNext(); });
+  updateBook();
+</script>
+</body>
+</html>
