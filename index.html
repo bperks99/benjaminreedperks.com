@@ -23,32 +23,32 @@
   #cursor {
     position: fixed;
     width: 10px; height: 10px;
-    background: var(--accent);
+    background: #fff;
     border-radius: 50%;
     pointer-events: none;
     z-index: 99999;
-    top: 0; left: 0;
+    top: -20px; left: -20px;
     transform: translate(-50%, -50%);
   }
   #cursor-ring {
     position: fixed;
     width: 34px; height: 34px;
-    border: 1.5px solid var(--accent);
+    border: 1.5px solid rgba(255,255,255,0.6);
     border-radius: 50%;
     pointer-events: none;
     z-index: 99998;
-    top: 0; left: 0;
+    top: -20px; left: -20px;
     transform: translate(-50%, -50%);
-    opacity: 0.5;
-    transition: width 0.25s, height 0.25s, opacity 0.25s;
+    transition: width 0.25s, height 0.25s;
   }
-  #cursor-ring.expand { width: 56px; height: 56px; opacity: 1; }
+  #cursor-ring.expand { width: 54px; height: 54px; }
 
   /* ── VIEWS ── */
   .view {
     position: fixed; inset: 0;
     width: 100vw; height: 100vh;
-    opacity: 0; pointer-events: none;
+    opacity: 0;
+    pointer-events: none;
     transition: opacity 0.5s ease;
   }
   .view.active { opacity: 1; pointer-events: all; }
@@ -80,11 +80,10 @@
   }
   .nav-links button:hover::after,
   .nav-links button.active::after { transform: scaleX(1); }
-  /* Dark nav for contact page */
   nav.dark .nav-logo,
   nav.dark .nav-links button { color: var(--ink); }
 
-  /* ══════════════ PORTFOLIO VIEW ══════════════ */
+  /* ══════════════ PORTFOLIO ══════════════ */
   #view-portfolio {
     background: #0e0e0c;
     display: flex; align-items: center; justify-content: center;
@@ -134,24 +133,20 @@
   .cm.br { bottom: 14px; right: 14px; border-bottom-width: 1px; border-right-width: 1px; }
   .cm.light { border-color: rgba(245,243,238,0.2); }
 
-  /* ══════════════ RESUME VIEW ══════════════ */
+  /* ══════════════ RESUME ══════════════ */
   #view-resume { background: var(--ink); color: var(--paper); overflow-y: auto; }
   .resume-inner { max-width: 1100px; margin: 0 auto; padding: 100px 56px 80px; }
   .resume-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid rgba(245,243,238,0.1); }
   .resume-header h2 { font-family: var(--font); font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 300; letter-spacing: -0.01em; line-height: 1.1; }
   .resume-header h2 em { font-style: normal; color: var(--accent); }
   .resume-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-family: var(--font); font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(245,243,238,0.3); }
-  .resume-columns {
-    display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0;
-  }
-  .resume-col-divider {
-    background: rgba(245,243,238,0.1);
-    margin: 0 48px;
-  }
+  .resume-columns { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0; align-items: start; }
+  .resume-col-left { padding-right: 64px; }
+  .resume-col-right { padding-left: 64px; }
+  .resume-col-divider { background: rgba(245,243,238,0.1); align-self: stretch; }
   .resume-block { margin-bottom: 48px; }
   .resume-block-title { font-family: var(--font); font-size: 0.55rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(245,243,238,0.3); padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(245,243,238,0.08); }
-  .resume-entry { padding: 20px 0; border-bottom: 1px solid rgba(245,243,238,0.06);  }
-
+  .resume-entry { padding: 20px 0; border-bottom: 1px solid rgba(245,243,238,0.06); }
   .resume-entry-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
   .resume-org { font-family: var(--font); font-size: 0.85rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 3px; color: var(--paper); }
   .resume-org-sub { font-family: var(--font); font-size: 0.65rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 5px; }
@@ -165,10 +160,11 @@
   .skill-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 7px; }
   .skill-list li { font-family: var(--font); font-size: 0.72rem; color: rgba(245,243,238,0.6); letter-spacing: 0.04em; padding-left: 12px; position: relative; }
   .skill-list li::before { content: '·'; position: absolute; left: 0; color: var(--accent); }
-  .resume-dl { display: inline-flex; align-items: center; gap: 12px; margin-top: 40px; font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s; }
+  .resume-footer { text-align: center; padding: 48px 0 0; }
+  .resume-dl { display: inline-flex; align-items: center; gap: 12px; font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s; }
   .resume-dl:hover { color: var(--accent); }
 
-  /* ══════════════ CONTACT VIEW ══════════════ */
+  /* ══════════════ CONTACT ══════════════ */
   #view-contact { background: var(--warm-white); display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; padding: 0 56px; }
   #view-contact h2 { font-family: var(--font); font-size: clamp(2.2rem, 5vw, 4.5rem); font-weight: 300; line-height: 1.05; letter-spacing: -0.01em; color: var(--ink); }
   #view-contact h2 em { font-style: normal; color: var(--accent); }
@@ -179,13 +175,13 @@
   .contact-val { font-family: var(--font); font-size: 0.88rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
   .contact-val:hover { color: var(--accent); }
 
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
   @media (max-width: 760px) {
     nav { padding: 20px 24px; }
     .resume-inner { padding: 90px 24px 60px; }
-    .resume-columns { grid-template-columns: 1fr; } .resume-col-divider { display: none; }
-    .resume-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .resume-columns { grid-template-columns: 1fr; }
+    .resume-col-left { padding-right: 0; }
+    .resume-col-right { padding-left: 0; }
+    .resume-col-divider { display: none; }
     #view-contact { grid-template-columns: 1fr; padding: 80px 24px; gap: 40px; }
     .portfolio-card { padding: 24px 16px 16px; }
   }
@@ -197,22 +193,21 @@
 <div id="cursor-ring"></div>
 
 <nav id="main-nav">
-  <button class="nav-logo" onclick="switchView('portfolio')">Benjamin Reed Perks</button>
+  <button class="nav-logo" id="nav-logo">Benjamin Reed Perks</button>
   <ul class="nav-links">
-    <li><button id="nav-portfolio" class="active" onclick="switchView('portfolio')">Portfolio</button></li>
-    <li><button id="nav-resume" onclick="switchView('resume')">Resume</button></li>
-    <li><button id="nav-contact" onclick="switchView('contact')">Contact</button></li>
+    <li><button id="nav-portfolio" class="active">Portfolio</button></li>
+    <li><button id="nav-resume">Resume</button></li>
+    <li><button id="nav-contact">Contact</button></li>
   </ul>
 </nav>
 
 <!-- ══════════════ PORTFOLIO ══════════════ -->
 <div class="view active" id="view-portfolio">
-  <div style="background:#0e0e0c; width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+  <div style="background:#0e0e0c;width:100%;height:100%;display:flex;align-items:center;justify-content:center;">
     <div class="portfolio-card">
       <div class="book-wrapper">
         <div class="book" id="book">
           <div class="book-spine"></div>
-
           <!-- COVER -->
           <div class="page right-side" id="page-0" style="z-index:10;">
             <div class="page-front">
@@ -253,13 +248,12 @@
               </div>
             </div>
           </div>
-
           <!-- SPREAD 1 -->
           <div class="page left-side" id="page-1" style="z-index:9;">
             <div class="page-front">
               <div class="page-inner">
                 <p class="page-tag">Project 01 — Drawings</p>
-                <div class="img-box" style="flex:1; margin-bottom:14px;">
+                <div class="img-box" style="flex:1;margin-bottom:14px;">
                   <svg viewBox="0 0 200 160" fill="none">
                     <line x1="10" y1="140" x2="190" y2="140" stroke="#1a1a18" stroke-width="1"/>
                     <rect x="40" y="40" width="120" height="100" stroke="#1a1a18" stroke-width="0.8"/>
@@ -300,13 +294,12 @@
               </div>
             </div>
           </div>
-
           <!-- SPREAD 2 -->
           <div class="page left-side" id="page-2" style="z-index:8;">
             <div class="page-front">
               <div class="page-inner">
                 <p class="page-tag">Project 02 — Renderings</p>
-                <div class="img-box" style="flex:1; margin-bottom:14px;">
+                <div class="img-box" style="flex:1;margin-bottom:14px;">
                   <svg viewBox="0 0 200 160" fill="none">
                     <polygon points="40,130 100,50 160,130" stroke="#1a1a18" stroke-width="0.8" fill="rgba(26,26,24,0.03)"/>
                     <polygon points="40,130 160,130 175,112 55,112" stroke="#1a1a18" stroke-width="0.5" fill="rgba(26,26,24,0.06)"/>
@@ -325,7 +318,7 @@
               </div>
             </div>
             <div class="page-back">
-              <div class="page-inner dark" style="justify-content:center; align-items:center; text-align:center;">
+              <div class="page-inner dark" style="justify-content:center;align-items:center;text-align:center;">
                 <div class="cm tl light"></div><div class="cm br light"></div>
                 <p style="font-family:var(--font);font-size:1.1rem;font-weight:300;color:var(--paper);line-height:1.6;max-width:220px;">More projects<br>coming soon.</p>
                 <p style="font-family:var(--font);font-weight:300;font-size:0.58rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(245,243,238,0.25);margin-top:20px;">End of Portfolio</p>
@@ -333,7 +326,6 @@
               </div>
             </div>
           </div>
-
         </div>
         <div class="book-shadow"></div>
         <div class="book-controls">
@@ -357,6 +349,8 @@
       </div>
     </div>
     <div class="resume-columns">
+
+      <!-- LEFT: Work Experience -->
       <div class="resume-col-left">
         <div class="resume-block">
           <p class="resume-block-title">Work Experience</p>
@@ -419,7 +413,10 @@
         </div>
       </div>
 
+      <!-- DIVIDER -->
       <div class="resume-col-divider"></div>
+
+      <!-- RIGHT: Education, Athletics, Skills, Service -->
       <div class="resume-col-right">
         <div class="resume-block">
           <p class="resume-block-title">Education</p>
@@ -482,15 +479,18 @@
         </div>
         <div class="resume-block">
           <p class="resume-block-title">Service</p>
-          <div class="resume-entry" style="border-bottom:none; padding-bottom:0;">
+          <div class="resume-entry" style="border-bottom:none;padding-bottom:0;">
             <ul class="resume-bullets">
               <li>100+ volunteer hours at S.A.V.E. Animal Shelter — Montgomery Township, NJ</li>
             </ul>
           </div>
         </div>
       </div>
+
     </div>
-    <a href="#" class="resume-dl">Download Full CV &nbsp;↗</a>
+    <div class="resume-footer">
+      <a href="#" class="resume-dl">Download Full CV &nbsp;↗</a>
+    </div>
   </div>
 </div>
 
@@ -518,49 +518,40 @@
 </div>
 
 <script>
-  // ── Cursor ──
-  const dot  = document.getElementById('cursor');
-  const ring = document.getElementById('cursor-ring');
+window.addEventListener('DOMContentLoaded', function() {
 
+  // ── Cursor ──
+  var dot  = document.getElementById('cursor');
+  var ring = document.getElementById('cursor-ring');
   document.addEventListener('mousemove', function(e) {
     dot.style.left  = e.clientX + 'px';
     dot.style.top   = e.clientY + 'px';
     ring.style.left = e.clientX + 'px';
     ring.style.top  = e.clientY + 'px';
   });
-
   document.querySelectorAll('button, a, .img-box').forEach(function(el) {
     el.addEventListener('mouseenter', function() { ring.classList.add('expand'); });
     el.addEventListener('mouseleave', function() { ring.classList.remove('expand'); });
   });
 
   // ── View switching ──
-  var currentView = 'portfolio';
-  var nav = document.getElementById('main-nav');
+  var mainNav = document.getElementById('main-nav');
 
   function switchView(key) {
-    // hide all
     document.querySelectorAll('.view').forEach(function(v) {
       v.classList.remove('active');
     });
-    // show target
     document.getElementById('view-' + key).classList.add('active');
-
-    // update nav button underlines
     ['portfolio','resume','contact'].forEach(function(k) {
-      var btn = document.getElementById('nav-' + k);
-      if (btn) btn.classList.toggle('active', k === key);
+      document.getElementById('nav-' + k).classList.toggle('active', k === key);
     });
-
-    // nav text color: dark on contact (light bg), white on others
-    if (key === 'contact') {
-      nav.classList.add('dark');
-    } else {
-      nav.classList.remove('dark');
-    }
-
-    currentView = key;
+    mainNav.classList.toggle('dark', key === 'contact');
   }
+
+  document.getElementById('nav-logo').addEventListener('click',      function() { switchView('portfolio'); });
+  document.getElementById('nav-portfolio').addEventListener('click', function() { switchView('portfolio'); });
+  document.getElementById('nav-resume').addEventListener('click',    function() { switchView('resume'); });
+  document.getElementById('nav-contact').addEventListener('click',   function() { switchView('contact'); });
 
   // ── Book flip ──
   var pages = [
@@ -568,7 +559,7 @@
     { el: document.getElementById('page-1'), label: 'Spread 1 – 2' },
     { el: document.getElementById('page-2'), label: 'Spread 3 – 4' },
   ];
-  var cur = 0;
+  var cur  = 0;
   var btnP = document.getElementById('btn-prev');
   var btnN = document.getElementById('btn-next');
   var ind  = document.getElementById('page-indicator');
@@ -596,6 +587,8 @@
   btnP.addEventListener('click', goPrev);
   document.getElementById('page-0').addEventListener('click', function() { if (cur === 0) goNext(); });
   updateBook();
+
+});
 </script>
 </body>
 </html>
