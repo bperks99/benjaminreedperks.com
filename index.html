@@ -17,20 +17,11 @@
     --font: 'Century Gothic', 'AppleGothic', 'Gill Sans', sans-serif;
   }
 
-  html {
-    width: 100vw;
-    height: 100vh;
+  html, body {
+    width: 100%; height: 100%;
     overflow: hidden;
+    font-family: var(--font); font-weight: 300;
     cursor: none;
-  }
-  body {
-    width: 1920px;
-    height: 1080px;
-    overflow: hidden;
-    font-family: var(--font);
-    font-weight: 300;
-    cursor: none;
-    transform-origin: top left;
   }
 
   /* ── CURSOR ── */
@@ -39,7 +30,7 @@
     background: #fff; border-radius: 50%;
     pointer-events: none; z-index: 99999;
     top: -40px; left: -40px;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%,-50%);
     transition: background 0.3s;
   }
   #cursor-ring {
@@ -47,18 +38,16 @@
     border: 1.5px solid rgba(255,255,255,0.6); border-radius: 50%;
     pointer-events: none; z-index: 99998;
     top: -40px; left: -40px;
-    transform: translate(-50%, -50%);
+    transform: translate(-50%,-50%);
     transition: width 0.25s, height 0.25s, border-color 0.3s;
   }
   #cursor-ring.expand { width: 54px; height: 54px; }
 
   /* ── NAV ── */
   nav {
-    position: fixed; top: 0; left: 0;
-    width: 1920px;
-    z-index: 5000;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 5000;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 28px 80px;
+    padding: 28px 56px;
     pointer-events: all;
   }
   .nav-logo {
@@ -85,8 +74,8 @@
 
   /* ── VIEWS ── */
   .view {
-    position: fixed; top: 0; left: 0;
-    width: 1920px; height: 1080px;
+    position: fixed; inset: 0;
+    width: 100vw; height: 100vh;
     opacity: 0; pointer-events: none;
     transition: opacity 0.5s ease;
   }
@@ -99,13 +88,13 @@
   }
   .portfolio-card {
     background: var(--warm-white);
-    width: 860px; height: 580px;
+    width: min(860px, 88vw); height: min(580px, 72vh);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 40px 40px 28px;
     box-shadow: 0 40px 100px rgba(0,0,0,0.6);
   }
   .book-wrapper { display: flex; flex-direction: column; align-items: center; perspective: 2200px; width: 100%; }
-  .book { position: relative; width: 100%; height: 400px; transform-style: preserve-3d; }
+  .book { position: relative; width: 100%; height: min(400px, 50vh); transform-style: preserve-3d; }
   .page {
     position: absolute; top: 0; width: 50%; height: 100%;
     transform-style: preserve-3d;
@@ -177,85 +166,96 @@
   /* ══════════════ RESUME ══════════════ */
   #view-resume {
     background: var(--ink); color: var(--paper);
-    display: flex; flex-direction: column;
-    overflow: hidden;
+    display: flex; flex-direction: column; overflow: hidden;
   }
-  /* Heading — identical to .contact-heading */
+
+  /* Top heading — identical to contact */
   .resume-heading {
     width: 100%; padding: 48px 0 36px;
-    text-align: center;
-    border-bottom: 1px solid rgba(245,243,238,0.1);
+    text-align: center; border-bottom: 1px solid rgba(245,243,238,0.1);
     flex-shrink: 0;
   }
   .resume-heading h2 {
     font-family: var(--font); font-size: 1.4rem;
-    font-weight: 300; letter-spacing: 0.35em; text-transform: uppercase; color: var(--paper);
+    font-weight: 300; letter-spacing: 0.35em; text-transform: uppercase;
   }
   .resume-heading h2 em { font-style: normal; color: var(--accent); }
 
-  /* Name row — full width between heading and columns */
+  /* Name band — full width below heading */
   .resume-name-row {
-    padding: 32px 160px 28px;
+    padding: 28px 8vw;
     border-bottom: 1px solid rgba(245,243,238,0.1);
     flex-shrink: 0;
   }
   .resume-name {
     font-family: var(--font); font-size: 1.5rem; font-weight: 300;
-    letter-spacing: 0.02em; line-height: 1.15; color: var(--paper);
-    margin-bottom: 6px;
+    letter-spacing: 0.02em; color: var(--paper); margin-bottom: 5px;
   }
+  .resume-name span { color: var(--accent); }
   .resume-name-sub {
     font-family: var(--font); font-size: 0.62rem; letter-spacing: 0.18em;
     text-transform: uppercase; color: rgba(245,243,238,0.35);
   }
 
-  /* Body — two equal columns, fills remaining height */
+  /* Two-column body */
   .resume-body {
     display: grid; grid-template-columns: 1fr 1px 1fr;
     flex: 1; min-height: 0;
   }
   .resume-col-left {
-    padding: 40px 80px 40px 160px;
+    padding: 4vh 4vw 4vh 8vw;
     display: flex; flex-direction: column;
   }
   .resume-col-right {
-    padding: 40px 160px 40px 80px;
+    padding: 4vh 8vw 4vh 4vw;
     display: flex; flex-direction: column; justify-content: space-between;
   }
   .resume-col-divider { background: rgba(245,243,238,0.1); }
 
-  .resume-block { display: flex; flex-direction: column; }
-  /* Left col: single block fills full height, entries spread inside it */
-  .resume-col-left .resume-block { flex: 1; justify-content: space-between; display: flex; flex-direction: column; }
-  .resume-col-left .resume-block .resume-entry { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  /* Left col: single block whose entries spread evenly */
+  .resume-col-left .resume-block {
+    flex: 1; display: flex; flex-direction: column;
+  }
+  .resume-col-left .resume-entry {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    border-bottom: 1px solid rgba(245,243,238,0.06);
+  }
+  .resume-col-left .resume-entry:last-child { border-bottom: none; }
+
   .resume-block-title {
     font-family: var(--font); font-size: 0.55rem; font-weight: 300;
     letter-spacing: 0.3em; text-transform: uppercase;
     color: rgba(245,243,238,0.3); padding-bottom: 10px;
     border-bottom: 1px solid rgba(245,243,238,0.08);
+    margin-bottom: 0; flex-shrink: 0;
   }
-  .resume-entry { padding: 14px 0; border-bottom: 1px solid rgba(245,243,238,0.06); }
-  .resume-entry:last-child { border-bottom: none; padding-bottom: 0; }
+
+  /* Right col: blocks spread evenly */
+  .resume-col-right .resume-block { }
+
+  .resume-entry { padding: 0 0; border-bottom: 1px solid rgba(245,243,238,0.06); }
+  .resume-entry:last-child { border-bottom: none; }
   .resume-entry-header {
     display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 16px; margin-bottom: 8px;
+    gap: 16px; margin-bottom: 6px; padding-top: 12px;
   }
-  .resume-org { font-family: var(--font); font-size: 0.92rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 3px; color: var(--paper); }
-  .resume-org-sub { font-family: var(--font); font-size: 0.7rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 4px; }
-  .resume-role { font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
-  .resume-year { font-family: var(--font); font-size: 0.65rem; color: rgba(245,243,238,0.35); letter-spacing: 0.08em; white-space: nowrap; text-align: right; flex-shrink: 0; padding-top: 2px; line-height: 1.6; }
-  .resume-bullets { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-  .resume-bullets li { font-size: 0.73rem; line-height: 1.65; color: rgba(245,243,238,0.5); padding-left: 14px; position: relative; }
-  .resume-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--accent); font-size: 0.62rem; top: 1px; }
-  .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 0 0; }
-  .skill-group-label { font-family: var(--font); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(245,243,238,0.3); margin-bottom: 10px; }
-  .skill-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 7px; }
-  .skill-list li { font-family: var(--font); font-size: 0.73rem; color: rgba(245,243,238,0.6); letter-spacing: 0.04em; padding-left: 12px; position: relative; }
+  .resume-org { font-family: var(--font); font-size: 0.88rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 2px; color: var(--paper); }
+  .resume-org-sub { font-family: var(--font); font-size: 0.68rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 3px; }
+  .resume-role { font-family: var(--font); font-weight: 300; font-size: 0.62rem; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
+  .resume-year { font-family: var(--font); font-size: 0.62rem; color: rgba(245,243,238,0.35); letter-spacing: 0.08em; white-space: nowrap; text-align: right; flex-shrink: 0; padding-top: 2px; line-height: 1.6; }
+  .resume-bullets { list-style: none; padding: 0 0 12px; display: flex; flex-direction: column; gap: 4px; }
+  .resume-bullets li { font-size: 0.7rem; line-height: 1.65; color: rgba(245,243,238,0.5); padding-left: 14px; position: relative; }
+  .resume-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--accent); font-size: 0.6rem; top: 1px; }
+
+  .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 0; }
+  .skill-group-label { font-family: var(--font); font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(245,243,238,0.3); margin-bottom: 8px; }
+  .skill-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .skill-list li { font-family: var(--font); font-size: 0.7rem; color: rgba(245,243,238,0.6); letter-spacing: 0.04em; padding-left: 12px; position: relative; }
   .skill-list li::before { content: '·'; position: absolute; left: 0; color: var(--accent); }
 
-  /* Download — centred at bottom of full page */
+  /* Download CV — centred at bottom */
   .resume-footer {
-    text-align: center; padding: 28px 0;
+    text-align: center; padding: 20px 0;
     border-top: 1px solid rgba(245,243,238,0.08);
     flex-shrink: 0;
   }
@@ -267,16 +267,16 @@
     border-bottom: 1px solid var(--accent); transition: color 0.25s;
   }
   .resume-dl:hover { color: var(--accent); }
-  .resume-inner, .resume-columns, .resume-header { all: unset; }
 
   /* ══════════════ CONTACT ══════════════ */
   #view-contact {
     background: var(--warm-white);
-    display: flex; flex-direction: column; align-items: center; padding: 0;
+    display: flex; flex-direction: column; align-items: center;
   }
   .contact-heading {
     width: 100%; padding: 48px 0 36px;
     text-align: center; border-bottom: 1px solid var(--rule);
+    flex-shrink: 0;
   }
   #view-contact h2 {
     font-family: var(--font); font-size: 1.4rem;
@@ -286,20 +286,19 @@
   .contact-body {
     display: grid; grid-template-columns: 1fr 1fr;
     width: 100%; flex: 1; overflow: hidden;
-    height: calc(1080px - 111px);
   }
   .contact-left {
     display: flex; align-items: center; justify-content: center;
-    padding: 0 140px; border-right: 1px solid var(--rule);
+    padding: 0 72px; border-right: 1px solid var(--rule);
   }
   .contact-list { display: flex; flex-direction: column; width: 100%; }
   .contact-row {
-    display: grid; grid-template-columns: 130px 1fr; gap: 20px;
-    padding: 34px 0; border-bottom: 1px solid var(--rule); align-items: baseline;
+    display: grid; grid-template-columns: 110px 1fr; gap: 20px;
+    padding: 28px 0; border-bottom: 1px solid var(--rule); align-items: baseline;
   }
   .contact-row:first-child { border-top: 1px solid var(--rule); }
   .contact-lbl { font-family: var(--font); font-weight: 300; font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mid); }
-  .contact-val { font-family: var(--font); font-size: 0.95rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
+  .contact-val { font-family: var(--font); font-size: 0.88rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
   .contact-val:hover { color: var(--accent); }
   .contact-right { overflow: hidden; }
   .contact-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -326,7 +325,6 @@
       <div class="book-wrapper">
         <div class="book" id="book">
           <div class="book-spine"></div>
-
           <!-- COVER -->
           <div class="page right-side" id="page-0" style="z-index:10;">
             <div class="page-front">
@@ -367,7 +365,6 @@
               </div>
             </div>
           </div>
-
           <!-- SPREAD 1 -->
           <div class="page left-side" id="page-1" style="z-index:9;">
             <div class="page-front">
@@ -414,7 +411,6 @@
               </div>
             </div>
           </div>
-
           <!-- SPREAD 2 -->
           <div class="page left-side" id="page-2" style="z-index:8;">
             <div class="page-front">
@@ -447,7 +443,6 @@
               </div>
             </div>
           </div>
-
         </div>
         <div class="book-shadow"></div>
         <div class="book-controls">
@@ -467,13 +462,11 @@
     <h2><em>Resume</em></h2>
   </div>
 
-  <!-- Name row — full width, same padding as columns -->
   <div class="resume-name-row">
-    <p class="resume-name">Benjamin Reed <span style="color:var(--accent);">Perks</span></p>
+    <p class="resume-name">Benjamin Reed <span>Perks</span></p>
     <p class="resume-name-sub">Architecture &amp; Design &nbsp;·&nbsp; Philadelphia, PA</p>
   </div>
 
-  <!-- Two columns — content only, evenly spaced -->
   <div class="resume-body">
 
     <div class="resume-col-left">
@@ -558,7 +551,6 @@
           </ul>
         </div>
       </div>
-
       <div class="resume-block">
         <p class="resume-block-title">Athletics</p>
         <div class="resume-entry">
@@ -577,7 +569,6 @@
           </ul>
         </div>
       </div>
-
       <div class="resume-block">
         <p class="resume-block-title">Skills</p>
         <div class="skills-grid">
@@ -602,11 +593,10 @@
           </div>
         </div>
       </div>
-
       <div class="resume-block">
         <p class="resume-block-title">Service</p>
         <div class="resume-entry">
-          <ul class="resume-bullets">
+          <ul class="resume-bullets" style="padding-top:12px;">
             <li>100+ volunteer hours at S.A.V.E. Animal Shelter — Montgomery Township, NJ</li>
           </ul>
         </div>
@@ -635,7 +625,7 @@
         </div>
         <div class="contact-row">
           <span class="contact-lbl">Email</span>
-          <a href="/cdn-cgi/l/email-protection#b3d1c3d6c1d8c0dcddd2dff3d4ded2dadf9dd0dcde" class="contact-val"><span class="__cf_email__" data-cfemail="ef8d9f8a9d849c80818e83af88828e8683c18c8082">[email&#160;protected]</span></a>
+          <a href="mailto:bperksonal@gmail.com" class="contact-val">bperksonal@gmail.com</a>
         </div>
         <div class="contact-row">
           <span class="contact-lbl">LinkedIn</span>
@@ -653,41 +643,18 @@
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script>
 (function () {
 
-  var W = 1920, H = 1080;
-  var currentScale = 1;
-
-  function scaleToFit() {
-    var scale = Math.min(window.innerWidth / W, window.innerHeight / H);
-    currentScale = scale;
-    // Scale from top-left; nudge with padding on the outer viewport instead
-    document.body.style.transform = 'scale(' + scale + ')';
-    document.body.style.transformOrigin = 'top left';
-    // Use a transparent wrapper to center — no margin on body (margins shift click targets)
-    var dx = Math.max(0, (window.innerWidth  - W * scale) / 2);
-    var dy = Math.max(0, (window.innerHeight - H * scale) / 2);
-    document.documentElement.style.paddingLeft = dx + 'px';
-    document.documentElement.style.paddingTop  = dy + 'px';
-  }
-
-  scaleToFit();
-  window.addEventListener('resize', scaleToFit);
-
-  // ── Cursor (corrected for scale + offset) ──
+  // ── Cursor ──
   var dot  = document.getElementById('cursor');
   var ring = document.getElementById('cursor-ring');
 
   document.addEventListener('mousemove', function (e) {
-    var dx = parseFloat(document.documentElement.style.paddingLeft) || 0;
-    var dy = parseFloat(document.documentElement.style.paddingTop)  || 0;
-    var x = (e.clientX - dx) / currentScale;
-    var y = (e.clientY - dy) / currentScale;
-    dot.style.left  = x + 'px';
-    dot.style.top   = y + 'px';
-    ring.style.left = x + 'px';
-    ring.style.top  = y + 'px';
+    dot.style.left  = e.clientX + 'px';
+    dot.style.top   = e.clientY + 'px';
+    ring.style.left = e.clientX + 'px';
+    ring.style.top  = e.clientY + 'px';
   });
 
   function setCursorTheme(dark) {
@@ -742,4 +709,18 @@
     cur++; updateBook();
   });
 
-  btnP.addEventListener('click', func
+  btnP.addEventListener('click', function () {
+    if (cur <= 0) return;
+    cur--;
+    pages[cur].el.classList.remove('flipped');
+    pages[cur].el.style.zIndex = pages.length - cur;
+    updateBook();
+  });
+
+  setCursorTheme(true);
+  updateBook();
+
+}());
+</script>
+</body>
+</html>
