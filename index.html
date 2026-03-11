@@ -17,40 +17,49 @@
     --font: 'Century Gothic', 'AppleGothic', 'Gill Sans', sans-serif;
   }
 
-  html, body { height: 100%; overflow: hidden; font-family: var(--font); font-weight: 300; cursor: none; }
+  html {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    cursor: none;
+  }
+  body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    font-family: var(--font);
+    font-weight: 300;
+    cursor: none;
+    transform-origin: top left;
+  }
 
   /* ── CURSOR ── */
   #cursor {
     position: fixed; width: 10px; height: 10px;
     background: #fff; border-radius: 50%;
     pointer-events: none; z-index: 99999;
-    top: -20px; left: -20px;
+    top: -40px; left: -40px;
     transform: translate(-50%, -50%);
+    transition: background 0.3s;
   }
   #cursor-ring {
     position: fixed; width: 34px; height: 34px;
     border: 1.5px solid rgba(255,255,255,0.6); border-radius: 50%;
     pointer-events: none; z-index: 99998;
-    top: -20px; left: -20px;
+    top: -40px; left: -40px;
     transform: translate(-50%, -50%);
-    transition: width 0.25s, height 0.25s;
+    transition: width 0.25s, height 0.25s, border-color 0.3s;
   }
   #cursor-ring.expand { width: 54px; height: 54px; }
 
-  /* ── VIEWS ── */
-  .view {
-    position: fixed; inset: 0;
-    width: 100vw; height: 100vh;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.5s ease;
-  }
-  .view.active { opacity: 1; pointer-events: all; }
-
   /* ── NAV ── */
   nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    position: fixed; top: 0; left: 0;
+    width: 1920px;
+    z-index: 5000;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 28px 56px;
+    padding: 28px 80px;
+    pointer-events: all;
   }
   .nav-logo {
     font-family: var(--font); font-weight: 300;
@@ -74,41 +83,87 @@
   nav.dark .nav-logo,
   nav.dark .nav-links button { color: var(--ink); }
 
+  /* ── VIEWS ── */
+  .view {
+    position: fixed; top: 0; left: 0;
+    width: 1920px; height: 1080px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .view.active { opacity: 1; pointer-events: all; }
+
   /* ══════════════ PORTFOLIO ══════════════ */
-  #view-portfolio { background: #0e0e0c; display: flex; align-items: center; justify-content: center; }
+  #view-portfolio {
+    background: #0e0e0c;
+    display: flex; align-items: center; justify-content: center;
+  }
   .portfolio-card {
     background: var(--warm-white);
-    width: min(860px, 88vw); height: min(580px, 72vh);
+    width: 860px; height: 580px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     padding: 40px 40px 28px;
     box-shadow: 0 40px 100px rgba(0,0,0,0.6);
   }
   .book-wrapper { display: flex; flex-direction: column; align-items: center; perspective: 2200px; width: 100%; }
-  .book { position: relative; width: 100%; height: min(400px, 50vh); transform-style: preserve-3d; }
-  .page { position: absolute; top: 0; width: 50%; height: 100%; transform-style: preserve-3d; transition: transform 0.95s cubic-bezier(.645,.045,.355,1); cursor: none; }
+  .book { position: relative; width: 100%; height: 400px; transform-style: preserve-3d; }
+  .page {
+    position: absolute; top: 0; width: 50%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.95s cubic-bezier(.645,.045,.355,1);
+    cursor: none;
+  }
   .page.right-side { left: 50%; transform-origin: left center; }
   .page.left-side  { left: 0;   transform-origin: right center; }
   .page.flipped    { transform: rotateY(-180deg); }
-  .page-front, .page-back { position: absolute; inset: 0; backface-visibility: hidden; overflow: hidden; border: 1px solid rgba(26,26,24,0.1); }
+  .page-front, .page-back {
+    position: absolute; inset: 0;
+    backface-visibility: hidden; overflow: hidden;
+    border: 1px solid rgba(26,26,24,0.1);
+  }
   .page-back { transform: rotateY(180deg); }
-  .page-inner { width: 100%; height: 100%; background: var(--paper); display: flex; flex-direction: column; padding: 36px; position: relative; }
+  .page-inner {
+    width: 100%; height: 100%; background: var(--paper);
+    display: flex; flex-direction: column; padding: 36px; position: relative;
+  }
   .page-inner.dark { background: var(--ink); color: var(--paper); }
   .page-tag { font-family: var(--font); font-weight: 300; font-size: 0.58rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
   .page-title { font-family: var(--font); font-size: 1.1rem; font-weight: 300; line-height: 1.2; margin-bottom: 6px; }
   .page-location { font-size: 0.65rem; letter-spacing: 0.12em; color: var(--mid); margin-bottom: 16px; }
-  .img-box { flex: 1; background: rgba(26,26,24,0.04); border: 1px solid var(--rule); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+  .img-box {
+    flex: 1; background: rgba(26,26,24,0.04); border: 1px solid var(--rule);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
   .img-box svg { width: 70%; height: 70%; opacity: 0.2; }
   .img-lbl { position: absolute; bottom: 8px; right: 10px; font-size: 0.52rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid); font-family: var(--font); }
-  .img-hover { position: absolute; inset: 0; background: rgba(245,243,238,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mid); opacity: 0; transition: opacity 0.25s; font-family: var(--font); }
+  .img-hover {
+    position: absolute; inset: 0; background: rgba(245,243,238,0.92);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--mid); opacity: 0; transition: opacity 0.25s; font-family: var(--font);
+  }
   .img-box:hover .img-hover { opacity: 1; }
   .page-desc { margin-top: 12px; font-size: 0.68rem; line-height: 1.8; color: var(--mid); }
   .page-num { position: absolute; bottom: 14px; font-family: var(--font); font-size: 0.65rem; color: var(--mid); letter-spacing: 0.08em; }
   .page-num.l { left: 20px; } .page-num.r { right: 20px; }
-  .book-spine { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.03)); transform: translateX(-50%); z-index: 20; }
+  .book-spine {
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 3px;
+    background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.03));
+    transform: translateX(-50%); z-index: 20;
+  }
   .book-shadow { width: 85%; height: 12px; background: radial-gradient(ellipse, rgba(0,0,0,0.18) 0%, transparent 70%); margin-top: -2px; }
   .book-controls { display: flex; align-items: center; gap: 36px; margin-top: 18px; }
-  .book-btn { font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; background: none; border: none; color: var(--ink); cursor: none; padding: 8px 0; position: relative; transition: color 0.2s; }
-  .book-btn::after { content: ''; position: absolute; bottom: 4px; left: 0; right: 0; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: left; transition: transform 0.3s; }
+  .book-btn {
+    font-family: var(--font); font-weight: 300; font-size: 0.65rem;
+    letter-spacing: 0.2em; text-transform: uppercase;
+    background: none; border: none; color: var(--ink);
+    cursor: none; padding: 8px 0; position: relative; transition: color 0.2s;
+  }
+  .book-btn::after {
+    content: ''; position: absolute; bottom: 4px; left: 0; right: 0;
+    height: 1px; background: var(--accent);
+    transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
+  }
   .book-btn:hover:not(:disabled)::after { transform: scaleX(1); }
   .book-btn:disabled { color: var(--mid); }
   .page-indicator { font-family: var(--font); font-size: 0.72rem; color: var(--mid); letter-spacing: 0.12em; min-width: 80px; text-align: center; }
@@ -120,35 +175,99 @@
   .cm.light { border-color: rgba(245,243,238,0.2); }
 
   /* ══════════════ RESUME ══════════════ */
-  #view-resume { background: var(--ink); color: var(--paper); overflow-y: auto; }
-  .resume-inner { max-width: 1100px; margin: 0 auto; padding: 100px 56px 80px; }
-  .resume-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 56px; padding-bottom: 32px; border-bottom: 1px solid rgba(245,243,238,0.1); }
-  .resume-header h2 { font-family: var(--font); font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 300; letter-spacing: -0.01em; line-height: 1.1; }
-  .resume-header h2 em { font-style: normal; color: var(--accent); }
-  .resume-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-family: var(--font); font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(245,243,238,0.3); }
-  .resume-columns { display: grid; grid-template-columns: 1fr 1px 1fr; gap: 0; align-items: start; }
-  .resume-col-left { padding-right: 64px; }
-  .resume-col-right { padding-left: 64px; }
-  .resume-col-divider { background: rgba(245,243,238,0.1); align-self: stretch; }
-  .resume-block { margin-bottom: 48px; }
-  .resume-block-title { font-family: var(--font); font-size: 0.55rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(245,243,238,0.3); padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid rgba(245,243,238,0.08); }
-  .resume-entry { padding: 20px 0; border-bottom: 1px solid rgba(245,243,238,0.06); }
-  .resume-entry-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 12px; }
-  .resume-org { font-family: var(--font); font-size: 0.85rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 3px; color: var(--paper); }
-  .resume-org-sub { font-family: var(--font); font-size: 0.65rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 5px; }
-  .resume-role { font-family: var(--font); font-weight: 300; font-size: 0.6rem; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
-  .resume-year { font-family: var(--font); font-size: 0.6rem; color: rgba(245,243,238,0.35); letter-spacing: 0.08em; white-space: nowrap; text-align: right; flex-shrink: 0; padding-top: 2px; line-height: 1.7; }
-  .resume-bullets { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-  .resume-bullets li { font-size: 0.72rem; line-height: 1.75; color: rgba(245,243,238,0.5); padding-left: 14px; position: relative; }
-  .resume-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--accent); font-size: 0.6rem; top: 1px; }
-  .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 0; }
-  .skill-group-label { font-family: var(--font); font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(245,243,238,0.3); margin-bottom: 10px; }
+  #view-resume {
+    background: var(--ink); color: var(--paper);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  /* Heading — identical to .contact-heading */
+  .resume-heading {
+    width: 100%; padding: 48px 0 36px;
+    text-align: center;
+    border-bottom: 1px solid rgba(245,243,238,0.1);
+    flex-shrink: 0;
+  }
+  .resume-heading h2 {
+    font-family: var(--font); font-size: 1.4rem;
+    font-weight: 300; letter-spacing: 0.35em; text-transform: uppercase; color: var(--paper);
+  }
+  .resume-heading h2 em { font-style: normal; color: var(--accent); }
+
+  /* Name row — full width between heading and columns */
+  .resume-name-row {
+    padding: 32px 160px 28px;
+    border-bottom: 1px solid rgba(245,243,238,0.1);
+    flex-shrink: 0;
+  }
+  .resume-name {
+    font-family: var(--font); font-size: 1.5rem; font-weight: 300;
+    letter-spacing: 0.02em; line-height: 1.15; color: var(--paper);
+    margin-bottom: 6px;
+  }
+  .resume-name-sub {
+    font-family: var(--font); font-size: 0.62rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: rgba(245,243,238,0.35);
+  }
+
+  /* Body — two equal columns, fills remaining height */
+  .resume-body {
+    display: grid; grid-template-columns: 1fr 1px 1fr;
+    flex: 1; min-height: 0;
+  }
+  .resume-col-left {
+    padding: 40px 80px 40px 160px;
+    display: flex; flex-direction: column;
+  }
+  .resume-col-right {
+    padding: 40px 160px 40px 80px;
+    display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .resume-col-divider { background: rgba(245,243,238,0.1); }
+
+  .resume-block { display: flex; flex-direction: column; }
+  /* Left col: single block fills full height, entries spread inside it */
+  .resume-col-left .resume-block { flex: 1; justify-content: space-between; display: flex; flex-direction: column; }
+  .resume-col-left .resume-block .resume-entry { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  .resume-block-title {
+    font-family: var(--font); font-size: 0.55rem; font-weight: 300;
+    letter-spacing: 0.3em; text-transform: uppercase;
+    color: rgba(245,243,238,0.3); padding-bottom: 10px;
+    border-bottom: 1px solid rgba(245,243,238,0.08);
+  }
+  .resume-entry { padding: 14px 0; border-bottom: 1px solid rgba(245,243,238,0.06); }
+  .resume-entry:last-child { border-bottom: none; padding-bottom: 0; }
+  .resume-entry-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 16px; margin-bottom: 8px;
+  }
+  .resume-org { font-family: var(--font); font-size: 0.92rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 3px; color: var(--paper); }
+  .resume-org-sub { font-family: var(--font); font-size: 0.7rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 4px; }
+  .resume-role { font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
+  .resume-year { font-family: var(--font); font-size: 0.65rem; color: rgba(245,243,238,0.35); letter-spacing: 0.08em; white-space: nowrap; text-align: right; flex-shrink: 0; padding-top: 2px; line-height: 1.6; }
+  .resume-bullets { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .resume-bullets li { font-size: 0.73rem; line-height: 1.65; color: rgba(245,243,238,0.5); padding-left: 14px; position: relative; }
+  .resume-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--accent); font-size: 0.62rem; top: 1px; }
+  .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 0 0; }
+  .skill-group-label { font-family: var(--font); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(245,243,238,0.3); margin-bottom: 10px; }
   .skill-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 7px; }
-  .skill-list li { font-family: var(--font); font-size: 0.72rem; color: rgba(245,243,238,0.6); letter-spacing: 0.04em; padding-left: 12px; position: relative; }
+  .skill-list li { font-family: var(--font); font-size: 0.73rem; color: rgba(245,243,238,0.6); letter-spacing: 0.04em; padding-left: 12px; position: relative; }
   .skill-list li::before { content: '·'; position: absolute; left: 0; color: var(--accent); }
-  .resume-footer { text-align: center; padding: 48px 0 0; }
-  .resume-dl { display: inline-flex; align-items: center; gap: 12px; font-family: var(--font); font-weight: 300; font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s; }
+
+  /* Download — centred at bottom of full page */
+  .resume-footer {
+    text-align: center; padding: 28px 0;
+    border-top: 1px solid rgba(245,243,238,0.08);
+    flex-shrink: 0;
+  }
+  .resume-dl {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-family: var(--font); font-weight: 300; font-size: 0.65rem;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper);
+    text-decoration: none; padding-bottom: 3px;
+    border-bottom: 1px solid var(--accent); transition: color 0.25s;
+  }
   .resume-dl:hover { color: var(--accent); }
+  .resume-inner, .resume-columns, .resume-header { all: unset; }
 
   /* ══════════════ CONTACT ══════════════ */
   #view-contact {
@@ -160,39 +279,30 @@
     text-align: center; border-bottom: 1px solid var(--rule);
   }
   #view-contact h2 {
-    font-family: var(--font); font-size: clamp(1rem, 2vw, 1.4rem);
+    font-family: var(--font); font-size: 1.4rem;
     font-weight: 300; letter-spacing: 0.35em; text-transform: uppercase; color: var(--ink);
   }
   #view-contact h2 em { font-style: normal; color: var(--accent); }
   .contact-body {
     display: grid; grid-template-columns: 1fr 1fr;
-    width: 100%; height: calc(100vh - 111px); overflow: hidden;
+    width: 100%; flex: 1; overflow: hidden;
+    height: calc(1080px - 111px);
   }
   .contact-left {
     display: flex; align-items: center; justify-content: center;
-    padding: 0 72px; border-right: 1px solid var(--rule);
+    padding: 0 140px; border-right: 1px solid var(--rule);
   }
   .contact-list { display: flex; flex-direction: column; width: 100%; }
-  .contact-row { display: grid; grid-template-columns: 110px 1fr; gap: 20px; padding: 26px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+  .contact-row {
+    display: grid; grid-template-columns: 130px 1fr; gap: 20px;
+    padding: 34px 0; border-bottom: 1px solid var(--rule); align-items: baseline;
+  }
   .contact-row:first-child { border-top: 1px solid var(--rule); }
   .contact-lbl { font-family: var(--font); font-weight: 300; font-size: 0.6rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mid); }
-  .contact-val { font-family: var(--font); font-size: 0.88rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
+  .contact-val { font-family: var(--font); font-size: 0.95rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
   .contact-val:hover { color: var(--accent); }
   .contact-right { overflow: hidden; }
   .contact-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-  @media (max-width: 760px) {
-    nav { padding: 20px 24px; }
-    .resume-inner { padding: 90px 24px 60px; }
-    .resume-columns { grid-template-columns: 1fr; }
-    .resume-col-left { padding-right: 0; }
-    .resume-col-right { padding-left: 0; }
-    .resume-col-divider { display: none; }
-    .contact-body { grid-template-columns: 1fr; }
-    .contact-right { display: none; }
-    .contact-left { padding: 40px 24px; }
-    .portfolio-card { padding: 24px 16px 16px; }
-  }
 </style>
 </head>
 <body>
@@ -352,165 +462,163 @@
 
 <!-- ══════════════ RESUME ══════════════ -->
 <div class="view" id="view-resume">
-  <div class="resume-inner">
-    <div class="resume-header">
-      <h2>Benjamin Reed<br><em>Perks</em></h2>
-      <div class="resume-header-meta">
-        <span>Architecture &amp; Design</span>
-        <span>Philadelphia, PA</span>
-      </div>
-    </div>
-    <div class="resume-columns">
 
-      <div class="resume-col-left">
-        <div class="resume-block">
-          <p class="resume-block-title">Work Experience</p>
-
-          <div class="resume-entry">
-            <div class="resume-entry-header">
-              <div>
-                <p class="resume-org">Crough Center for Architecture</p>
-                <p class="resume-org-sub">Catholic University of America</p>
-                <p class="resume-role">3D Print Lab Technician</p>
-              </div>
-              <p class="resume-year">Sept. 2024 – May 2025</p>
-            </div>
-            <ul class="resume-bullets">
-              <li>Maintained and operated 3D printers and lab equipment</li>
-              <li>Led introductory training sessions in 3D modeling, printer operation, and slicer software for incoming students</li>
-            </ul>
-          </div>
-
-          <div class="resume-entry">
-            <div class="resume-entry-header">
-              <div>
-                <p class="resume-org">HDR</p>
-                <p class="resume-org-sub">Philadelphia, PA</p>
-                <p class="resume-role">Design Intern</p>
-              </div>
-              <p class="resume-year">June – Aug. 2024</p>
-            </div>
-            <ul class="resume-bullets">
-              <li>Developed BIM models in Revit for active projects</li>
-              <li>Conducted research on building codes and materials specifications</li>
-            </ul>
-          </div>
-
-          <div class="resume-entry">
-            <div class="resume-entry-header">
-              <div>
-                <p class="resume-org">Philadelphia Cricket Club</p>
-                <p class="resume-org-sub">Chestnut Hill, PA</p>
-                <p class="resume-role">Tennis Pro</p>
-              </div>
-              <p class="resume-year">June – Aug. 2023<br>June 2025 – Present</p>
-            </div>
-            <ul class="resume-bullets">
-              <li>Directed Camp Cricket summer program for 25–30 children, ages 3–5</li>
-              <li>Ran Junior Camp summer program for 10–15 children, ages 8–14</li>
-            </ul>
-          </div>
-
-          <div class="resume-entry">
-            <div class="resume-entry-header">
-              <div>
-                <p class="resume-org">Synalovski Romanik Saye</p>
-                <p class="resume-org-sub">Fort Lauderdale, FL</p>
-                <p class="resume-role">Architectural Intern</p>
-              </div>
-              <p class="resume-year">June – July 2022</p>
-            </div>
-            <ul class="resume-bullets">
-              <li>Generated as-built drawings on site for commercial renovations</li>
-              <li>Collaborated on AutoCAD documentation packages</li>
-            </ul>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="resume-col-divider"></div>
-
-      <div class="resume-col-right">
-
-        <div class="resume-block">
-          <p class="resume-block-title">Education</p>
-          <div class="resume-entry">
-            <div class="resume-entry-header">
-              <div>
-                <p class="resume-org">Catholic University of America</p>
-                <p class="resume-org-sub">Washington, D.C.</p>
-                <p class="resume-role">Bachelor of Architecture</p>
-              </div>
-              <p class="resume-year">2021 – 2025</p>
-            </div>
-            <ul class="resume-bullets">
-              <li>GPA 3.48</li>
-              <li>Dean's List — Fall 2021, Fall 2023, Spring 2024, Fall 2024, Spring 2025</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="resume-block">
-          <p class="resume-block-title">Athletics</p>
-          <div class="resume-entry">
-            <div class="resume-entry-header">
-              <div>
-                <p class="resume-org">CUA Men's Tennis Team</p>
-                <p class="resume-org-sub">Catholic University of America</p>
-              </div>
-              <p class="resume-year">2021 – 2025</p>
-            </div>
-            <ul class="resume-bullets">
-              <li>Team Captain, 2024–25</li>
-              <li>Harris Cup Nominee</li>
-              <li>ITA Scholar Athlete</li>
-              <li>Student Athlete Advisory Committee — Spirit &amp; Events Subcommittee Coordinator</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="resume-block">
-          <p class="resume-block-title">Skills</p>
-          <div class="skills-grid">
-            <div class="skill-group">
-              <p class="skill-group-label">Software</p>
-              <ul class="skill-list">
-                <li>Rhinoceros 3D</li>
-                <li>Autodesk Fusion</li>
-                <li>AutoCAD / Revit</li>
-                <li>Photoshop</li>
-                <li>InDesign</li>
-              </ul>
-            </div>
-            <div class="skill-group">
-              <p class="skill-group-label">Fabrication</p>
-              <ul class="skill-list">
-                <li>3D Printing</li>
-                <li>Ultimaker Cura</li>
-                <li>Bambu Studio</li>
-                <li>Modelmaking</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div class="resume-block">
-          <p class="resume-block-title">Service</p>
-          <div class="resume-entry" style="border-bottom:none;padding-bottom:0;">
-            <ul class="resume-bullets">
-              <li>100+ volunteer hours at S.A.V.E. Animal Shelter — Montgomery Township, NJ</li>
-            </ul>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <div class="resume-footer">
-      <a href="#" class="resume-dl">Download Full CV &nbsp;↗</a>
-    </div>
+  <div class="resume-heading">
+    <h2><em>Resume</em></h2>
   </div>
+
+  <!-- Name row — full width, same padding as columns -->
+  <div class="resume-name-row">
+    <p class="resume-name">Benjamin Reed <span style="color:var(--accent);">Perks</span></p>
+    <p class="resume-name-sub">Architecture &amp; Design &nbsp;·&nbsp; Philadelphia, PA</p>
+  </div>
+
+  <!-- Two columns — content only, evenly spaced -->
+  <div class="resume-body">
+
+    <div class="resume-col-left">
+      <div class="resume-block">
+        <p class="resume-block-title">Work Experience</p>
+        <div class="resume-entry">
+          <div class="resume-entry-header">
+            <div>
+              <p class="resume-org">Crough Center for Architecture</p>
+              <p class="resume-org-sub">Catholic University of America</p>
+              <p class="resume-role">3D Print Lab Technician</p>
+            </div>
+            <p class="resume-year">Sept. 2024 – May 2025</p>
+          </div>
+          <ul class="resume-bullets">
+            <li>Maintained and operated 3D printers and lab equipment</li>
+            <li>Led introductory training sessions in 3D modeling, printer operation, and slicer software for incoming students</li>
+          </ul>
+        </div>
+        <div class="resume-entry">
+          <div class="resume-entry-header">
+            <div>
+              <p class="resume-org">HDR</p>
+              <p class="resume-org-sub">Philadelphia, PA</p>
+              <p class="resume-role">Design Intern</p>
+            </div>
+            <p class="resume-year">June – Aug. 2024</p>
+          </div>
+          <ul class="resume-bullets">
+            <li>Developed BIM models in Revit for active projects</li>
+            <li>Conducted research on building codes and materials specifications</li>
+          </ul>
+        </div>
+        <div class="resume-entry">
+          <div class="resume-entry-header">
+            <div>
+              <p class="resume-org">Philadelphia Cricket Club</p>
+              <p class="resume-org-sub">Chestnut Hill, PA</p>
+              <p class="resume-role">Tennis Pro</p>
+            </div>
+            <p class="resume-year">June – Aug. 2023<br>June 2025 – Present</p>
+          </div>
+          <ul class="resume-bullets">
+            <li>Directed Camp Cricket summer program for 25–30 children, ages 3–5</li>
+            <li>Ran Junior Camp summer program for 10–15 children, ages 8–14</li>
+          </ul>
+        </div>
+        <div class="resume-entry">
+          <div class="resume-entry-header">
+            <div>
+              <p class="resume-org">Synalovski Romanik Saye</p>
+              <p class="resume-org-sub">Fort Lauderdale, FL</p>
+              <p class="resume-role">Architectural Intern</p>
+            </div>
+            <p class="resume-year">June – July 2022</p>
+          </div>
+          <ul class="resume-bullets">
+            <li>Generated as-built drawings on site for commercial renovations</li>
+            <li>Collaborated on AutoCAD documentation packages</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="resume-col-divider"></div>
+
+    <div class="resume-col-right">
+      <div class="resume-block">
+        <p class="resume-block-title">Education</p>
+        <div class="resume-entry">
+          <div class="resume-entry-header">
+            <div>
+              <p class="resume-org">Catholic University of America</p>
+              <p class="resume-org-sub">Washington, D.C.</p>
+              <p class="resume-role">Bachelor of Architecture</p>
+            </div>
+            <p class="resume-year">2021 – 2025</p>
+          </div>
+          <ul class="resume-bullets">
+            <li>GPA 3.48</li>
+            <li>Dean's List — Fall 2021, Fall 2023, Spring 2024, Fall 2024, Spring 2025</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="resume-block">
+        <p class="resume-block-title">Athletics</p>
+        <div class="resume-entry">
+          <div class="resume-entry-header">
+            <div>
+              <p class="resume-org">CUA Men's Tennis Team</p>
+              <p class="resume-org-sub">Catholic University of America</p>
+            </div>
+            <p class="resume-year">2021 – 2025</p>
+          </div>
+          <ul class="resume-bullets">
+            <li>Team Captain, 2024–25</li>
+            <li>Harris Cup Nominee</li>
+            <li>ITA Scholar Athlete</li>
+            <li>Student Athlete Advisory Committee — Spirit &amp; Events Subcommittee Coordinator</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="resume-block">
+        <p class="resume-block-title">Skills</p>
+        <div class="skills-grid">
+          <div class="skill-group">
+            <p class="skill-group-label">Software</p>
+            <ul class="skill-list">
+              <li>Rhinoceros 3D</li>
+              <li>Autodesk Fusion</li>
+              <li>AutoCAD / Revit</li>
+              <li>Photoshop</li>
+              <li>InDesign</li>
+            </ul>
+          </div>
+          <div class="skill-group">
+            <p class="skill-group-label">Fabrication</p>
+            <ul class="skill-list">
+              <li>3D Printing</li>
+              <li>Ultimaker Cura</li>
+              <li>Bambu Studio</li>
+              <li>Modelmaking</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="resume-block">
+        <p class="resume-block-title">Service</p>
+        <div class="resume-entry">
+          <ul class="resume-bullets">
+            <li>100+ volunteer hours at S.A.V.E. Animal Shelter — Montgomery Township, NJ</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="resume-footer">
+    <a href="#" class="resume-dl">Download Full CV &nbsp;↗</a>
+  </div>
+
 </div>
 
 <!-- ══════════════ CONTACT ══════════════ -->
@@ -522,20 +630,20 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row">
-          <span class="contact-lbl">Email</span>
-          <a href="mailto:hello@benjaminreedperks.com" class="contact-val">hello@benjaminreedperks.com</a>
+          <span class="contact-lbl">Phone</span>
+          <a href="tel:6096133117" class="contact-val">609-613-3117</a>
         </div>
         <div class="contact-row">
-          <span class="contact-lbl">Instagram</span>
-          <a href="#" class="contact-val">@benjaminreedperks</a>
+          <span class="contact-lbl">Email</span>
+          <a href="/cdn-cgi/l/email-protection#b3d1c3d6c1d8c0dcddd2dff3d4ded2dadf9dd0dcde" class="contact-val"><span class="__cf_email__" data-cfemail="ef8d9f8a9d849c80818e83af88828e8683c18c8082">[email&#160;protected]</span></a>
         </div>
         <div class="contact-row">
           <span class="contact-lbl">LinkedIn</span>
-          <a href="#" class="contact-val">linkedin.com/in/brperks</a>
+          <a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a>
         </div>
         <div class="contact-row">
-          <span class="contact-lbl">Location</span>
-          <span class="contact-val">Philadelphia, PA</span>
+          <span class="contact-lbl">Address</span>
+          <span class="contact-val">174 Homestead Road, Wayne PA 19087</span>
         </div>
       </div>
     </div>
@@ -545,76 +653,93 @@
   </div>
 </div>
 
-<script>
-window.addEventListener('DOMContentLoaded', function() {
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+(function () {
 
-  // ── Cursor ──
+  var W = 1920, H = 1080;
+  var currentScale = 1;
+
+  function scaleToFit() {
+    var scale = Math.min(window.innerWidth / W, window.innerHeight / H);
+    currentScale = scale;
+    // Scale from top-left; nudge with padding on the outer viewport instead
+    document.body.style.transform = 'scale(' + scale + ')';
+    document.body.style.transformOrigin = 'top left';
+    // Use a transparent wrapper to center — no margin on body (margins shift click targets)
+    var dx = Math.max(0, (window.innerWidth  - W * scale) / 2);
+    var dy = Math.max(0, (window.innerHeight - H * scale) / 2);
+    document.documentElement.style.paddingLeft = dx + 'px';
+    document.documentElement.style.paddingTop  = dy + 'px';
+  }
+
+  scaleToFit();
+  window.addEventListener('resize', scaleToFit);
+
+  // ── Cursor (corrected for scale + offset) ──
   var dot  = document.getElementById('cursor');
   var ring = document.getElementById('cursor-ring');
-  document.addEventListener('mousemove', function(e) {
-    dot.style.left  = e.clientX + 'px';
-    dot.style.top   = e.clientY + 'px';
-    ring.style.left = e.clientX + 'px';
-    ring.style.top  = e.clientY + 'px';
+
+  document.addEventListener('mousemove', function (e) {
+    var dx = parseFloat(document.documentElement.style.paddingLeft) || 0;
+    var dy = parseFloat(document.documentElement.style.paddingTop)  || 0;
+    var x = (e.clientX - dx) / currentScale;
+    var y = (e.clientY - dy) / currentScale;
+    dot.style.left  = x + 'px';
+    dot.style.top   = y + 'px';
+    ring.style.left = x + 'px';
+    ring.style.top  = y + 'px';
   });
-  document.querySelectorAll('button, a, .img-box').forEach(function(el) {
-    el.addEventListener('mouseenter', function() { ring.classList.add('expand'); });
-    el.addEventListener('mouseleave', function() { ring.classList.remove('expand'); });
+
+  function setCursorTheme(dark) {
+    dot.style.background   = dark ? '#fff' : '#1a1a18';
+    ring.style.borderColor = dark ? 'rgba(255,255,255,0.6)' : 'rgba(26,26,24,0.5)';
+  }
+
+  document.addEventListener('mouseover', function (e) {
+    if (e.target.closest('button, a, .img-box')) ring.classList.add('expand');
+    else ring.classList.remove('expand');
   });
 
   // ── View switching ──
-  var mainNav = document.getElementById('main-nav');
+  var nav = document.getElementById('main-nav');
 
   function switchView(key) {
-    document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+    document.querySelectorAll('.view').forEach(function (v) { v.classList.remove('active'); });
     document.getElementById('view-' + key).classList.add('active');
-    ['portfolio','resume','contact'].forEach(function(k) {
+    ['portfolio', 'resume', 'contact'].forEach(function (k) {
       document.getElementById('nav-' + k).classList.toggle('active', k === key);
     });
-    mainNav.classList.toggle('dark', key === 'contact');
+    nav.classList.toggle('dark', key === 'contact');
+    setCursorTheme(key !== 'contact');
   }
 
-  document.getElementById('nav-logo').addEventListener('click',      function() { switchView('portfolio'); });
-  document.getElementById('nav-portfolio').addEventListener('click', function() { switchView('portfolio'); });
-  document.getElementById('nav-resume').addEventListener('click',    function() { switchView('resume'); });
-  document.getElementById('nav-contact').addEventListener('click',   function() { switchView('contact'); });
+  document.getElementById('nav-logo').addEventListener('click',      function () { switchView('portfolio'); });
+  document.getElementById('nav-portfolio').addEventListener('click', function () { switchView('portfolio'); });
+  document.getElementById('nav-resume').addEventListener('click',    function () { switchView('resume'); });
+  document.getElementById('nav-contact').addEventListener('click',   function () { switchView('contact'); });
 
   // ── Book flip ──
   var pages = [
     { el: document.getElementById('page-0'), label: 'Cover' },
     { el: document.getElementById('page-1'), label: 'Spread 1 – 2' },
-    { el: document.getElementById('page-2'), label: 'Spread 3 – 4' },
+    { el: document.getElementById('page-2'), label: 'Spread 3 – 4' }
   ];
   var cur  = 0;
   var btnP = document.getElementById('btn-prev');
   var btnN = document.getElementById('btn-next');
   var ind  = document.getElementById('page-indicator');
 
-  function goNext() {
-    if (cur >= pages.length - 1) return;
-    pages[cur].el.style.zIndex = 20;
-    pages[cur].el.classList.add('flipped');
-    cur++; updateBook();
-  }
-  function goPrev() {
-    if (cur <= 0) return;
-    cur--;
-    pages[cur].el.classList.remove('flipped');
-    pages[cur].el.style.zIndex = pages.length - cur;
-    updateBook();
-  }
   function updateBook() {
     btnP.disabled = cur === 0;
     btnN.disabled = cur === pages.length - 1;
     ind.textContent = pages[cur].label;
   }
 
-  btnN.addEventListener('click', goNext);
-  btnP.addEventListener('click', goPrev);
-  document.getElementById('page-0').addEventListener('click', function() { if (cur === 0) goNext(); });
-  updateBook();
+  btnN.addEventListener('click', function () {
+    if (cur >= pages.length - 1) return;
+    pages[cur].el.style.zIndex = 20;
+    pages[cur].el.classList.add('flipped');
+    cur++; updateBook();
+  });
 
-});
-</script>
-</body>
-</html>
+  btnP.addEventListener('click', func
