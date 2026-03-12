@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Benjamin Reed Perks</title>
   <style>
-    /* ── RESET & TOKENS ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -23,38 +22,44 @@
       overflow: hidden;
       display: flex; flex-direction: column;
       font-family: var(--font); font-weight: 300;
-      cursor: none;
     }
 
-    /* ── CURSOR ── */
-    #cursor, #cursor-ring {
-      position: fixed; border-radius: 50%;
-      pointer-events: none; z-index: 9999;
-      top: -40px; left: -40px;
-      transform: translate(-50%, -50%);
-    }
-    #cursor      { width: 10px; height: 10px; background: #fff; transition: background 0.3s; }
-    #cursor-ring { width: 34px; height: 34px; border: 1.5px solid rgba(255,255,255,0.6); transition: width 0.25s, height 0.25s, border-color 0.3s; }
-    #cursor-ring.expand { width: 54px; height: 54px; }
-
-    /* ── NAV ── */
+    /* ══ NAV ══ */
     nav {
       flex-shrink: 0;
-      display: flex; align-items: center; justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      align-items: center;
       padding: 28px 56px;
     }
 
-    /* shared styles for all nav buttons */
+    /* all nav buttons share these */
     nav button {
       font-family: var(--font); font-weight: 300;
-      background: none; border: none; cursor: none;
-      text-transform: uppercase; letter-spacing: 0.2em;
-      color: #fff; transition: color 0.3s;
+      background: none; border: none; cursor: pointer;
+      text-transform: uppercase; transition: color 0.3s;
     }
-    .nav-logo  { font-size: 0.75rem; letter-spacing: 0.22em; }
-    .nav-links { display: flex; gap: 44px; list-style: none; }
+
+    .nav-logo {
+      font-size: 0.75rem; letter-spacing: 0.22em;
+      text-align: left;
+    }
+
+    .nav-title {
+      font-size: 1.4rem; font-weight: 300;
+      letter-spacing: 0.35em; text-transform: uppercase;
+      text-align: center; pointer-events: none;
+      font-family: var(--font);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .nav-title em { font-style: normal; color: var(--accent); }
+
+    .nav-links {
+      display: flex; gap: 44px; list-style: none;
+      justify-content: flex-end;
+    }
     .nav-links button {
-      font-size: 0.68rem;
+      font-size: 0.68rem; letter-spacing: 0.2em;
       position: relative;
     }
     .nav-links button::after {
@@ -65,16 +70,23 @@
     .nav-links button:hover::after,
     .nav-links button.active::after { transform: scaleX(1); }
 
-    /* nav theming via body class */
-    body.show-portfolio nav, body.show-resume nav { background: #0e0e0c; }
-    body.show-contact nav { background: var(--white); }
-    body.show-contact nav button { color: var(--ink); }
+    /* colour themes */
+    nav.dark { background: #0e0e0c; }
+    nav.dark.show-title { background: var(--ink); }
+    nav.dark button { color: #fff; }
+    nav.dark .nav-title { color: #fff; }
 
-    /* ── VIEWS ── */
+    nav.light { background: var(--white); }
+    nav.light button { color: var(--ink); }
+    nav.light .nav-title { color: var(--ink); }
+
+    nav.show-title .nav-title { opacity: 1; }
+
+    /* ══ VIEWS ══ */
     .view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
     .view.active { display: flex; }
 
-    /* ══════ PORTFOLIO ══════ */
+    /* ══ PORTFOLIO ══ */
     #view-portfolio { background: #0e0e0c; align-items: center; justify-content: center; }
 
     .portfolio-card {
@@ -91,7 +103,7 @@
       position: absolute; top: 0; width: 50%; height: 100%;
       transform-style: preserve-3d;
       transition: transform 0.95s cubic-bezier(.645,.045,.355,1);
-      cursor: none;
+      cursor: pointer;
     }
     .page.right-side { left: 50%; transform-origin: left center; }
     .page.left-side  { left: 0;   transform-origin: right center; }
@@ -124,10 +136,7 @@
       position: relative; overflow: hidden;
     }
     .img-box svg { width: 70%; height: 70%; opacity: 0.2; }
-    .img-lbl {
-      position: absolute; bottom: 8px; right: 10px;
-      font-size: 0.52rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid);
-    }
+    .img-lbl { position: absolute; bottom: 8px; right: 10px; font-size: 0.52rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--mid); }
     .img-hover {
       position: absolute; inset: 0; background: rgba(245,243,238,0.92);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -142,13 +151,13 @@
       transform: translateX(-50%); z-index: 20;
     }
     .book-shadow { width: 85%; height: 12px; background: radial-gradient(ellipse, rgba(0,0,0,0.18) 0%, transparent 70%); margin-top: -2px; }
-
     .book-controls { display: flex; align-items: center; gap: 36px; margin-top: 18px; }
+
     .book-btn {
       font-family: var(--font); font-weight: 300; font-size: 0.65rem;
       letter-spacing: 0.2em; text-transform: uppercase;
       background: none; border: none; color: var(--ink);
-      cursor: none; padding: 8px 0; position: relative; transition: color 0.2s;
+      cursor: pointer; padding: 8px 0; position: relative; transition: color 0.2s;
     }
     .book-btn::after {
       content: ''; position: absolute; bottom: 4px; left: 0; right: 0;
@@ -159,7 +168,6 @@
     .book-btn:disabled { color: var(--mid); }
     .page-indicator { font-size: 0.72rem; color: var(--mid); letter-spacing: 0.12em; min-width: 80px; text-align: center; }
 
-    /* corner marks */
     .cm { position: absolute; width: 16px; height: 16px; border: 0 solid rgba(26,26,24,0.15); }
     .cm.tl { top: 14px;    left: 14px;  border-top-width: 1px;    border-left-width: 1px; }
     .cm.tr { top: 14px;    right: 14px; border-top-width: 1px;    border-right-width: 1px; }
@@ -167,23 +175,8 @@
     .cm.br { bottom: 14px; right: 14px; border-bottom-width: 1px; border-right-width: 1px; }
     .cm.light { border-color: rgba(245,243,238,0.2); }
 
-    /* ══════ RESUME ══════ */
+    /* ══ RESUME ══ */
     #view-resume { background: var(--ink); color: var(--paper); }
-
-    .section-heading {
-      width: 100%; padding: 48px 0 36px;
-      text-align: center; flex-shrink: 0;
-    }
-    #view-resume .section-heading { border-bottom: 1px solid rgba(245,243,238,0.1); }
-    #view-contact .section-heading { border-bottom: 1px solid var(--rule); }
-
-    .section-heading h2 {
-      font-size: 1.4rem; font-weight: 300;
-      letter-spacing: 0.35em; text-transform: uppercase;
-    }
-    #view-resume .section-heading h2  { color: var(--paper); }
-    #view-contact .section-heading h2 { color: var(--ink); }
-    .section-heading h2 em { font-style: normal; color: var(--accent); }
 
     .resume-name-row { padding: 28px 8vw; border-bottom: 1px solid rgba(245,243,238,0.1); flex-shrink: 0; }
     .resume-name { font-size: 1.5rem; font-weight: 300; letter-spacing: 0.02em; margin-bottom: 5px; }
@@ -196,23 +189,13 @@
     .resume-col-divider { background: rgba(245,243,238,0.1); }
 
     .resume-col-left .resume-block { flex: 1; display: flex; flex-direction: column; }
-    .resume-col-left .resume-entry {
-      flex: 1; display: flex; flex-direction: column; justify-content: center;
-      border-bottom: 1px solid rgba(245,243,238,0.06);
-    }
+    .resume-col-left .resume-entry { flex: 1; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid rgba(245,243,238,0.06); }
     .resume-col-left .resume-entry:last-child { border-bottom: none; }
 
-    .resume-block-title {
-      font-size: 0.55rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase;
-      color: rgba(245,243,238,0.3); padding-bottom: 10px;
-      border-bottom: 1px solid rgba(245,243,238,0.08); flex-shrink: 0;
-    }
+    .resume-block-title { font-size: 0.55rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(245,243,238,0.3); padding-bottom: 10px; border-bottom: 1px solid rgba(245,243,238,0.08); flex-shrink: 0; }
     .resume-entry { border-bottom: 1px solid rgba(245,243,238,0.06); }
     .resume-entry:last-child { border-bottom: none; }
-    .resume-entry-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      gap: 16px; padding-top: 12px; margin-bottom: 6px;
-    }
+    .resume-entry-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-top: 12px; margin-bottom: 6px; }
     .resume-org     { font-size: 0.88rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 2px; }
     .resume-org-sub { font-size: 0.68rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 3px; }
     .resume-role    { font-size: 0.62rem; font-weight: 300; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
@@ -229,26 +212,16 @@
     .skill-list li::before { content: '·'; position: absolute; left: 0; color: var(--accent); }
 
     .resume-footer { text-align: center; padding: 20px 0; border-top: 1px solid rgba(245,243,238,0.08); flex-shrink: 0; }
-    .resume-dl {
-      font-size: 0.65rem; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase;
-      color: var(--paper); text-decoration: none;
-      padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s;
-    }
+    .resume-dl { font-size: 0.65rem; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s; }
     .resume-dl:hover { color: var(--accent); }
 
-    /* ══════ CONTACT ══════ */
+    /* ══ CONTACT ══ */
     #view-contact { background: var(--white); }
 
     .contact-body { display: grid; grid-template-columns: 1fr 1fr; flex: 1; overflow: hidden; }
-    .contact-left {
-      display: flex; align-items: center; justify-content: center;
-      padding: 0 72px; border-right: 1px solid var(--rule);
-    }
+    .contact-left { display: flex; align-items: center; justify-content: center; padding: 0 72px; border-right: 1px solid var(--rule); }
     .contact-list { display: flex; flex-direction: column; width: 100%; }
-    .contact-row {
-      display: grid; grid-template-columns: 110px 1fr; gap: 20px;
-      padding: 28px 0; border-bottom: 1px solid var(--rule); align-items: baseline;
-    }
+    .contact-row { display: grid; grid-template-columns: 110px 1fr; gap: 20px; padding: 28px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
     .contact-row:first-child { border-top: 1px solid var(--rule); }
     .contact-lbl { font-size: 0.6rem; font-weight: 300; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mid); }
     .contact-val { font-size: 0.88rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
@@ -257,14 +230,11 @@
     .contact-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
   </style>
 </head>
-<body class="show-portfolio">
+<body>
 
-  <div id="cursor"></div>
-  <div id="cursor-ring"></div>
-
-  <!-- ── NAV ── -->
-  <nav>
+  <nav id="main-nav" class="dark">
     <button class="nav-logo" id="nav-logo">Benjamin Reed Perks</button>
+    <span class="nav-title" id="nav-title"></span>
     <ul class="nav-links">
       <li><button id="nav-portfolio" class="active">Portfolio</button></li>
       <li><button id="nav-resume">Resume</button></li>
@@ -272,7 +242,7 @@
     </ul>
   </nav>
 
-  <!-- ══════ PORTFOLIO ══════ -->
+  <!-- ══ PORTFOLIO ══ -->
   <div class="view active" id="view-portfolio">
     <div class="portfolio-card">
       <div class="book-wrapper">
@@ -399,8 +369,8 @@
               </div>
             </div>
           </div>
-        </div>
 
+        </div>
         <div class="book-shadow"></div>
         <div class="book-controls">
           <button class="book-btn" id="btn-prev" disabled>← Prev</button>
@@ -411,15 +381,13 @@
     </div>
   </div>
 
-  <!-- ══════ RESUME ══════ -->
+  <!-- ══ RESUME ══ -->
   <div class="view" id="view-resume">
-    <div class="section-heading"><h2><em>Resume</em></h2></div>
     <div class="resume-name-row">
       <p class="resume-name">Benjamin Reed <span>Perks</span></p>
       <p class="resume-name-sub">Architecture &amp; Design &nbsp;·&nbsp; Philadelphia, PA</p>
     </div>
     <div class="resume-body">
-
       <div class="resume-col-left">
         <div class="resume-block">
           <p class="resume-block-title">Work Experience</p>
@@ -481,9 +449,7 @@
           </div>
         </div>
       </div>
-
       <div class="resume-col-divider"></div>
-
       <div class="resume-col-right">
         <div class="resume-block">
           <p class="resume-block-title">Education</p>
@@ -553,16 +519,14 @@
           </div>
         </div>
       </div>
-
     </div>
     <div class="resume-footer">
       <a href="#" class="resume-dl">Download Full CV &nbsp;↗</a>
     </div>
   </div>
 
-  <!-- ══════ CONTACT ══════ -->
+  <!-- ══ CONTACT ══ -->
   <div class="view" id="view-contact">
-    <div class="section-heading"><h2><em>Contact</em></h2></div>
     <div class="contact-body">
       <div class="contact-left">
         <div class="contact-list">
@@ -593,45 +557,36 @@
   <script>
     (function () {
 
-      // ── Cursor ──
-      var dot  = document.getElementById('cursor');
-      var ring = document.getElementById('cursor-ring');
+      var nav   = document.getElementById('main-nav');
+      var title = document.getElementById('nav-title');
 
-      document.addEventListener('mousemove', function (e) {
-        dot.style.left  = ring.style.left = e.clientX + 'px';
-        dot.style.top   = ring.style.top  = e.clientY + 'px';
-      });
-
-      document.addEventListener('mouseover', function (e) {
-        ring.classList.toggle('expand', !!e.target.closest('button, a, .img-box'));
-      });
-
-      function setCursor(dark) {
-        dot.style.background    = dark ? '#fff' : '#1a1a18';
-        ring.style.borderColor  = dark ? 'rgba(255,255,255,0.6)' : 'rgba(26,26,24,0.5)';
-      }
-
-      // ── View switching ──
-      var views   = ['portfolio', 'resume', 'contact'];
-      var darkViews = { portfolio: true, resume: true, contact: false };
+      var config = {
+        portfolio: { navClass: 'dark',  titleHtml: '',                      },
+        resume:    { navClass: 'dark',  titleHtml: '<em>Resume</em>',       },
+        contact:   { navClass: 'light', titleHtml: '<em>Contact</em>',      }
+      };
 
       function switchView(key) {
-        views.forEach(function (k) {
+        // swap views
+        ['portfolio', 'resume', 'contact'].forEach(function (k) {
           document.getElementById('view-' + k).classList.toggle('active', k === key);
           document.getElementById('nav-'  + k).classList.toggle('active', k === key);
         });
-        document.body.className = 'show-' + key;
-        setCursor(darkViews[key]);
+
+        // update nav
+        var cfg = config[key];
+        nav.className = cfg.navClass + (cfg.titleHtml ? ' show-title' : '');
+        title.innerHTML = cfg.titleHtml;
       }
 
-      document.getElementById('nav-logo').addEventListener('click',      function () { switchView('portfolio'); });
-      document.getElementById('nav-portfolio').addEventListener('click', function () { switchView('portfolio'); });
-      document.getElementById('nav-resume').addEventListener('click',    function () { switchView('resume'); });
-      document.getElementById('nav-contact').addEventListener('click',   function () { switchView('contact'); });
+      document.getElementById('nav-logo').onclick      = function () { switchView('portfolio'); };
+      document.getElementById('nav-portfolio').onclick = function () { switchView('portfolio'); };
+      document.getElementById('nav-resume').onclick    = function () { switchView('resume');    };
+      document.getElementById('nav-contact').onclick   = function () { switchView('contact');   };
 
       // ── Book flip ──
       var pages = [
-        { el: document.getElementById('page-0'), label: 'Cover' },
+        { el: document.getElementById('page-0'), label: 'Cover'        },
         { el: document.getElementById('page-1'), label: 'Spread 1 – 2' },
         { el: document.getElementById('page-2'), label: 'Spread 3 – 4' }
       ];
@@ -641,25 +596,25 @@
       var ind  = document.getElementById('page-indicator');
 
       function updateBook() {
-        btnP.disabled    = cur === 0;
-        btnN.disabled    = cur === pages.length - 1;
-        ind.textContent  = pages[cur].label;
+        btnP.disabled   = cur === 0;
+        btnN.disabled   = cur === pages.length - 1;
+        ind.textContent = pages[cur].label;
       }
 
-      btnN.addEventListener('click', function () {
+      btnN.onclick = function () {
         if (cur >= pages.length - 1) return;
         pages[cur].el.style.zIndex = 20;
         pages[cur].el.classList.add('flipped');
         cur++; updateBook();
-      });
+      };
 
-      btnP.addEventListener('click', function () {
+      btnP.onclick = function () {
         if (cur <= 0) return;
         cur--;
         pages[cur].el.classList.remove('flipped');
         pages[cur].el.style.zIndex = 10 - cur;
         updateBook();
-      });
+      };
 
       updateBook();
 
