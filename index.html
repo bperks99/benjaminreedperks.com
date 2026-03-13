@@ -371,16 +371,17 @@
       'cover.glb',
       function (gltf) {
         const model = gltf.scene;
-        pivot.add(model);
-
-        // Auto-fit camera to model
+        // Center the model on the world origin before adding to pivot
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
+        model.position.sub(center);  // shift model so its center is at 0,0,0
+        pivot.add(model);
+
+        // Auto-fit camera
         const maxDim = Math.max(size.x, size.y, size.z);
         const dist   = maxDim / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.5;
 
-        pivot.position.copy(center.negate());
         camera.position.set(0, dist, 0);
         camera.lookAt(0, 0, 0);
         homePos.set(0, dist, 0);
