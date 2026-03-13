@@ -284,7 +284,7 @@
   <script type="module">
     import * as THREE        from 'three';
     import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
-    import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
     const canvas   = document.getElementById('portfolio-canvas');
     const loading  = document.getElementById('loading');
@@ -306,34 +306,62 @@
     fill.position.set(-6, 4, -4);
     scene.add(fill);
 
-    const controls = new TrackballControls(camera, canvas);
-    controls.rotateSpeed    = 2.0;
-    controls.zoomSpeed      = 0.8;
-    controls.panSpeed       = 0;
-    controls.noZoom         = false;
-    controls.noPan          = true;
-    controls.staticMoving   = false;
-    controls.dynamicDampingFactor = 0.15;
-    controls.minDistance    = 0.5;
-    controls.maxDistance    = 30;
+    // ── Custom globe-style trackball ──
+    let pivot = new THREE.Group();
+    scene.add(pivot);
+
+    let isDragging = false;
+    let prevX = 0, prevY = 0;
+    let velX = 0, velY = 0;
+    let zoomDist = 1;
+
+    canvas.addEventListener('pointerdown', e => {
+      isDragging = true;
+      prevX = e.clientX; prevY = e.clientY;
+      velX = 0; velY = 0;
+      canvas.setPointerCapture(e.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevX;
+      const dy = e.clientY - prevY;
+      velX = dx; velY = dy;
+      pivot.rotateOnWorldAxis(new THREE.Vector3(0,1,0), dx * 0.005);
+      pivot.rotateOnWorldAxis(new THREE.Vector3(1,0,0), dy * 0.005);
+      prevX = e.clientX; prevY = e.clientY;
+    });
+
+    canvas.addEventListener('pointerup',   () => isDragging = false);
+    canvas.addEventListener('pointerleave',() => isDragging = false);
+
+    // Scroll to zoom
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 1.1 : 0.9;
+      const newDist = camera.position.length() * factor;
+      if (newDist > 0.5 && newDist < 30) {
+        camera.position.multiplyScalar(factor);
+      }
+    }, { passive: false });
+
+    // Momentum after release
+    function applyMomentum() {
+      if (!isDragging && (Math.abs(velX) > 0.01 || Math.abs(velY) > 0.01)) {
+        pivot.rotateOnWorldAxis(new THREE.Vector3(0,1,0), velX * 0.005);
+        pivot.rotateOnWorldAxis(new THREE.Vector3(1,0,0), velY * 0.005);
+        velX *= 0.92; velY *= 0.92;
+      }
+    }
 
     let homePos    = new THREE.Vector3();
     let homeTarget = new THREE.Vector3();
     let animating  = false;
 
     function goHome() {
-      if (animating) return;
-      animating = true;
-      const sp = camera.position.clone(), st = controls.target.clone();
-      const t0 = performance.now();
-      (function step(now) {
-        const t = Math.min((now - t0) / 900, 1);
-        const e = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
-        camera.position.lerpVectors(sp, homePos, e);
-        controls.target.lerpVectors(st, homeTarget, e);
-        controls.update();
-        if (t < 1) requestAnimationFrame(step); else animating = false;
-      })(t0);
+      pivot.rotation.set(0, 0, 0);
+      camera.position.copy(homePos);
+      velX = 0; velY = 0;
     }
     document.getElementById('btn-home').addEventListener('click', goHome);
 
@@ -343,7 +371,7 @@
       'cover.glb',
       function (gltf) {
         const model = gltf.scene;
-        scene.add(model);
+        pivot.add(model);
 
         // Auto-fit camera to model
         const box    = new THREE.Box3().setFromObject(model);
@@ -352,13 +380,10 @@
         const maxDim = Math.max(size.x, size.y, size.z);
         const dist   = maxDim / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.5;
 
-        camera.position.set(center.x, center.y + dist, center.z);
-        camera.lookAt(center);
-        controls.target.copy(center);
-        controls.update();
-
-        homePos.copy(camera.position);
-        homeTarget.copy(center);
+        pivot.position.copy(center.negate());
+        camera.position.set(0, dist, 0);
+        camera.lookAt(0, 0, 0);
+        homePos.set(0, dist, 0);
 
         // Hide loading overlay
         loading.classList.add('hidden');
@@ -384,7 +409,7 @@
     // ── Render loop ──
     (function animate() {
       requestAnimationFrame(animate);
-      controls.update();
+      applyMomentum();
       renderer.render(scene, camera);
     })();
   </script>
