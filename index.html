@@ -284,7 +284,7 @@
   <script type="module">
     import * as THREE        from 'three';
     import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
-    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 
     const canvas   = document.getElementById('portfolio-canvas');
     const loading  = document.getElementById('loading');
@@ -306,16 +306,16 @@
     fill.position.set(-6, 4, -4);
     scene.add(fill);
 
-    const controls = new OrbitControls(camera, canvas);
-    controls.enableDamping  = true;
-    controls.dampingFactor  = 0.05;
-    controls.rotateSpeed    = 0.6;
+    const controls = new TrackballControls(camera, canvas);
+    controls.rotateSpeed    = 2.0;
     controls.zoomSpeed      = 0.8;
-    controls.enablePan      = false;
+    controls.panSpeed       = 0;
+    controls.noZoom         = false;
+    controls.noPan          = true;
+    controls.staticMoving   = false;
+    controls.dynamicDampingFactor = 0.15;
     controls.minDistance    = 0.5;
     controls.maxDistance    = 30;
-    controls.minPolarAngle  = 0;
-    controls.maxPolarAngle  = Math.PI;
 
     let homePos    = new THREE.Vector3();
     let homeTarget = new THREE.Vector3();
