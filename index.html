@@ -66,6 +66,9 @@
     nav.dark        { background: #0e0e0c; }
     nav.dark button { color: #fff; }
     nav.dark .nav-title { color: #fff; }
+    nav.resume        { background: #1a1a18; }
+    nav.resume button { color: #fff; }
+    nav.resume .nav-title { color: #fff; }
     nav.light        { background: var(--white); }
     nav.light button { color: var(--ink); }
     nav.light .nav-title { color: var(--ink); }
@@ -260,8 +263,8 @@
     const navTitle   = document.getElementById('nav-title');
     const views      = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
     const navBtns    = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
-    const navSchemes = { portfolio: 'dark', resume: 'dark', contact: 'light' };
-    const navTitles  = { portfolio: '', resume: 'Résumé', contact: 'Contact' };
+    const navSchemes = { portfolio: 'dark', resume: 'resume', contact: 'light' };
+    const navTitles  = { portfolio: '', resume: 'Resume', contact: 'Contact' };
 
     function switchView(key) {
       Object.values(views).forEach(v => v.classList.remove('active'));
