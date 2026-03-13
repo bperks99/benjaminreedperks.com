@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benjamin Reed Perks</title>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:    #1a1a18;
+      --paper:  #f5f3ee;
+      --white:  #faf9f6;
+      --mid:    #9a9690;
+      --accent: #a8b8d8;
+      --rule:   rgba(26,26,24,0.12);
+      --font:   'Century Gothic', 'AppleGothic', 'Gill Sans', sans-serif;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      display: flex; flex-direction: column;
+      font-family: var(--font); font-weight: 300;
+    }
+
+    /* ── NAV ── */
+    nav {
+      flex-shrink: 0;
+      display: grid; grid-template-columns: 1fr 1fr 1fr;
+      align-items: center;
+      padding: 28px 56px;
+    }
+    nav button {
+      font-family: var(--font); font-weight: 300;
+      background: none; border: none; cursor: pointer;
+      text-transform: uppercase; transition: color 0.3s;
+    }
+    .nav-logo  { font-size: 0.75rem; letter-spacing: 0.22em; text-align: left; }
+    .nav-title {
+      font-size: 1.4rem; font-weight: 300; letter-spacing: 0.35em;
+      text-transform: uppercase; text-align: center;
+      pointer-events: none; opacity: 0; transition: opacity 0.3s;
+    }
+    .nav-title em { font-style: normal; color: var(--accent); }
+    .nav-links { display: flex; gap: 44px; list-style: none; justify-content: flex-end; }
+    .nav-links button { font-size: 0.68rem; letter-spacing: 0.2em; position: relative; }
+    .nav-links button::after {
+      content: ''; position: absolute; bottom: -3px; left: 0; right: 0;
+      height: 1px; background: var(--accent);
+      transform: scaleX(0); transform-origin: left; transition: transform 0.3s;
+    }
+    .nav-links button:hover::after,
+    .nav-links button.active::after { transform: scaleX(1); }
+
+    nav.dark        { background: #0e0e0c; }
+    nav.dark button { color: #fff; }
+    nav.dark .nav-title { color: #fff; }
+    nav.light        { background: var(--white); }
+    nav.light button { color: var(--ink); }
+    nav.light .nav-title { color: var(--ink); }
+    nav.show-title .nav-title { opacity: 1; }
+
+    /* ── VIEWS ── */
+    .view { display: none; }
+    .view.active { display: block; flex: 1; position: relative; }
+
+    /* ── PORTFOLIO ── */
+    #view-portfolio { background: #0e0e0c; }
+
+    #portfolio-canvas {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      display: block; cursor: grab;
+    }
+    #portfolio-canvas:active { cursor: grabbing; }
+
+    #viewer-hint {
+      position: absolute; top: 24px; left: 36px; z-index: 10;
+      font-size: 0.55rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(245,243,238,0.2); pointer-events: none; line-height: 1.9;
+    }
+    #btn-home {
+      position: absolute; top: 24px; right: 36px; z-index: 10;
+      font-family: var(--font); font-weight: 300;
+      font-size: 0.55rem; letter-spacing: 0.22em; text-transform: uppercase;
+      color: rgba(245,243,238,0.2); background: none; border: none;
+      cursor: pointer; padding: 0; transition: color 0.25s; line-height: 1.9;
+    }
+    #btn-home:hover { color: rgba(245,243,238,0.7); }
+
+    /* ── LOADING INDICATOR ── */
+    #loading {
+      position: absolute; inset: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      background: #0e0e0c; pointer-events: none;
+      transition: opacity 0.6s;
+    }
+    #loading span {
+      font-size: 0.55rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(245,243,238,0.25);
+    }
+    #loading.hidden { opacity: 0; }
+
+    /* ── RESUME ── */
+    #view-resume.active {
+      display: flex; flex-direction: column;
+      background: var(--ink); color: var(--paper);
+    }
+    .resume-name-row { padding: 28px 8vw; border-bottom: 1px solid rgba(245,243,238,0.1); flex-shrink: 0; }
+    .resume-name { font-size: 1.5rem; font-weight: 300; letter-spacing: 0.02em; margin-bottom: 5px; }
+    .resume-name span { color: var(--accent); }
+    .resume-name-sub { font-size: 0.62rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(245,243,238,0.35); }
+    .resume-body { display: grid; grid-template-columns: 1fr 1px 1fr; flex: 1; min-height: 0; overflow: hidden; }
+    .resume-col-left  { padding: 4vh 4vw 4vh 8vw; display: flex; flex-direction: column; }
+    .resume-col-right { padding: 4vh 8vw 4vh 4vw; display: flex; flex-direction: column; justify-content: space-between; }
+    .resume-col-divider { background: rgba(245,243,238,0.1); }
+    .resume-col-left .resume-block { flex: 1; display: flex; flex-direction: column; }
+    .resume-col-left .resume-entry { flex: 1; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid rgba(245,243,238,0.06); }
+    .resume-col-left .resume-entry:last-child { border-bottom: none; }
+    .resume-block-title { font-size: 0.55rem; font-weight: 300; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(245,243,238,0.3); padding-bottom: 10px; border-bottom: 1px solid rgba(245,243,238,0.08); flex-shrink: 0; }
+    .resume-entry { border-bottom: 1px solid rgba(245,243,238,0.06); }
+    .resume-entry:last-child { border-bottom: none; }
+    .resume-entry-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-top: 12px; margin-bottom: 6px; }
+    .resume-org     { font-size: 0.88rem; font-weight: 300; letter-spacing: 0.03em; margin-bottom: 2px; }
+    .resume-org-sub { font-size: 0.68rem; letter-spacing: 0.1em; color: rgba(245,243,238,0.35); margin-bottom: 3px; }
+    .resume-role    { font-size: 0.62rem; font-weight: 300; letter-spacing: 0.18em; color: var(--accent); text-transform: uppercase; }
+    .resume-year    { font-size: 0.62rem; color: rgba(245,243,238,0.35); letter-spacing: 0.08em; white-space: nowrap; text-align: right; flex-shrink: 0; line-height: 1.6; }
+    .resume-bullets { list-style: none; padding-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .resume-bullets li { font-size: 0.7rem; line-height: 1.65; color: rgba(245,243,238,0.5); padding-left: 14px; position: relative; }
+    .resume-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--accent); font-size: 0.6rem; top: 1px; }
+    .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 0; }
+    .skill-group-label { font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(245,243,238,0.3); margin-bottom: 8px; }
+    .skill-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .skill-list li { font-size: 0.7rem; color: rgba(245,243,238,0.6); padding-left: 12px; position: relative; }
+    .skill-list li::before { content: '·'; position: absolute; left: 0; color: var(--accent); }
+    .resume-footer { text-align: center; padding: 20px 0; border-top: 1px solid rgba(245,243,238,0.08); flex-shrink: 0; }
+    .resume-dl { font-size: 0.65rem; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid var(--accent); transition: color 0.25s; }
+    .resume-dl:hover { color: var(--accent); }
+
+    /* ── CONTACT ── */
+    #view-contact.active { display: grid; grid-template-columns: 1fr 1fr; background: var(--white); }
+    .contact-left { display: flex; align-items: center; justify-content: center; padding: 0 72px; border-right: 1px solid var(--rule); }
+    .contact-list { display: flex; flex-direction: column; width: 100%; }
+    .contact-row { display: grid; grid-template-columns: 110px 1fr; gap: 20px; padding: 28px 0; border-bottom: 1px solid var(--rule); align-items: baseline; }
+    .contact-row:first-child { border-top: 1px solid var(--rule); }
+    .contact-lbl { font-size: 0.6rem; font-weight: 300; letter-spacing: 0.22em; text-transform: uppercase; color: var(--mid); }
+    .contact-val { font-size: 0.88rem; font-weight: 300; letter-spacing: 0.04em; text-decoration: none; color: var(--ink); transition: color 0.25s; }
+    .contact-val:hover { color: var(--accent); }
+    .contact-right { overflow: hidden; }
+    .contact-photo { width: 100%; height: 100%; object-fit: cover; display: block; }
+  </style>
+</head>
+<body>
+
+  <nav id="main-nav" class="dark">
+    <button class="nav-logo" id="nav-logo">Benjamin Reed Perks</button>
+    <span class="nav-title" id="nav-title"></span>
+    <ul class="nav-links">
+      <li><button id="nav-portfolio" class="active">Portfolio</button></li>
+      <li><button id="nav-resume">Resume</button></li>
+      <li><button id="nav-contact">Contact</button></li>
+    </ul>
+  </nav>
+
+  <!-- ── PORTFOLIO ── -->
+  <div class="view active" id="view-portfolio">
+    <canvas id="portfolio-canvas"></canvas>
+    <div id="viewer-hint">Drag to orbit &nbsp;·&nbsp; Scroll to zoom</div>
+    <button id="btn-home">&#8962; &nbsp; Home View</button>
+    <div id="loading"><span>Loading</span></div>
+  </div>
+
+  <!-- ── RESUME ── -->
+  <div class="view" id="view-resume">
+    <div class="resume-name-row">
+      <p class="resume-name">Benjamin Reed <span>Perks</span></p>
+      <p class="resume-name-sub">Architecture &amp; Design &nbsp;·&nbsp; Philadelphia, PA</p>
+    </div>
+    <div class="resume-body">
+      <div class="resume-col-left">
+        <div class="resume-block">
+          <p class="resume-block-title">Work Experience</p>
+          <div class="resume-entry">
+            <div class="resume-entry-header"><div><p class="resume-org">Crough Center for Architecture</p><p class="resume-org-sub">Catholic University of America</p><p class="resume-role">3D Print Lab Technician</p></div><p class="resume-year">Sept. 2024 – May 2025</p></div>
+            <ul class="resume-bullets"><li>Maintained and operated 3D printers and lab equipment</li><li>Led introductory training sessions in 3D modeling, printer operation, and slicer software for incoming students</li></ul>
+          </div>
+          <div class="resume-entry">
+            <div class="resume-entry-header"><div><p class="resume-org">HDR</p><p class="resume-org-sub">Philadelphia, PA</p><p class="resume-role">Design Intern</p></div><p class="resume-year">June – Aug. 2024</p></div>
+            <ul class="resume-bullets"><li>Developed BIM models in Revit for active projects</li><li>Conducted research on building codes and materials specifications</li></ul>
+          </div>
+          <div class="resume-entry">
+            <div class="resume-entry-header"><div><p class="resume-org">Philadelphia Cricket Club</p><p class="resume-org-sub">Chestnut Hill, PA</p><p class="resume-role">Tennis Pro</p></div><p class="resume-year">June – Aug. 2023<br>June 2025 – Present</p></div>
+            <ul class="resume-bullets"><li>Directed Camp Cricket summer program for 25–30 children, ages 3–5</li><li>Ran Junior Camp summer program for 10–15 children, ages 8–14</li></ul>
+          </div>
+          <div class="resume-entry">
+            <div class="resume-entry-header"><div><p class="resume-org">Synalovski Romanik Saye</p><p class="resume-org-sub">Fort Lauderdale, FL</p><p class="resume-role">Architectural Intern</p></div><p class="resume-year">June – July 2022</p></div>
+            <ul class="resume-bullets"><li>Generated as-built drawings on site for commercial renovations</li><li>Collaborated on AutoCAD documentation packages</li></ul>
+          </div>
+        </div>
+      </div>
+      <div class="resume-col-divider"></div>
+      <div class="resume-col-right">
+        <div class="resume-block">
+          <p class="resume-block-title">Education</p>
+          <div class="resume-entry">
+            <div class="resume-entry-header"><div><p class="resume-org">Catholic University of America</p><p class="resume-org-sub">Washington, D.C.</p><p class="resume-role">Bachelor of Architecture</p></div><p class="resume-year">2021 – 2025</p></div>
+            <ul class="resume-bullets"><li>GPA 3.48</li><li>Dean's List — Fall 2021, Fall 2023, Spring 2024, Fall 2024, Spring 2025</li></ul>
+          </div>
+        </div>
+        <div class="resume-block">
+          <p class="resume-block-title">Athletics</p>
+          <div class="resume-entry">
+            <div class="resume-entry-header"><div><p class="resume-org">CUA Men's Tennis Team</p><p class="resume-org-sub">Catholic University of America</p></div><p class="resume-year">2021 – 2025</p></div>
+            <ul class="resume-bullets"><li>Team Captain, 2024–25</li><li>Harris Cup Nominee</li><li>ITA Scholar Athlete</li><li>Student Athlete Advisory Committee — Spirit &amp; Events Subcommittee Coordinator</li></ul>
+          </div>
+        </div>
+        <div class="resume-block">
+          <p class="resume-block-title">Skills</p>
+          <div class="skills-grid">
+            <div><p class="skill-group-label">Software</p><ul class="skill-list"><li>Rhinoceros 3D</li><li>Autodesk Fusion</li><li>AutoCAD / Revit</li><li>Photoshop</li><li>InDesign</li></ul></div>
+            <div><p class="skill-group-label">Fabrication</p><ul class="skill-list"><li>3D Printing</li><li>Ultimaker Cura</li><li>Bambu Studio</li><li>Modelmaking</li></ul></div>
+          </div>
+        </div>
+        <div class="resume-block">
+          <p class="resume-block-title">Service</p>
+          <div class="resume-entry"><ul class="resume-bullets" style="padding-top:12px;"><li>100+ volunteer hours at S.A.V.E. Animal Shelter — Montgomery Township, NJ</li></ul></div>
+        </div>
+      </div>
+    </div>
+    <div class="resume-footer"><a href="#" class="resume-dl">Download Full CV &nbsp;↗</a></div>
+  </div>
+
+  <!-- ── CONTACT ── -->
+  <div class="view" id="view-contact">
+    <div class="contact-left">
+      <div class="contact-list">
+        <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
+        <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
+        <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
+      </div>
+    </div>
+    <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
+  </div>
+
+  <!-- ── NAV LOGIC ── -->
+  <script>
+    const nav        = document.getElementById('main-nav');
+    const navTitle   = document.getElementById('nav-title');
+    const views      = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
+    const navBtns    = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
+    const navSchemes = { portfolio: 'dark', resume: 'dark', contact: 'light' };
+    const navTitles  = { portfolio: '', resume: 'Résumé', contact: 'Contact' };
+
+    function switchView(key) {
+      Object.values(views).forEach(v => v.classList.remove('active'));
+      Object.values(navBtns).forEach(b => b.classList.remove('active'));
+      views[key].classList.add('active');
+      navBtns[key].classList.add('active');
+      nav.className = navSchemes[key];
+      navTitle.innerHTML = navTitles[key];
+      if (navTitles[key]) nav.classList.add('show-title');
+      else nav.classList.remove('show-title');
+    }
+
+    document.getElementById('nav-logo').addEventListener('click', () => switchView('portfolio'));
+    document.getElementById('nav-portfolio').addEventListener('click', () => switchView('portfolio'));
+    document.getElementById('nav-resume').addEventListener('click',    () => switchView('resume'));
+    document.getElementById('nav-contact').addEventListener('click',   () => switchView('contact'));
+  </script>
+
+  <!-- ── 3D VIEWER ── -->
+  <script type="module">
+    import * as THREE        from 'three';
+    import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const canvas   = document.getElementById('portfolio-canvas');
+    const loading  = document.getElementById('loading');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping         = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0e0e0c);
+
+    const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+    const key = new THREE.DirectionalLight(0xffffff, 2);
+    key.position.set(5, 10, 6); key.castShadow = true;
+    scene.add(key);
+    const fill = new THREE.DirectionalLight(0xa8b8d8, 0.6);
+    fill.position.set(-6, 4, -4);
+    scene.add(fill);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.enableDamping = true; controls.dampingFactor = 0.07;
+    controls.enablePan = false;
+    controls.minDistance = 0.5; controls.maxDistance = 30;
+
+    let homePos    = new THREE.Vector3();
+    let homeTarget = new THREE.Vector3();
+    let animating  = false;
+
+    function goHome() {
+      if (animating) return;
+      animating = true;
+      const sp = camera.position.clone(), st = controls.target.clone();
+      const t0 = performance.now();
+      (function step(now) {
+        const t = Math.min((now - t0) / 900, 1);
+        const e = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
+        camera.position.lerpVectors(sp, homePos, e);
+        controls.target.lerpVectors(st, homeTarget, e);
+        controls.update();
+        if (t < 1) requestAnimationFrame(step); else animating = false;
+      })(t0);
+    }
+    document.getElementById('btn-home').addEventListener('click', goHome);
+
+    // ── Load GLB from file ──
+    const loader = new GLTFLoader();
+    loader.load(
+      'cover.glb',
+      function (gltf) {
+        const model = gltf.scene;
+        scene.add(model);
+
+        // Auto-fit camera to model
+        const box    = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size   = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const dist   = maxDim / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.5;
+
+        camera.position.set(center.x, center.y + size.y * 0.1, center.z + dist);
+        camera.lookAt(center);
+        controls.target.copy(center);
+        controls.update();
+
+        homePos.copy(camera.position);
+        homeTarget.copy(center);
+
+        // Hide loading overlay
+        loading.classList.add('hidden');
+        setTimeout(() => loading.style.display = 'none', 700);
+      },
+      undefined,
+      function (err) {
+        console.error('Error loading cover.glb:', err);
+        loading.querySelector('span').textContent = 'Failed to load model';
+      }
+    );
+
+    // ── Resize ──
+    function resize() {
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ── Render loop ──
+    (function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    })();
+  </script>
+
+</body>
+</html>
