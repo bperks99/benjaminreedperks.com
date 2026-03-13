@@ -298,12 +298,12 @@
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
-    const key = new THREE.DirectionalLight(0xffffff, 4);
-    key.position.set(8, 8, 8); key.castShadow = true;
+    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+    const key = new THREE.DirectionalLight(0xffffff, 4.5);
+    key.position.set(12, 4, 2); key.castShadow = true;
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0xa8b8d8, 0.3);
-    fill.position.set(-6, 2, -4);
+    const fill = new THREE.DirectionalLight(0xc8d4e8, 0.4);
+    fill.position.set(-8, 2, -6);
     scene.add(fill);
 
     // ── Custom globe-style trackball ──
