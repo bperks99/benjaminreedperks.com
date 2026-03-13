@@ -340,7 +340,7 @@
       e.preventDefault();
       const factor = e.deltaY > 0 ? 1.1 : 0.9;
       const newDist = camera.position.length() * factor;
-      if (newDist > 0.5 && newDist < 30) {
+      if (newDist > 0.15 && newDist < 15) {
         camera.position.multiplyScalar(factor);
       }
     }, { passive: false });
