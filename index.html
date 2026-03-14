@@ -251,7 +251,7 @@
     const key = new THREE.DirectionalLight(0xfff6e8, 4.0);
     key.position.set(-10, 5, -8);
     key.castShadow = true;
-    key.shadow.mapSize.width = key.shadow.mapSize.height = 4096;
+    key.shadow.mapSize.width = key.shadow.mapSize.height = 2048;
     key.shadow.camera.near = 0.1; key.shadow.camera.far = 100; key.shadow.bias = -0.001;
     scene.add(key);
     const fill = new THREE.DirectionalLight(0xa8c0e0, 0.5);
@@ -287,16 +287,21 @@
     let coverMeshRef   = [];
     let axisMeshRef    = null;
     let modelSize      = new THREE.Vector3();
-    let openLookTarget = new THREE.Vector3(); // world-space center of opened spread
+    let openLookTarget = new THREE.Vector3();
+    let orthoCamera    = null;
+    let activeCamera   = camera; // switches to orthoCamera when spread is open
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
+
+    renderer.shadowMap.autoUpdate = false; // only update shadows when needed
 
     (function loop(now) {
       requestAnimationFrame(loop);
       if (!pivot) { renderer.render(scene, camera); return; }
 
       if (phase === 'intro') {
+        renderer.shadowMap.needsUpdate = false;
         if (!phaseStart) phaseStart = now;
         const t = Math.min((now - phaseStart) / INTRO_DUR, 1);
         camera.lookAt(0, 0, -rise * (1 - easeOutQuad(t)));
@@ -307,6 +312,7 @@
           camera.lookAt(0, 0, 0);
           pivot.rotation.z = FINAL_ROT_Z;
           phase = 'idle';
+          renderer.shadowMap.needsUpdate = true; // update shadows once at rest
           btn.classList.add('visible');
         }
       }
@@ -372,12 +378,25 @@
             camera.position.y = zoomCamY;
             camera.lookAt(openLookTarget.x, 0, openLookTarget.z);
             phase = 'done';
+            renderer.shadowMap.needsUpdate = true;
             portNav.classList.add('visible');
+
+            // Switch to OrthographicCamera — true flat top-down, no perspective tilt
+            const w     = canvas.clientWidth;
+            const h     = canvas.clientHeight;
+            const ar    = w / h;
+            const oH    = modelSize.z * 1.15; // spread height + small border
+            const oW    = oH * ar;
+            orthoCamera = new THREE.OrthographicCamera(-oW/2, oW/2, oH/2, -oH/2, 0.01, 1000);
+            orthoCamera.position.set(openLookTarget.x, zoomCamY, openLookTarget.z);
+            orthoCamera.up.set(0, 0, -1);
+            orthoCamera.lookAt(openLookTarget.x, 0, openLookTarget.z);
+            activeCamera = orthoCamera;
           }
         }
       }
 
-      renderer.render(scene, camera);
+      renderer.render(scene, activeCamera);
     })(0);
 
     btn.addEventListener('click', () => {
