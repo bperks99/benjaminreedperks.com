@@ -35,7 +35,6 @@
       background: #030302;
     }
 
-    /* ── INTRO OVERLAY ── */
     #intro-overlay {
       position: fixed; inset: 0; z-index: 9999;
       background: #030302;
@@ -45,7 +44,6 @@
     }
     #intro-overlay.fade-out { opacity: 0; }
 
-    /* ── NAV ── */
     nav {
       flex-shrink: 0;
       display: grid; grid-template-columns: 1fr 1fr 1fr;
@@ -82,23 +80,13 @@
     nav.light .nav-title { color: var(--ink); }
     nav.show-title .nav-title { opacity: 1; }
 
-    /* ── VIEWS ── */
     .view { display: none; }
     .view.active { display: flex; flex: 1; position: relative; align-items: center; justify-content: center; }
 
-    /* ── PORTFOLIO ── */
     #view-portfolio { background: transparent; }
-    #portfolio-canvas {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      display: block;
-    }
+    #portfolio-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-    /* ── RESUME ── */
-    #view-resume.active {
-      display: flex; flex-direction: column;
-      background: var(--ink); color: var(--paper);
-    }
+    #view-resume.active { display: flex; flex-direction: column; background: var(--ink); color: var(--paper); }
     .resume-name-row { padding: 28px 8vw; border-bottom: 1px solid rgba(245,243,238,0.1); flex-shrink: 0; }
     .resume-name { font-size: 1.5rem; font-weight: 300; letter-spacing: 0.02em; margin-bottom: 5px; }
     .resume-name span { color: var(--accent); }
@@ -130,7 +118,6 @@
     .resume-dl { font-size: 0.65rem; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid rgba(245,243,238,0.3); transition: color 0.25s; }
     .resume-dl:hover { color: rgba(245,243,238,0.6); }
 
-    /* ── CONTACT ── */
     #view-contact.active { display: grid; grid-template-columns: 1fr 1fr; background: var(--white); }
     .contact-left { display: flex; align-items: center; justify-content: center; padding: 0 72px; border-right: 1px solid var(--rule); }
     .contact-list { display: flex; flex-direction: column; width: 100%; }
@@ -157,12 +144,10 @@
     </ul>
   </nav>
 
-  <!-- ── PORTFOLIO ── -->
   <div class="view active" id="view-portfolio">
     <canvas id="portfolio-canvas"></canvas>
   </div>
 
-  <!-- ── RESUME ── -->
   <div class="view" id="view-resume">
     <div class="resume-name-row">
       <p class="resume-name">Benjamin Reed <span>Perks</span></p>
@@ -222,7 +207,6 @@
     <div class="resume-footer"><a href="#" class="resume-dl">Download Full CV &nbsp;↗</a></div>
   </div>
 
-  <!-- ── CONTACT ── -->
   <div class="view" id="view-contact">
     <div class="contact-left">
       <div class="contact-list">
@@ -235,9 +219,8 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <!-- ── NAV LOGIC ── -->
   <script>
-    // Overlay always fades out on a timer — never depends on GLB loading
+    // Overlay fades on a timer — never depends on GLB loading
     setTimeout(() => {
       document.getElementById('intro-overlay').classList.add('fade-out');
     }, 700);
@@ -266,7 +249,6 @@
     logo.addEventListener('click',           () => switchView('portfolio'));
   </script>
 
-  <!-- ── 3D VIEWER ── -->
   <script type="module">
     import * as THREE     from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -283,7 +265,6 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.04));
     const key = new THREE.DirectionalLight(0xfff8f0, 5.5);
     key.position.set(-10, 12, 6);
@@ -298,7 +279,6 @@
     fill.position.set(8, 2, -4);
     scene.add(fill);
 
-    // Resize handler
     function resize() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       renderer.setSize(w, h, false);
@@ -308,18 +288,20 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
-    // Easing
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-    // Animation state
+    // The exact final Z rotation we want the model to rest at
+    const FINAL_ROT_Z = THREE.MathUtils.degToRad(30);
+    // Start one full rotation ahead on the same axis — spins into final position
+    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 2;
+
     const ANIM_DURATION = 1800;
     let pivot        = null;
+    let modelMesh    = null;
     let animating    = false;
     let animStart    = null;
     let startOffsetZ = 0;
-    let startRotY    = 0;
 
-    // Render loop
     (function loop(now) {
       requestAnimationFrame(loop);
 
@@ -328,12 +310,16 @@
         const t = Math.min((now - animStart) / ANIM_DURATION, 1);
         const e = easeOutCubic(t);
 
+        // Rise: pivot comes up from below
         pivot.position.z = startOffsetZ * (1 - e);
-        pivot.rotation.y = startRotY    * (1 - e);
+
+        // Spin: model.rotation.z winds from START_ROT_Z down to FINAL_ROT_Z
+        // Both are on the same axis so they can't conflict
+        modelMesh.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * e;
 
         if (t >= 1) {
-          pivot.position.z = 0;
-          pivot.rotation.y = 0;
+          pivot.position.z  = 0;
+          modelMesh.rotation.z = FINAL_ROT_Z; // snap exactly to final
           animating = false;
         }
       }
@@ -341,41 +327,40 @@
       renderer.render(scene, camera);
     })(0);
 
-    // Load GLB
     const loader = new GLTFLoader();
     loader.load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
-        const model = gltf.scene;
+        modelMesh = gltf.scene;
 
-        model.traverse(child => {
+        modelMesh.traverse(child => {
           if (child.isMesh) {
             child.castShadow    = true;
             child.receiveShadow = true;
           }
         });
 
-        // Add flat first so bbox is accurate
-        scene.add(model);
+        // Add flat first so bbox is axis-aligned and accurate
+        scene.add(modelMesh);
         scene.updateMatrixWorld(true);
 
-        const box    = new THREE.Box3().setFromObject(model);
+        const box    = new THREE.Box3().setFromObject(modelMesh);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
 
-        // Remove and re-add inside pivot
-        scene.remove(model);
-        model.position.set(-center.x, -center.y, -center.z);
+        // Pull out of scene, center it inside the pivot
+        scene.remove(modelMesh);
+        modelMesh.position.set(-center.x, -center.y, -center.z);
 
-        // 30° tilt on Z — applied to model, never touched again
-        model.rotation.z = THREE.MathUtils.degToRad(30);
+        // Set to START_ROT_Z — animation will ease it to FINAL_ROT_Z
+        modelMesh.rotation.z = START_ROT_Z;
 
-        // Pivot at world origin
+        // Pivot lives at world origin permanently
         pivot = new THREE.Group();
-        pivot.add(model);
+        pivot.add(modelMesh);
         scene.add(pivot);
 
-        // Camera above, looking straight down
+        // Camera above, looking straight down at origin
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov    = camera.fov * (Math.PI / 180);
         const dist   = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
@@ -384,12 +369,9 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Intro: rise from below + Y spin to show all sides
-        startOffsetZ = maxDim * 3;
-        startRotY    = Math.PI * 2;
-
+        // Start pivot below screen, animation brings it up
+        startOffsetZ     = maxDim * 3;
         pivot.position.z = startOffsetZ;
-        pivot.rotation.y = startRotY;
 
         animating = true;
       },
