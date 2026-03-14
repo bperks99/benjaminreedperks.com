@@ -211,7 +211,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#7f1d1a11151e1216110d1a1a1b0f1a0d140c3f18121e1613511c1012" class="contact-val"><span class="__cf_email__" data-cfemail="690b0c0703080400071b0c0c0d190c1b021a290e04080005470a0604">[email&#160;protected]</span></a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -219,8 +219,7 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-    // Overlay fades on a timer — never depends on GLB loading
+  <script>
     setTimeout(() => {
       document.getElementById('intro-overlay').classList.add('fade-out');
     }, 700);
@@ -288,14 +287,18 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
+    // Easing functions
+    function easeOutQuad(t)  { return 1 - (1 - t) * (1 - t); }
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-    // The exact final Z rotation we want the model to rest at
+    // Final resting Z rotation
     const FINAL_ROT_Z = THREE.MathUtils.degToRad(30);
-    // Start one full rotation ahead on the same axis — spins into final position
-    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4; // two full spins
+    // Two full spins ahead of final — winds down to FINAL_ROT_Z
+    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;
 
-    const ANIM_DURATION = 2600;
+    // Slightly slower than original 1800ms
+    const ANIM_DURATION = 2200;
+
     let pivot        = null;
     let modelMesh    = null;
     let animating    = false;
@@ -308,18 +311,16 @@
       if (pivot && animating) {
         if (!animStart) animStart = now;
         const t = Math.min((now - animStart) / ANIM_DURATION, 1);
-        const e = easeOutCubic(t);
 
-        // Rise: pivot comes up from below
-        pivot.position.z = startOffsetZ * (1 - e);
+        // Rise: use quad ease so model reaches center quickly
+        pivot.position.z = startOffsetZ * (1 - easeOutQuad(t));
 
-        // Spin: model.rotation.z winds from START_ROT_Z down to FINAL_ROT_Z
-        // Both are on the same axis so they can't conflict
-        modelMesh.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * e;
+        // Spin: use cubic ease so it slows into final angle nicely
+        modelMesh.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
 
         if (t >= 1) {
-          pivot.position.z  = 0;
-          modelMesh.rotation.z = FINAL_ROT_Z; // snap exactly to final
+          pivot.position.z     = 0;
+          modelMesh.rotation.z = FINAL_ROT_Z;
           animating = false;
         }
       }
@@ -340,7 +341,7 @@
           }
         });
 
-        // Add flat first so bbox is axis-aligned and accurate
+        // Add flat so bbox is accurate
         scene.add(modelMesh);
         scene.updateMatrixWorld(true);
 
@@ -348,19 +349,19 @@
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
 
-        // Pull out of scene, center it inside the pivot
+        // Center model inside pivot
         scene.remove(modelMesh);
         modelMesh.position.set(-center.x, -center.y, -center.z);
 
-        // Set to START_ROT_Z — animation will ease it to FINAL_ROT_Z
+        // Start at two spins ahead — animation eases to FINAL_ROT_Z
         modelMesh.rotation.z = START_ROT_Z;
 
-        // Pivot lives at world origin permanently
+        // Pivot at world origin
         pivot = new THREE.Group();
         pivot.add(modelMesh);
         scene.add(pivot);
 
-        // Camera above, looking straight down at origin
+        // Camera above, looking straight down
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov    = camera.fov * (Math.PI / 180);
         const dist   = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
@@ -369,4 +370,16 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Start pi
+        // Start just below screen — close enough to appear quickly
+        startOffsetZ     = maxDim * 1.8;
+        pivot.position.z = startOffsetZ;
+
+        animating = true;
+      },
+      undefined,
+      err => console.warn('GLB load error', err)
+    );
+  </script>
+
+</body>
+</html>
