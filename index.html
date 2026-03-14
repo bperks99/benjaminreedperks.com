@@ -86,16 +86,6 @@
 
     .view.active { display: flex; flex: 1; position: relative; align-items: center; justify-content: center; }
 
-    /* ── CAMERA HUD ── */
-    #cam-hud {
-      position: absolute; bottom: 24px; left: 24px; z-index: 9999;
-      background: rgba(0,0,0,0.75); color: #fff;
-      padding: 14px 18px; font-family: monospace; font-size: 11px;
-      border-radius: 6px; line-height: 1.9; pointer-events: none;
-      border: 1px solid rgba(255,255,255,0.12);
-    }
-    #cam-hud b { color: var(--accent, #a8b8d8); }
-
     /* ── RESUME ── */
     #view-resume.active {
       display: flex; flex-direction: column;
@@ -227,50 +217,13 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#4321262d29222e2a2d31262627332631283003242e222a2f6d202c2e" class="contact-val"><span class="__cf_email__" data-cfemail="4e2c2b20242f2327203c2b2b2a3e2b3c253d0e29232f2722602d2123">[email&#160;protected]</span></a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
     </div>
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
-
-  <!-- ── BLOB URL INTERCEPT ── -->
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-    (function () {
-      const store = new Map();
-      let counter = 0;
-
-      URL.createObjectURL = function (blob) {
-        const key = 'blob:synthetic/' + (++counter);
-        store.set(key, blob);
-        return key;
-      };
-      URL.revokeObjectURL = function (key) { store.delete(key); };
-
-      const _fetch = window.fetch;
-      window.fetch = function (input, init) {
-        const url = (input instanceof Request) ? input.url : String(input);
-        if (store.has(url)) {
-          const blob = store.get(url);
-          return blob.arrayBuffer().then(buf =>
-            new Response(buf, { status: 200, headers: { 'Content-Type': blob.type } })
-          );
-        }
-        if (url.startsWith('blob-request://')) {
-          return _fetch.call(this, url.replace('blob-request://', ''), init);
-        }
-        return _fetch.apply(this, arguments);
-      };
-
-      const _open = XMLHttpRequest.prototype.open;
-      XMLHttpRequest.prototype.open = function (method, url) {
-        if (typeof url === 'string' && url.startsWith('blob-request://'))
-          url = url.replace('blob-request://', '');
-        return _open.apply(this, arguments);
-      };
-    })();
-  </script>
 
   <!-- ── NAV LOGIC ── -->
   <script>
@@ -301,7 +254,7 @@
 
   <!-- ── 3D VIEWER ── -->
   <script type="module">
-    import * as THREE        from 'three';
+    import * as THREE     from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
     const canvas   = document.getElementById('portfolio-canvas');
@@ -316,11 +269,10 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // ── Lighting: dramatic top-left key, near-black shadows ──
     // Almost no ambient — forces deep shadows
     scene.add(new THREE.AmbientLight(0xffffff, 0.04));
 
-    // Powerful key light top-left — casts hard shadows
+    // Powerful key light top-left
     const key = new THREE.DirectionalLight(0xfff8f0, 5.5);
     key.position.set(-10, 12, 6);
     key.castShadow = true;
@@ -331,7 +283,7 @@
     key.shadow.bias = -0.001;
     scene.add(key);
 
-    // Tiny cool edge fill — barely visible, just stops it going full silhouette
+    // Tiny cool edge fill
     const fill = new THREE.DirectionalLight(0xb8c8e8, 0.18);
     fill.position.set(8, 2, -4);
     scene.add(fill);
@@ -362,34 +314,24 @@
 
         model.rotation.z = THREE.MathUtils.degToRad(20);
 
-        // Wrap in pivot so we can center the model's bbox at world origin
-        const pivot = new THREE.Group();
-        pivot.add(model);
-        scene.add(pivot);
+        // Add to scene first so world matrices are valid
+        scene.add(model);
+        scene.updateMatrixWorld(true);
 
-        // Compute bbox in world space, then offset model inside pivot
+        // Compute bbox in world space, then offset model to center it at origin
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
+        const size   = box.getSize(new THREE.Vector3());
+
         model.position.set(-center.x, -center.y, -center.z);
 
-        const size = box.getSize(new THREE.Vector3()).length();
-
-        // Camera directly above center, zoomed in, slight upward shift for bottom breathing room
-        const dist = size * 1.55;
+        // Camera directly above, looking down at origin
+        const dist = size.length() * 1.55;
         camera.position.set(0, dist, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
 
-        function resizePerspective() {
-          const w = canvas.clientWidth, h = canvas.clientHeight;
-          renderer.setSize(w, h, false);
-          camera.aspect = w / h;
-          camera.updateProjectionMatrix();
-        }
-        new ResizeObserver(resizePerspective).observe(canvas);
-        resizePerspective();
-
-        window._useOrtho = false;
+        resize();
       },
       undefined,
       err => console.warn('GLB load error', err)
@@ -399,7 +341,8 @@
     (function animate() {
       requestAnimationFrame(animate);
       renderer.render(scene, camera);
-    })();  </script>
+    })();
+  </script>
 
 </body>
 </html>
