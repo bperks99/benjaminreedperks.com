@@ -44,7 +44,7 @@
     #portfolio-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
     #btn-open-portfolio {
       position:absolute; right:56px; top:50%; transform:translateY(-50%);
-      z-index:10; font-family:var(--font); font-size:0.62rem; font-weight:300;
+      z-index:10; font-family:var(--font); font-size:0.85rem; font-weight:300;
       letter-spacing:0.22em; text-transform:uppercase;
       color:rgba(245,243,238,0.5); background:none; border:none;
       border-bottom:1px solid rgba(168,184,216,0.4); padding-bottom:4px;
@@ -54,10 +54,10 @@
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
     #view-resume.active { display:flex; flex-direction:column; background:var(--ink); color:var(--paper); }
-    .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(245,243,238,0.1); flex-shrink:0; }
-    .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; }
+    .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(26,26,24,0.12); flex-shrink:0; background:var(--paper); color:var(--ink); text-align:left; }
+    .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--ink); }
     .resume-name span { color:var(--accent); }
-    .resume-name-sub { font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:rgba(245,243,238,0.35); }
+    .resume-name-sub { font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--mid); }
     .resume-body { display:grid; grid-template-columns:1fr 1px 1fr; flex:1; min-height:0; overflow:hidden; }
     .resume-col-left { padding:4vh 4vw 4vh 8vw; display:flex; flex-direction:column; }
     .resume-col-right { padding:4vh 8vw 4vh 4vw; display:flex; flex-direction:column; justify-content:space-between; }
@@ -178,7 +178,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#7d1f1813171c1014130f1818190d180f160e3d1a101c1411531e1210" class="contact-val"><span class="__cf_email__" data-cfemail="a1c3c4cfcbc0ccc8cfd3c4c4c5d1c4d3cad2e1c6ccc0c8cd8fc2cecc">[email&#160;protected]</span></a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -186,7 +186,7 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     setTimeout(() => { document.getElementById('intro-overlay').classList.add('fade-out'); }, 700);
     const nav = document.getElementById('main-nav');
     const navTitle = document.getElementById('nav-title');
@@ -399,14 +399,4 @@
         axisMeshRef  = model.getObjectByName('cover-rotation-axis');
 
         // Just hide the axis tube visually — no re-parenting yet
-        if (axisMeshRef) axisMeshRef.visible = false;
-
-        if (!coverMeshRef) console.warn('cover-front not found');
-        if (!axisMeshRef)  console.warn('cover-rotation-axis not found');
-      },
-      undefined,
-      err => console.warn('GLB load error', err)
-    );
-  </script>
-</body>
-</html>
+        if (axisMeshRef) axisMeshRef.visible =
