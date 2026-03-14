@@ -32,9 +32,7 @@
       overflow: hidden;
       display: flex; flex-direction: column;
       font-family: var(--font); font-weight: 300;
-      background:
-        radial-gradient(ellipse 180% 75% at 18% -10%, rgba(88,84,64,1) 0%, rgba(22,21,15,0.55) 42%, rgba(3,3,2,0) 68%),
-        #030302;
+      background: #030302;
     }
 
     /* ── NAV ── */
@@ -101,7 +99,7 @@
     /* ── RESUME ── */
     #view-resume.active {
       display: flex; flex-direction: column;
-      background: transparent; color: var(--paper);
+      background: var(--ink); color: var(--paper);
     }
     .resume-name-row { padding: 28px 8vw; border-bottom: 1px solid rgba(245,243,238,0.1); flex-shrink: 0; }
     .resume-name { font-size: 1.5rem; font-weight: 300; letter-spacing: 0.02em; margin-bottom: 5px; }
@@ -282,7 +280,7 @@
     const btns      = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
     const logo      = document.getElementById('nav-logo');
 
-    const titles = { portfolio: '', resume: 'Résumé', contact: 'Contact' };
+    const titles = { portfolio: '', resume: 'Resume', contact: 'Contact' };
     const themes  = { portfolio: 'dark', resume: 'dark', contact: 'light' };
 
     function switchView(name) {
@@ -367,14 +365,17 @@
 
         scene.add(model);
 
+        // Compute bounding box AFTER rotation, then reposition to world origin
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3()).length();
+        model.position.sub(center); // shift model so bbox center is exactly at (0,0,0)
 
-        // Centered top-down perspective — directly above the model center
-        camera.position.set(center.x, center.y + size * 2, center.z);
+        // Camera directly above center, zoomed in, slight upward shift for bottom breathing room
+        const dist = size * 1.3;
+        camera.position.set(0, dist, size * 0.08);
         camera.up.set(0, 0, -1);
-        camera.lookAt(center);
+        camera.lookAt(0, 0, 0);
 
         function resizePerspective() {
           const w = canvas.clientWidth, h = canvas.clientHeight;
