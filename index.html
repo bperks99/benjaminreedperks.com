@@ -200,7 +200,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#3f5d5a51555e5256514d5a5a5b4f5a4d544c7f58525e5653115c5052" class="contact-val"><span class="__cf_email__" data-cfemail="82e0e7ece8e3efebecf0e7e7e6f2e7f0e9f1c2e5efe3ebeeace1edef">[email&#160;protected]</span></a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -208,7 +208,7 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     // Overlay fades on a fixed timer — never depends on GLB
     setTimeout(() => {
       document.getElementById('intro-overlay').classList.add('fade-out');
@@ -254,9 +254,14 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.04));
-    const key = new THREE.DirectionalLight(0xfff8f0, 5.5);
-    key.position.set(-10, 12, 6);
+    // Nearly no ambient — deep shadows make shapes read clearly
+    scene.add(new THREE.AmbientLight(0xffffff, 0.02));
+
+    // Key light: top-left of screen, raking angle across the surface
+    // Camera looks down Y, so screen-top = -Z, screen-left = -X
+    // Low Y relative to X/Z spread = grazing angle = shapes pop
+    const key = new THREE.DirectionalLight(0xfff6e8, 7.0);
+    key.position.set(-12, 6, -10);
     key.castShadow = true;
     key.shadow.mapSize.width  = 4096;
     key.shadow.mapSize.height = 4096;
@@ -264,8 +269,10 @@
     key.shadow.camera.far     = 100;
     key.shadow.bias           = -0.001;
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0xb8c8e8, 0.18);
-    fill.position.set(8, 2, -4);
+
+    // Very faint cool rim from the opposite side — just stops it going full silhouette
+    const fill = new THREE.DirectionalLight(0xa8c0e0, 0.12);
+    fill.position.set(10, 3, 8);
     scene.add(fill);
 
     function resize() {
@@ -365,16 +372,4 @@
         // ── Now set animation start state ──
         pivot.rotation.z = START_ROT_Z;
 
-        // Rise: camera will start looking at -Z (bottom of screen)
-        riseAmount = maxDim * 1.5;
-        camera.lookAt(0, 0, -riseAmount);
-
-        animating = true;
-      },
-      undefined,
-      err => console.warn('GLB load error', err)
-    );
-  </script>
-
-</body>
-</html>
+        // Rise: camera
