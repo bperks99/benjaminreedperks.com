@@ -20,10 +20,8 @@
       --font:'Century Gothic','AppleGothic','Gill Sans',sans-serif;
     }
     html, body { width:100%; height:100%; overflow:hidden; display:flex; flex-direction:column; font-family:var(--font); font-weight:300; background:#030302; }
-
     #intro-overlay { position:fixed; inset:0; z-index:9999; background:#030302; pointer-events:none; opacity:1; transition:opacity 0.9s ease; }
     #intro-overlay.fade-out { opacity:0; }
-
     nav { flex-shrink:0; display:grid; grid-template-columns:1fr 1fr 1fr; align-items:center; padding:clamp(16px,3vw,28px) clamp(20px,5vw,56px); }
     nav button { font-family:var(--font); font-weight:300; background:none; border:none; cursor:pointer; text-transform:uppercase; transition:color 0.3s; }
     .nav-logo { font-size:clamp(0.55rem,1.2vw,0.75rem); letter-spacing:0.22em; text-align:left; }
@@ -40,12 +38,10 @@
     nav.light button { color:var(--ink); }
     nav.light .nav-title { color:var(--ink); }
     nav.show-title .nav-title { opacity:1; }
-
     .view { display:none; }
     .view.active { display:flex; flex:1; position:relative; align-items:center; justify-content:center; }
     #view-portfolio { background:transparent; }
     #portfolio-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
-
     #btn-open-portfolio {
       position:absolute; right:56px; top:50%; transform:translateY(-50%);
       z-index:10; font-family:var(--font); font-size:0.62rem; font-weight:300;
@@ -57,14 +53,13 @@
     }
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
-
     #view-resume.active { display:flex; flex-direction:column; background:var(--ink); color:var(--paper); }
     .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(245,243,238,0.1); flex-shrink:0; }
     .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; }
     .resume-name span { color:var(--accent); }
     .resume-name-sub { font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:rgba(245,243,238,0.35); }
     .resume-body { display:grid; grid-template-columns:1fr 1px 1fr; flex:1; min-height:0; overflow:hidden; }
-    .resume-col-left  { padding:4vh 4vw 4vh 8vw; display:flex; flex-direction:column; }
+    .resume-col-left { padding:4vh 4vw 4vh 8vw; display:flex; flex-direction:column; }
     .resume-col-right { padding:4vh 8vw 4vh 4vw; display:flex; flex-direction:column; justify-content:space-between; }
     .resume-col-divider { background:rgba(245,243,238,0.1); }
     .resume-col-left .resume-block { flex:1; display:flex; flex-direction:column; }
@@ -229,7 +224,7 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // Lighting
+    // Lighting — top-left raking angle, shapes pop
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const key = new THREE.DirectionalLight(0xfff6e8, 4.0);
     key.position.set(-10, 5, -8);
@@ -238,8 +233,7 @@
     key.shadow.camera.near = 0.1; key.shadow.camera.far = 100; key.shadow.bias = -0.001;
     scene.add(key);
     const fill = new THREE.DirectionalLight(0xa8c0e0, 0.5);
-    fill.position.set(10, 3, 8);
-    scene.add(fill);
+    fill.position.set(10, 3, 8); scene.add(fill);
 
     function resize() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -250,62 +244,46 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
-    function easeOutQuad(t)    { return 1 - (1-t)*(1-t); }
-    function easeOutCubic(t)   { return 1 - Math.pow(1-t,3); }
-    function easeInOutCubic(t) { return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+    function easeOutQuad(t)    { return 1-(1-t)*(1-t); }
+    function easeOutCubic(t)   { return 1-Math.pow(1-t,3); }
+    function easeInOutCubic(t) { return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
 
-    // ── Constants ──
-    const FINAL_ROT_Z = THREE.MathUtils.degToRad(30); // resting tilt
-    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;    // two full spins ahead
+    const FINAL_ROT_Z = THREE.MathUtils.degToRad(30);
+    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;
     const INTRO_DUR   = 3400;
-    const FLATTEN_DUR = 1600; // rotate tilt back to 0
-    const OPEN_DUR    = 2200; // swing cover open
+    const FLATTEN_DUR = 1600;
+    const OPEN_DUR    = 2200;
 
-    // ── Shared state ──
-    let pivot     = null;
-    let finalCamY = 0;
-    let rise      = 0;
-
-    // Phases: 'intro' → 'idle' → 'flatten' → 'open' → 'done'
-    let phase     = 'intro';
+    let pivot      = null;
+    let finalCamY  = 0;
+    let rise       = 0;
+    let coverHinge = null;
+    let phase      = 'intro';
     let phaseStart = null;
 
-    // Cover hinge — built after GLB loads if cover-front found
-    let coverHinge = null;
+    const btn = document.getElementById('btn-open-portfolio');
 
-    // ── Render loop ──
     (function loop(now) {
       requestAnimationFrame(loop);
-
       if (!pivot) { renderer.render(scene, camera); return; }
 
       if (phase === 'intro') {
         if (!phaseStart) phaseStart = now;
-        const t  = Math.min((now - phaseStart) / INTRO_DUR, 1);
-        const eq = easeOutQuad(t);
-        const ec = easeOutCubic(t);
-
-        // Rise from bottom
-        camera.lookAt(0, 0, -rise * (1 - eq));
-        // Subtle zoom in
-        camera.position.y = finalCamY * (1 + 0.1 * (1 - eq));
-        // Two-spin entry
-        pivot.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * ec;
-
+        const t = Math.min((now - phaseStart) / INTRO_DUR, 1);
+        camera.lookAt(0, 0, -rise * (1 - easeOutQuad(t)));
+        camera.position.y = finalCamY * (1 + 0.1 * (1 - easeOutQuad(t)));
+        pivot.rotation.z  = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
         if (t >= 1) {
-          // Snap to exact finals
           camera.position.set(0, finalCamY, 0);
           camera.lookAt(0, 0, 0);
           pivot.rotation.z = FINAL_ROT_Z;
           phase = 'idle';
-          // Show button
-          document.getElementById('btn-open-portfolio').classList.add('visible');
+          btn.classList.add('visible');
         }
       }
 
       else if (phase === 'flatten') {
-        // Rotate pivot.z from FINAL_ROT_Z back to 0
-        // Camera never moves — still above looking straight down
+        // Rotate pivot.z from 30° back to 0 — camera never moves
         const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
         pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
         if (t >= 1) {
@@ -318,10 +296,8 @@
       else if (phase === 'open') {
         if (!coverHinge) { phase = 'done'; }
         else {
-          // Swing cover open ~150° around its spine (left edge)
-          // Spine runs along the model's local X axis after flatten
-          // Rotating coverHinge on Z opens it like a book lid from above
           const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
+          // Swing open ~150° around spine (left edge hinge)
           coverHinge.rotation.z = -Math.PI * 0.83 * easeInOutCubic(t);
           if (t >= 1) {
             coverHinge.rotation.z = -Math.PI * 0.83;
@@ -333,22 +309,19 @@
       renderer.render(scene, camera);
     })(0);
 
-    // ── Button ──
-    document.getElementById('btn-open-portfolio').addEventListener('click', () => {
+    btn.addEventListener('click', () => {
       if (phase !== 'idle') return;
-      document.getElementById('btn-open-portfolio').classList.remove('visible');
+      btn.classList.remove('visible');
       phase = 'flatten';
       phaseStart = performance.now();
     });
 
-    // ── Load GLB ──
     new GLTFLoader().load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         const model = gltf.scene;
         model.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
 
-        // Add flat so bbox is accurate
         scene.add(model);
         scene.updateMatrixWorld(true);
 
@@ -357,7 +330,6 @@
         const size   = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
-        // Center model inside pivot
         scene.remove(model);
         model.position.set(-center.x, -center.y, -center.z);
         model.rotation.set(0, 0, 0);
@@ -366,7 +338,7 @@
         pivot.add(model);
         scene.add(pivot);
 
-        // Set final camera position immediately — model visible from frame 1
+        // Camera — set to final position immediately so model is visible
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
@@ -374,32 +346,33 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Intro start state
+        // Intro start state — fully offscreen bottom, two spins ahead
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
 
-        // ── Build cover hinge ──
-        // Find cover-front by name
+        // Build cover hinge at left spine edge
         const coverMesh = model.getObjectByName('cover-front');
         if (coverMesh) {
-          // Get coverMesh bbox in local model space
-          // (model is centered at origin, no rotation yet)
-          const coverBox   = new THREE.Box3().setFromObject(coverMesh);
-          const spineX     = coverBox.min.x; // leftmost edge = spine
+          scene.updateMatrixWorld(true);
 
-          // Create a hinge group at the spine X position
+          // Bbox of cover mesh in its parent (model) local space
+          const coverBox = new THREE.Box3().setFromObject(coverMesh);
+
+          // spineX = leftmost X of cover in model local space
+          const spineX = coverBox.min.x;
+
+          // Create hinge group at spine position
           coverHinge = new THREE.Group();
           coverHinge.position.set(spineX, 0, 0);
+          model.add(coverHinge);
 
-          // Move coverMesh into hinge, shifting so spine aligns with hinge origin
+          // Re-parent cover into hinge, offset so left edge aligns with hinge origin
           coverMesh.removeFromParent();
           coverHinge.add(coverMesh);
           coverMesh.position.x -= spineX;
-
-          model.add(coverHinge);
         } else {
-          console.warn('cover-front not found — check mesh name in Rhino/GLB');
+          console.warn('cover-front mesh not found — check name in Rhino export');
         }
       },
       undefined,
