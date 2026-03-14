@@ -343,8 +343,8 @@
       gltf => {
         const model = gltf.scene;
 
-        // Rotate around Y axis — spine goes away to the left, like orbiting left 20 degrees
-        model.rotation.y = THREE.MathUtils.degToRad(20);
+        // Rotate around Z axis — spine tilts away from camera
+        model.rotation.z = THREE.MathUtils.degToRad(-20);
 
         scene.add(model);
 
