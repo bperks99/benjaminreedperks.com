@@ -32,7 +32,10 @@
       overflow: hidden;
       display: flex; flex-direction: column;
       font-family: var(--font); font-weight: 300;
-      background: radial-gradient(ellipse 60% 60% at 20% 18%, #4a4a42 0%, #252520 30%, #0e0e0a 60%, #020200 100%);
+      background:
+        radial-gradient(ellipse 55% 45% at 18% 15%, #35352e 0%, transparent 70%),
+        radial-gradient(ellipse 80% 60% at 10% 5%,  #1e1e18 0%, transparent 60%),
+        #060604;
     }
 
     /* ── NAV ── */
@@ -306,25 +309,34 @@
 
     const canvas   = document.getElementById('portfolio-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio * 4, 10));
     renderer.toneMapping         = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
-    renderer.setClearColor(0x000000, 0); // transparent — CSS gradient shows through
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled  = true;
+    renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+    renderer.setClearColor(0x000000, 0);
 
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // ── Lighting: top-left key like Nike photo ──
-    scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+    // ── Lighting: dramatic top-left key, near-black shadows ──
+    // Almost no ambient — forces deep shadows
+    scene.add(new THREE.AmbientLight(0xffffff, 0.04));
 
-    // Strong key from top-left
-    const key = new THREE.DirectionalLight(0xffffff, 4.0);
-    key.position.set(-8, 10, 4);
+    // Powerful key light top-left — casts hard shadows
+    const key = new THREE.DirectionalLight(0xfff8f0, 5.5);
+    key.position.set(-10, 12, 6);
+    key.castShadow = true;
+    key.shadow.mapSize.width  = 4096;
+    key.shadow.mapSize.height = 4096;
+    key.shadow.camera.near = 0.1;
+    key.shadow.camera.far  = 100;
+    key.shadow.bias = -0.001;
     scene.add(key);
 
-    // Very soft fill from opposite side
-    const fill = new THREE.DirectionalLight(0xd0ddf0, 0.3);
-    fill.position.set(6, 3, 5);
+    // Tiny cool edge fill — barely visible, just stops it going full silhouette
+    const fill = new THREE.DirectionalLight(0xb8c8e8, 0.18);
+    fill.position.set(8, 2, -4);
     scene.add(fill);
 
     // ── Resize ──
@@ -343,6 +355,13 @@
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         const model = gltf.scene;
+
+        model.traverse(child => {
+          if (child.isMesh) {
+            child.castShadow    = true;
+            child.receiveShadow = true;
+          }
+        });
 
         // Rotate around Z axis +20 degrees — spine tilts away
         model.rotation.z = THREE.MathUtils.degToRad(20);
