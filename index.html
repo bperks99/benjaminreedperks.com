@@ -303,11 +303,9 @@
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, lookZ);
 
-        // ZOOM: camera starts 25% further away and eases into final distance
-        // Only moves on Y so no lateral shift at all
+        // ZOOM: camera starts 8% further away — very subtle pull-in, Y axis only
         const zoomE = easeOutQuad(t);
-        camera.position.set(0, camDist * (1.25 - 0.25 * zoomE), 0);
-        camera.updateProjectionMatrix();
+        camera.position.set(0, camDist * (1.08 - 0.08 * zoomE), 0);
 
         // SPIN: pivot winds from START_ROT_Z down to FINAL_ROT_Z
         pivot.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
