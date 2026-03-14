@@ -279,13 +279,13 @@
     function easeOutQuad(t)  { return 1 - (1 - t) * (1 - t); }
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-    // Final resting rotation — model always ends exactly here
+    // Final resting angle
     const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
-    // Two full spins ahead — animation winds down to FINAL_ROT_Z
+    // Two full spins ahead — pivot winds down to FINAL_ROT_Z
     const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
-    const ANIM_DURATION = 2800; // ms
+    const ANIM_DURATION = 2800;
 
-    let modelMesh  = null;
+    let pivot      = null;
     let camDist    = 0;
     let riseAmount = 0;
     let animating  = false;
@@ -294,23 +294,23 @@
     (function loop(now) {
       requestAnimationFrame(loop);
 
-      if (modelMesh && animating) {
+      if (pivot && animating) {
         if (!animStart) animStart = now;
         const t = Math.min((now - animStart) / ANIM_DURATION, 1);
 
-        // ── RISE: camera lookAt slides from below screen up to origin
-        // The model itself never moves — spin center = screen center the whole time
-        const lookZ = riseAmount * (1 - easeOutQuad(t));
+        // RISE: camera starts looking at negative Z (bottom of screen with up=(0,0,-1))
+        // and slides up to (0,0,0). Negative Z = bottom, positive Z = top.
+        const lookZ = -riseAmount * (1 - easeOutQuad(t));
         camera.position.set(0, camDist, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, lookZ);
 
-        // ── SPIN: model.rotation.z winds from START_ROT_Z to FINAL_ROT_Z
-        modelMesh.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
+        // SPIN: pivot.rotation.z is guaranteed to spin around world origin = bbox center
+        pivot.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
 
         if (t >= 1) {
           camera.lookAt(0, 0, 0);
-          modelMesh.rotation.z = FINAL_ROT_Z;
+          pivot.rotation.z = FINAL_ROT_Z;
           animating = false;
         }
       }
@@ -322,24 +322,31 @@
     loader.load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
-        modelMesh = gltf.scene;
-        modelMesh.traverse(child => {
+        const model = gltf.scene;
+        model.traverse(child => {
           if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
         });
 
-        // Add flat so bbox is accurate
-        scene.add(modelMesh);
+        // Add flat so bbox is accurate, no rotation yet
+        scene.add(model);
         scene.updateMatrixWorld(true);
 
-        const box    = new THREE.Box3().setFromObject(modelMesh);
+        const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
 
-        // Center model at world origin — this is the permanent spin center
-        modelMesh.position.set(-center.x, -center.y, -center.z);
+        // Remove from scene — re-add centered inside pivot
+        scene.remove(model);
 
-        // Start rotation two spins ahead
-        modelMesh.rotation.z = START_ROT_Z;
+        // Offset model so its bbox center sits at pivot origin (0,0,0)
+        model.position.set(-center.x, -center.y, -center.z);
+        // No rotation on the model itself — pivot handles all rotation
+        model.rotation.set(0, 0, 0);
+
+        // Pivot at world origin — rotating pivot spins around (0,0,0) = bbox center
+        pivot = new THREE.Group();
+        pivot.add(model);
+        scene.add(pivot);
 
         // Camera: straight above, looking down at origin
         const maxDim = Math.max(size.x, size.y, size.z);
@@ -347,13 +354,17 @@
         camDist      = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, camDist, 0);
         camera.up.set(0, 0, -1);
-
-        // Camera starts looking at a point below screen center
-        // giving the illusion the model rises from the bottom
-        riseAmount = maxDim * 2;
-        camera.lookAt(0, 0, riseAmount);
-
+        camera.lookAt(0, 0, 0);
         resize();
+
+        // Pivot starts at two spins ahead of final angle
+        pivot.rotation.z = START_ROT_Z;
+
+        // Camera starts looking at -Z which is the bottom of the screen
+        // (with up=(0,0,-1), -Z = bottom, +Z = top)
+        riseAmount = maxDim * 2;
+        camera.lookAt(0, 0, -riseAmount);
+
         animating = true;
       },
       undefined,
