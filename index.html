@@ -35,6 +35,16 @@
       background: #030302;
     }
 
+    /* ── INTRO OVERLAY ── */
+    #intro-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: #030302;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.9s ease;
+    }
+    #intro-overlay.fade-out { opacity: 0; }
+
     /* ── NAV ── */
     nav {
       flex-shrink: 0;
@@ -134,6 +144,9 @@
   </style>
 </head>
 <body>
+
+  <!-- Black intro overlay -->
+  <div id="intro-overlay"></div>
 
   <nav id="main-nav" class="dark">
     <button class="nav-logo" id="nav-logo">Benjamin Reed Perks</button>
@@ -293,18 +306,59 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
+    // ── Easing: ease out cubic ──
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    // ── Animation state ──
+    let model       = null;
+    let animating   = false;
+    let animStart   = null;
+    const ANIM_DELAY    = 400;   // ms of black before anything moves
+    const ANIM_DURATION = 1800;  // ms for the rise+spin
+
+    // Final resting values
+    const finalZ   = 0;
+    const finalRotY = 0;
+    const finalRotZ = THREE.MathUtils.degToRad(20);
+
     // Render loop
-    (function animate() {
+    (function animate(now) {
       requestAnimationFrame(animate);
+
+      if (model && animating) {
+        if (!animStart) animStart = now;
+        const elapsed = now - animStart - ANIM_DELAY;
+
+        if (elapsed >= 0) {
+          const t = Math.min(elapsed / ANIM_DURATION, 1);
+          const e = easeOutCubic(t);
+
+          // Rise: model starts far below screen (+Z = screen bottom in top-down view)
+          model.position.z = (1 - e) * model.userData.startZ;
+
+          // Spin: one full rotation unwinding into final angle
+          model.rotation.y = (1 - e) * model.userData.startRotY;
+
+          if (t >= 1) {
+            // Snap exactly to final values
+            model.position.z = finalZ;
+            model.rotation.y = finalRotY;
+            animating = false;
+          }
+        }
+      }
+
       renderer.render(scene, camera);
-    })();
+    })(0);
 
     // Load GLB
     const loader = new GLTFLoader();
     loader.load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
-        const model = gltf.scene;
+        model = gltf.scene;
 
         model.traverse(child => {
           if (child.isMesh) {
@@ -313,29 +367,43 @@
           }
         });
 
-        // Step 1 — add to scene flat (no rotation) so bbox is clean
+        // Step 1 — add flat, flush world matrix
         scene.add(model);
         scene.updateMatrixWorld(true);
 
-        // Step 2 — compute bbox, move model so its center sits exactly at origin
+        // Step 2 — center at origin
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
         model.position.sub(center);
 
-        // Step 3 — NOW apply the tilt (rotation around centered origin, so it stays centered)
-        model.rotation.z = THREE.MathUtils.degToRad(20);
+        // Step 3 — apply tilt AFTER centering
+        model.rotation.z = finalRotZ;
 
-        // Step 4 — position camera above origin, looking straight down
+        // Step 4 — camera position (zoomed in vs before: 1.5 instead of 2.2)
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov    = camera.fov * (Math.PI / 180);
-        const dist   = (maxDim / 2) / Math.tan(fov / 2) * 2.2;
+        const dist   = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
 
         camera.position.set(0, dist, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
-
         resize();
+
+        // Step 5 — set animation start state
+        // Start position: below screen in Z (camera looks down Y, so +Z = bottom of screen)
+        model.userData.startZ    = maxDim * 3;
+        model.userData.startRotY = Math.PI * 2; // one full spin
+
+        model.position.z = model.userData.startZ;
+        model.rotation.y = model.userData.startRotY;
+
+        animating = true;
+
+        // Fade out the black overlay after a short hold
+        setTimeout(() => {
+          document.getElementById('intro-overlay').classList.add('fade-out');
+        }, 200);
       },
       undefined,
       err => console.warn('GLB load error', err)
