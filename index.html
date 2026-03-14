@@ -32,7 +32,7 @@
       overflow: hidden;
       display: flex; flex-direction: column;
       font-family: var(--font); font-weight: 300;
-      background: radial-gradient(ellipse at 22% 20%, #3a3a34 0%, #181814 35%, #060604 75%, #020201 100%);
+      background: radial-gradient(ellipse 60% 60% at 20% 18%, #4a4a42 0%, #252520 30%, #0e0e0a 60%, #020200 100%);
     }
 
     /* ── NAV ── */
@@ -343,8 +343,8 @@
       gltf => {
         const model = gltf.scene;
 
-        // Tilt spine away from camera ~20 degrees (rotate around X axis)
-        model.rotation.x = THREE.MathUtils.degToRad(-20);
+        // Rotate around Y axis — spine goes away to the left, like orbiting left 20 degrees
+        model.rotation.y = THREE.MathUtils.degToRad(20);
 
         scene.add(model);
 
