@@ -323,11 +323,7 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        pivot.rotation.z = START_ROT_Z;
-        rise = maxDim * 3;
-        camera.lookAt(0, 0, -rise);
-
-        // ── Build hinge from cover-rotation-axis helper ──
+        // ── Build hinge FIRST while pivot.rotation.z = 0 so matrices are clean ──
         const coverMesh = model.getObjectByName('cover-front');
         const axisObj   = model.getObjectByName('cover-rotation-axis');
 
@@ -381,6 +377,11 @@
           if (!coverMesh) console.warn('cover-front not found — check name in Rhino');
           if (!axisObj)   console.warn('cover-rotation-axis not found — check name in Rhino');
         }
+
+        // ── NOW set intro start state — pivot rotated AFTER hinge is built ──
+        pivot.rotation.z = START_ROT_Z;
+        rise = maxDim * 3;
+        camera.lookAt(0, 0, -rise);
       },
       undefined,
       err => console.warn('GLB load error', err)
