@@ -211,7 +211,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#7f1d1a11151e1216110d1a1a1b0f1a0d140c3f18121e1613511c1012" class="contact-val"><span class="__cf_email__" data-cfemail="690b0c0703080400071b0c0c0d190c1b021a290e04080005470a0604">[email&#160;protected]</span></a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -219,7 +219,7 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     // Overlay fades on a timer — never depends on GLB loading
     setTimeout(() => {
       document.getElementById('intro-overlay').classList.add('fade-out');
@@ -293,9 +293,9 @@
     // The exact final Z rotation we want the model to rest at
     const FINAL_ROT_Z = THREE.MathUtils.degToRad(30);
     // Start one full rotation ahead on the same axis — spins into final position
-    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 2;
+    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4; // two full spins
 
-    const ANIM_DURATION = 1800;
+    const ANIM_DURATION = 2600;
     let pivot        = null;
     let modelMesh    = null;
     let animating    = false;
@@ -369,16 +369,4 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Start pivot below screen, animation brings it up
-        startOffsetZ     = maxDim * 3;
-        pivot.position.z = startOffsetZ;
-
-        animating = true;
-      },
-      undefined,
-      err => console.warn('GLB load error', err)
-    );
-  </script>
-
-</body>
-</html>
+        // Start pi
