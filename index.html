@@ -300,9 +300,9 @@
         if (!coverHinge) { phase = 'done'; }
         else {
           const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
-          coverHinge.rotation.z = -Math.PI * 0.83 * easeInOutCubic(t);
+          coverHinge.rotation.z = Math.PI * 0.83 * easeInOutCubic(t);
           if (t >= 1) {
-            coverHinge.rotation.z = -Math.PI * 0.83;
+            coverHinge.rotation.z = Math.PI * 0.83;
             phase = 'done';
           }
         }
