@@ -200,7 +200,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#4d2f2823272c2024233f2828293d283f263e0d2a202c2421632e2220" class="contact-val"><span class="__cf_email__" data-cfemail="2143444f4b404c484f534444455144534a5261464c40484d0f424e4c">[email&#160;protected]</span></a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -208,7 +208,8 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script>
+    // Overlay fades on a fixed timer — never depends on GLB
     setTimeout(() => {
       document.getElementById('intro-overlay').classList.add('fade-out');
     }, 700);
@@ -279,18 +280,19 @@
     function easeOutQuad(t)  { return 1 - (1 - t) * (1 - t); }
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-    // Final resting angle
-    const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
-    // Two full spins ahead — pivot winds down to FINAL_ROT_Z
-    const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
+    // ── All animation state lives here, set properly before animation starts ──
+    const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30); // exact final resting angle
+    const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;    // two full spins ahead
     const ANIM_DURATION = 3400;
 
+    // These are set in the GLB callback before animating = true
     let pivot      = null;
-    let camDist    = 0;
-    let riseAmount = 0;
+    let finalCamY  = 0;   // final camera Y distance
+    let riseAmount = 0;   // how far below center camera starts looking (in scene units)
     let animating  = false;
     let animStart  = null;
 
+    // Render loop — safe to run before GLB loads, just renders empty scene
     (function loop(now) {
       requestAnimationFrame(loop);
 
@@ -298,20 +300,20 @@
         if (!animStart) animStart = now;
         const t = Math.min((now - animStart) / ANIM_DURATION, 1);
 
-        // RISE: camera looks from -Z (bottom) up to origin
+        // RISE: camera lookAt slides from -Z (bottom) up to origin
+        // -Z = bottom of screen when camera.up = (0,0,-1)
         const lookZ = -riseAmount * (1 - easeOutQuad(t));
-        camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, lookZ);
 
-        // ZOOM: camera starts 8% further away — very subtle pull-in, Y axis only
-        const zoomE = easeOutQuad(t);
-        camera.position.set(0, camDist * (1.08 - 0.08 * zoomE), 0);
+        // ZOOM: camera Y starts 10% further, eases to finalCamY — Y axis only, no shift
+        camera.position.y = finalCamY * (1 + 0.1 * (1 - easeOutQuad(t)));
 
         // SPIN: pivot winds from START_ROT_Z down to FINAL_ROT_Z
         pivot.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
 
         if (t >= 1) {
-          camera.position.set(0, camDist, 0);
+          // Snap to exact final values — guaranteed correct resting state
+          camera.position.set(0, finalCamY, 0);
           camera.lookAt(0, 0, 0);
           pivot.rotation.z = FINAL_ROT_Z;
           animating = false;
@@ -321,6 +323,7 @@
       renderer.render(scene, camera);
     })(0);
 
+    // Load GLB
     const loader = new GLTFLoader();
     loader.load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
@@ -330,7 +333,7 @@
           if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
         });
 
-        // Add flat so bbox is accurate, no rotation yet
+        // Add flat (no rotation) so bbox is accurate
         scene.add(model);
         scene.updateMatrixWorld(true);
 
@@ -338,29 +341,40 @@
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
 
-        // Remove from scene — re-add centered inside pivot
+        // Pull out and re-add inside pivot, centered at world origin
         scene.remove(model);
-
-        // Offset model so its bbox center sits at pivot origin (0,0,0)
         model.position.set(-center.x, -center.y, -center.z);
-        // No rotation on the model itself — pivot handles all rotation
         model.rotation.set(0, 0, 0);
 
-        // Pivot at world origin — rotating pivot spins around (0,0,0) = bbox center
+        // Pivot at world origin — rotating pivot spins around bbox center
         pivot = new THREE.Group();
         pivot.add(model);
         scene.add(pivot);
 
-        // Camera: straight above, looking down at origin
+        // ── Set final camera position FIRST, so it's correct when animation ends ──
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov    = camera.fov * (Math.PI / 180);
-        camDist      = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
-        camera.position.set(0, camDist, 0);
+        finalCamY    = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
+
+        // Set camera to final position immediately so model is visible from frame 1
+        camera.position.set(0, finalCamY, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Pivot starts at two spins ahead of final angle
+        // ── Now set animation start state ──
         pivot.rotation.z = START_ROT_Z;
 
-        // Camera starts looking at -Z which is the bottom of the screen
+        // Rise: camera will start looking at -Z (bottom of screen)
+        riseAmount = maxDim * 1.5;
+        camera.lookAt(0, 0, -riseAmount);
+
+        animating = true;
+      },
+      undefined,
+      err => console.warn('GLB load error', err)
+    );
+  </script>
+
+</body>
+</html>
