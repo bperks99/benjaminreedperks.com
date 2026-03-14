@@ -16,7 +16,6 @@
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     :root {
       --ink:#1a1a18; --paper:#f5f3ee; --white:#faf9f6;
-      --grey:#e8e5de;
       --mid:#9a9690; --accent:#a8b8d8; --rule:rgba(26,26,24,0.12);
       --font:'Century Gothic','AppleGothic','Gill Sans',sans-serif;
     }
@@ -57,13 +56,7 @@
     }
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
-
-    /* ── RESUME — full page grey, name left-aligned ── */
-    #view-resume.active {
-      display:flex; flex-direction:column;
-      align-items:stretch; justify-content:flex-start;
-      background:#383836; color:var(--paper);
-    }
+    #view-resume.active { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; background:#383836; color:var(--paper); }
     .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(245,243,238,0.1); flex-shrink:0; }
     .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--paper); }
     .resume-name span { color:var(--accent); }
@@ -94,8 +87,6 @@
     .resume-footer { text-align:center; padding:20px 0; border-top:1px solid rgba(245,243,238,0.08); flex-shrink:0; }
     .resume-dl { font-size:0.65rem; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:var(--paper); text-decoration:none; padding-bottom:3px; border-bottom:1px solid var(--accent); transition:color 0.25s; }
     .resume-dl:hover { color:var(--accent); }
-
-    /* ── CONTACT ── */
     #view-contact.active { display:grid; grid-template-columns:1fr 1fr; background:var(--white); }
     .contact-left { display:flex; align-items:center; justify-content:center; padding:0 72px; border-right:1px solid var(--rule); }
     .contact-list { display:flex; flex-direction:column; width:100%; }
@@ -271,7 +262,7 @@
     let coverHinge   = null;
     let phase        = 'intro';
     let phaseStart   = null;
-    let coverMeshRef = null;
+    let coverMeshRef = []; // array — supports single mesh or multiple surfaces
     let axisMeshRef  = null;
 
     const btn = document.getElementById('btn-open-portfolio');
@@ -318,25 +309,37 @@
     btn.addEventListener('click', () => {
       if (phase !== 'idle') return;
       btn.classList.remove('visible');
-      if (coverMeshRef && axisMeshRef) {
+
+      if (coverMeshRef.length > 0 && axisMeshRef) {
         scene.updateMatrixWorld(true);
+
+        // Get hinge position from axis tube center
         const axisBox         = new THREE.Box3().setFromObject(axisMeshRef);
         const axisCenterWorld = axisBox.getCenter(new THREE.Vector3());
         axisMeshRef.visible   = false;
-        const coverWorldMat   = new THREE.Matrix4().copy(coverMeshRef.matrixWorld);
-        const modelObj        = coverMeshRef.parent;
+
+        // Build hinge group at axis center in model-local space
+        const modelObj        = coverMeshRef[0].parent;
         const invModelWorld   = new THREE.Matrix4().copy(modelObj.matrixWorld).invert();
         const axisCenterLocal = axisCenterWorld.clone().applyMatrix4(invModelWorld);
+
         coverHinge = new THREE.Group();
         coverHinge.position.copy(axisCenterLocal);
         modelObj.add(coverHinge);
-        coverMeshRef.removeFromParent();
-        coverHinge.add(coverMeshRef);
-        scene.updateMatrixWorld(true);
-        const invHingeWorld = new THREE.Matrix4().copy(coverHinge.matrixWorld).invert();
-        const newLocalMat   = invHingeWorld.multiply(coverWorldMat);
-        newLocalMat.decompose(coverMeshRef.position, coverMeshRef.quaternion, coverMeshRef.scale);
+
+        // Re-parent every cover part into hinge, preserving exact world position
+        for (const part of coverMeshRef) {
+          scene.updateMatrixWorld(true);
+          const partWorldMat = new THREE.Matrix4().copy(part.matrixWorld);
+          part.removeFromParent();
+          coverHinge.add(part);
+          scene.updateMatrixWorld(true);
+          const invHinge = new THREE.Matrix4().copy(coverHinge.matrixWorld).invert();
+          const localMat = invHinge.multiply(partWorldMat);
+          localMat.decompose(part.position, part.quaternion, part.scale);
+        }
       }
+
       phase = 'flatten';
       phaseStart = performance.now();
     });
@@ -367,11 +370,16 @@
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
-        coverMeshRef = model.getObjectByName('cover-front');
-        axisMeshRef  = model.getObjectByName('cover-rotation-axis');
+
+        // Collect all meshes whose name starts with 'cover-front'
+        coverMeshRef = [];
+        model.traverse(n => {
+          if (n.name && n.name.startsWith('cover-front')) coverMeshRef.push(n);
+        });
+        axisMeshRef = model.getObjectByName('cover-rotation-axis');
         if (axisMeshRef) axisMeshRef.visible = false;
-        if (!coverMeshRef) console.warn('cover-front not found');
-        if (!axisMeshRef)  console.warn('cover-rotation-axis not found');
+        if (coverMeshRef.length === 0) console.warn('no cover-front meshes found — check names in Rhino');
+        if (!axisMeshRef) console.warn('cover-rotation-axis not found');
       },
       undefined,
       err => console.warn('GLB load error', err)
