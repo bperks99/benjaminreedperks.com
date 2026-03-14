@@ -240,10 +240,7 @@
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.shadowMap.autoUpdate = false;
-    renderer.shadowMap.needsUpdate = false; // shadows off until model is at rest
+    renderer.shadowMap.enabled = false; // shadows off — no artefacts during animation
     renderer.setClearColor(0x000000, 0);
 
     const scene  = new THREE.Scene();
@@ -252,12 +249,13 @@
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const key = new THREE.DirectionalLight(0xfff6e8, 4.0);
     key.position.set(-10, 5, -8);
-    key.castShadow = true;
-    key.shadow.mapSize.width = key.shadow.mapSize.height = 2048;
-    key.shadow.camera.near = 0.1; key.shadow.camera.far = 100; key.shadow.bias = -0.001;
     scene.add(key);
     const fill = new THREE.DirectionalLight(0xa8c0e0, 0.5);
-    fill.position.set(10, 3, 8); scene.add(fill);
+    fill.position.set(10, 3, 8);
+    scene.add(fill);
+
+    let orthoCamera  = null;
+    let activeCamera = camera;
 
     function resize() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -267,8 +265,8 @@
       if (orthoCamera) {
         const ar = w / h;
         const oH = orthoCamera.top * 2;
-        const oW = oH * ar;
-        orthoCamera.left = -oW/2; orthoCamera.right = oW/2;
+        orthoCamera.left  = -(oH * ar) / 2;
+        orthoCamera.right =  (oH * ar) / 2;
         orthoCamera.updateProjectionMatrix();
       }
     }
@@ -296,8 +294,6 @@
     let axisMeshRef    = null;
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
-    let orthoCamera    = null;
-    let activeCamera   = camera;
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
@@ -306,6 +302,7 @@
       requestAnimationFrame(loop);
       if (!pivot) { renderer.render(scene, activeCamera); return; }
 
+      // ── INTRO ──
       if (phase === 'intro') {
         if (!phaseStart) phaseStart = now;
         const t = Math.min((now - phaseStart) / INTRO_DUR, 1);
@@ -317,39 +314,36 @@
           camera.lookAt(0, 0, 0);
           pivot.rotation.z = FINAL_ROT_Z;
           phase = 'idle';
-          renderer.shadowMap.needsUpdate = true;
           btn.classList.add('visible');
         }
       }
 
+      // ── FLATTEN: tilt eases from 30° back to 0, then switch to ortho ──
       else if (phase === 'flatten') {
         const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
         pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
         if (t >= 1) {
           pivot.rotation.z = 0;
 
+          // Find spine center and build ortho camera for the open phase
           if (coverHinge) {
             scene.updateMatrixWorld(true);
-
-            // Get spine world X — center of opened spread
             coverHinge.getWorldPosition(openLookTarget);
             openLookTarget.y = 0; openLookTarget.z = 0;
 
-            // Build ortho camera sized to fit spread + nav padding
-            const navH   = document.getElementById('main-nav').offsetHeight;
-            const canvH  = canvas.clientHeight;
+            const navH    = document.getElementById('main-nav').offsetHeight;
+            const canvH   = canvas.clientHeight;
             const navFrac = navH / canvH;
-            const oH     = (modelSize.z / (1 - navFrac * 2)) * 1.05;
-            const ar     = canvas.clientWidth / canvH;
-            const oW     = oH * ar;
+            const oH      = (modelSize.z / (1 - navFrac * 2)) * 1.05;
+            const ar      = canvas.clientWidth / canvH;
 
-            orthoCamera = new THREE.OrthographicCamera(-oW/2, oW/2, oH/2, -oH/2, 0.01, 1000);
-            orthoCamera.position.set(0, finalCamY, 0); // start centered on closed model
+            orthoCamera = new THREE.OrthographicCamera(
+              -(oH*ar)/2, (oH*ar)/2, oH/2, -oH/2, 0.01, 1000
+            );
+            orthoCamera.position.set(0, finalCamY, 0);
             orthoCamera.up.set(0, 0, -1);
             orthoCamera.lookAt(0, 0, 0);
-
-            // Swap to ortho NOW — no more perspective, no tilt, ever
-            activeCamera = orthoCamera;
+            activeCamera = orthoCamera; // ← pure ortho from here on, no perspective tilt
           }
 
           phase = 'open';
@@ -357,20 +351,18 @@
         }
       }
 
+      // ── OPEN: cover swings 180°, camera pans to spread center ──
       else if (phase === 'open') {
         if (!coverHinge) {
           phase = 'done';
-          renderer.shadowMap.needsUpdate = true;
           portNav.classList.add('visible');
         } else {
-          const t   = Math.min((now - phaseStart) / OPEN_DUR, 1);
-          const tp  = Math.min((now - phaseStart) / PAN_DUR, 1);
-          const ep  = easeOutCubic(tp);
+          const t  = Math.min((now - phaseStart) / OPEN_DUR, 1);
+          const tp = Math.min((now - phaseStart) / PAN_DUR,  1);
+          const ep = easeOutCubic(tp);
 
-          // Open 180°
           coverHinge.rotation.z = Math.PI * easeInOutCubic(t);
 
-          // Pan ortho camera toward spine center
           if (orthoCamera) {
             orthoCamera.position.x = openLookTarget.x * ep;
             orthoCamera.lookAt(openLookTarget.x * ep, 0, 0);
@@ -383,7 +375,6 @@
               orthoCamera.lookAt(openLookTarget.x, 0, 0);
             }
             phase = 'done';
-            renderer.shadowMap.needsUpdate = true;
             portNav.classList.add('visible');
           }
         }
@@ -392,6 +383,7 @@
       renderer.render(scene, activeCamera);
     })(0);
 
+    // ── Button: build hinge then start flatten ──
     btn.addEventListener('click', () => {
       if (phase !== 'idle') return;
       btn.classList.remove('visible');
@@ -426,11 +418,12 @@
     document.getElementById('btn-prev').addEventListener('click', () => console.log('prev'));
     document.getElementById('btn-next').addEventListener('click', () => console.log('next'));
 
+    // ── Load GLB ──
     new GLTFLoader().load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         const model = gltf.scene;
-        model.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
+        model.traverse(n => { if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; } });
         scene.add(model);
         scene.updateMatrixWorld(true);
         const box    = new THREE.Box3().setFromObject(model);
