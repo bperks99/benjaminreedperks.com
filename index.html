@@ -53,8 +53,16 @@
     }
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
+
+    /* ── RESUME ── */
     #view-resume.active { display:flex; flex-direction:column; background:var(--ink); color:var(--paper); }
-    .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(26,26,24,0.12); flex-shrink:0; background:var(--paper); color:var(--ink); text-align:left; }
+    /* Name row: light grey bg, dark text, left-aligned to match the 8vw column indent */
+    .resume-name-row {
+      padding:28px 8vw;
+      border-bottom:1px solid rgba(26,26,24,0.12);
+      flex-shrink:0;
+      background:var(--paper);
+    }
     .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--ink); }
     .resume-name span { color:var(--accent); }
     .resume-name-sub { font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--mid); }
@@ -84,6 +92,8 @@
     .resume-footer { text-align:center; padding:20px 0; border-top:1px solid rgba(245,243,238,0.08); flex-shrink:0; }
     .resume-dl { font-size:0.65rem; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:var(--paper); text-decoration:none; padding-bottom:3px; border-bottom:1px solid rgba(245,243,238,0.3); transition:color 0.25s; }
     .resume-dl:hover { color:rgba(245,243,238,0.6); }
+
+    /* ── CONTACT ── */
     #view-contact.active { display:grid; grid-template-columns:1fr 1fr; background:var(--white); }
     .contact-left { display:flex; align-items:center; justify-content:center; padding:0 72px; border-right:1px solid var(--rule); }
     .contact-list { display:flex; flex-direction:column; width:100%; }
@@ -178,7 +188,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#7d1f1813171c1014130f1818190d180f160e3d1a101c1411531e1210" class="contact-val"><span class="__cf_email__" data-cfemail="a1c3c4cfcbc0ccc8cfd3c4c4c5d1c4d3cad2e1c6ccc0c8cd8fc2cecc">[email&#160;protected]</span></a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -186,7 +196,7 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script>
     setTimeout(() => { document.getElementById('intro-overlay').classList.add('fade-out'); }, 700);
     const nav = document.getElementById('main-nav');
     const navTitle = document.getElementById('nav-title');
@@ -224,7 +234,6 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const key = new THREE.DirectionalLight(0xfff6e8, 4.0);
     key.position.set(-10, 5, -8);
@@ -254,14 +263,12 @@
     const FLATTEN_DUR = 1600;
     const OPEN_DUR    = 2200;
 
-    let pivot      = null;
-    let finalCamY  = 0;
-    let rise       = 0;
-    let coverHinge = null;
-    let phase      = 'intro';
-    let phaseStart = null;
-
-    // These are found on load but NOT touched until button click
+    let pivot        = null;
+    let finalCamY    = 0;
+    let rise         = 0;
+    let coverHinge   = null;
+    let phase        = 'intro';
+    let phaseStart   = null;
     let coverMeshRef = null;
     let axisMeshRef  = null;
 
@@ -311,43 +318,29 @@
       renderer.render(scene, camera);
     })(0);
 
-    // Button click — build the hinge HERE, right before open animation starts
     btn.addEventListener('click', () => {
       if (phase !== 'idle') return;
       btn.classList.remove('visible');
 
-      // Build hinge now using the axis tube — cover has been untouched until this moment
       if (coverMeshRef && axisMeshRef) {
         scene.updateMatrixWorld(true);
 
-        // Get axis center in world space
-        const axisBox    = new THREE.Box3().setFromObject(axisMeshRef);
+        const axisBox         = new THREE.Box3().setFromObject(axisMeshRef);
         const axisCenterWorld = axisBox.getCenter(new THREE.Vector3());
+        axisMeshRef.visible   = false;
 
-        // Hide the tube
-        axisMeshRef.visible = false;
-
-        // Get cover world matrix before we touch anything
-        const coverWorldMat = new THREE.Matrix4().copy(coverMeshRef.matrixWorld);
-
-        // Find which object is the direct parent of coverMesh within the model
-        // The model itself is the parent we'll add the hinge to
-        const modelObj = coverMeshRef.parent;
-
-        // Convert axis center to modelObj local space
-        const invModelWorld = new THREE.Matrix4().copy(modelObj.matrixWorld).invert();
+        const coverWorldMat   = new THREE.Matrix4().copy(coverMeshRef.matrixWorld);
+        const modelObj        = coverMeshRef.parent;
+        const invModelWorld   = new THREE.Matrix4().copy(modelObj.matrixWorld).invert();
         const axisCenterLocal = axisCenterWorld.clone().applyMatrix4(invModelWorld);
 
-        // Create hinge group at axis center in model space
         coverHinge = new THREE.Group();
         coverHinge.position.copy(axisCenterLocal);
         modelObj.add(coverHinge);
 
-        // Re-parent cover into hinge, preserving its exact world position
         coverMeshRef.removeFromParent();
         coverHinge.add(coverMeshRef);
 
-        // Recompute cover local position relative to its new parent (coverHinge)
         scene.updateMatrixWorld(true);
         const invHingeWorld = new THREE.Matrix4().copy(coverHinge.matrixWorld).invert();
         const newLocalMat   = invHingeWorld.multiply(coverWorldMat);
@@ -358,7 +351,6 @@
       phaseStart = performance.now();
     });
 
-    // Load GLB
     new GLTFLoader().load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
@@ -381,7 +373,6 @@
         pivot.add(model);
         scene.add(pivot);
 
-        // Camera — set immediately so model is visible
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
@@ -389,14 +380,19 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Intro start state
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
 
-        // Store references — DO NOT touch cover or axis here
         coverMeshRef = model.getObjectByName('cover-front');
         axisMeshRef  = model.getObjectByName('cover-rotation-axis');
-
-        // Just hide the axis tube visually — no re-parenting yet
-        if (axisMeshRef) axisMeshRef.visible =
+        if (axisMeshRef) axisMeshRef.visible = false;
+        if (!coverMeshRef) console.warn('cover-front not found');
+        if (!axisMeshRef)  console.warn('cover-rotation-axis not found');
+      },
+      undefined,
+      err => console.warn('GLB load error', err)
+    );
+  </script>
+</body>
+</html>
