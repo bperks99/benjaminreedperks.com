@@ -45,8 +45,6 @@
     .view.active { display:flex; flex:1; position:relative; align-items:center; justify-content:center; }
     #view-portfolio { background:transparent; }
     #portfolio-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
-
-    /* Open Portfolio button */
     #btn-open-portfolio {
       position:absolute; right:56px; top:50%; transform:translateY(-50%);
       z-index:10; font-family:var(--font); font-size:0.85rem; font-weight:300;
@@ -58,8 +56,6 @@
     }
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
-
-    /* Page navigation */
     #portfolio-nav {
       position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
       z-index:10; display:flex; align-items:center; gap:40px;
@@ -74,12 +70,7 @@
       cursor:pointer; transition:color 0.3s, border-color 0.3s;
     }
     .portfolio-nav-btn:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
-    #portfolio-page-num {
-      font-family:var(--font); font-size:0.58rem; font-weight:300;
-      letter-spacing:0.2em; color:rgba(245,243,238,0.3);
-    }
-
-    /* ── RESUME ── */
+    #portfolio-page-num { font-family:var(--font); font-size:0.58rem; font-weight:300; letter-spacing:0.2em; color:rgba(245,243,238,0.3); }
     #view-resume.active { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; background:#383836; color:var(--paper); }
     .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(245,243,238,0.1); flex-shrink:0; }
     .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--paper); }
@@ -111,8 +102,6 @@
     .resume-footer { text-align:center; padding:20px 0; border-top:1px solid rgba(245,243,238,0.08); flex-shrink:0; }
     .resume-dl { font-size:0.65rem; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:var(--paper); text-decoration:none; padding-bottom:3px; border-bottom:1px solid var(--accent); transition:color 0.25s; }
     .resume-dl:hover { color:var(--accent); }
-
-    /* ── CONTACT ── */
     #view-contact.active { display:grid; grid-template-columns:1fr 1fr; background:var(--white); }
     .contact-left { display:flex; align-items:center; justify-content:center; padding:0 72px; border-right:1px solid var(--rule); }
     .contact-list { display:flex; flex-direction:column; width:100%; }
@@ -246,7 +235,7 @@
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    const canvas = document.getElementById('portfolio-canvas');
+    const canvas   = document.getElementById('portfolio-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -286,17 +275,19 @@
     const INTRO_DUR   = 3400;
     const FLATTEN_DUR = 1600;
     const OPEN_DUR    = 2400;
-    const ZOOM_DUR    = 1800;
+    const ZOOM_DUR    = 2000;
 
-    let pivot        = null;
-    let finalCamY    = 0;
-    let zoomCamY     = 0;
-    let rise         = 0;
-    let coverHinge   = null;
-    let phase        = 'intro';
-    let phaseStart   = null;
-    let coverMeshRef = [];
-    let axisMeshRef  = null;
+    let pivot          = null;
+    let finalCamY      = 0;
+    let zoomCamY       = 0;
+    let rise           = 0;
+    let coverHinge     = null;
+    let phase          = 'intro';
+    let phaseStart     = null;
+    let coverMeshRef   = [];
+    let axisMeshRef    = null;
+    let modelSize      = new THREE.Vector3();
+    let openLookTarget = new THREE.Vector3(); // world-space center of opened spread
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
@@ -319,33 +310,67 @@
           btn.classList.add('visible');
         }
       }
+
       else if (phase === 'flatten') {
         const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
         pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
         if (t >= 1) {
           pivot.rotation.z = 0;
+
+          // Pivot is now flat — compute everything in clean world space
+          if (coverHinge) {
+            scene.updateMatrixWorld(true);
+
+            // Spread center = spine (hinge) world position
+            coverHinge.getWorldPosition(openLookTarget);
+            openLookTarget.y = 0;
+            openLookTarget.z = 0;
+
+            // Fit camera so spread fills screen with nav-bar padding top and bottom
+            // Camera looks down Y, spread height = modelSize.z (depth in top-down view)
+            // Available canvas height minus two nav-bar heights of padding
+            const navH     = document.getElementById('main-nav').offsetHeight;
+            const canvH    = canvas.clientHeight;
+            const navFrac  = navH / canvH;             // fraction of canvas per nav bar
+            const spreadH  = modelSize.z;              // height of spread in scene units
+            const fovRad   = camera.fov * (Math.PI / 180);
+            // Distance to fit spreadH with navFrac padding top+bottom
+            zoomCamY = (spreadH / 2) / Math.tan(fovRad / 2) / (1 - navFrac * 2) * 1.05;
+            // Clamp: never closer than finalCamY (don't zoom in, only out or equal)
+            zoomCamY = Math.max(zoomCamY, finalCamY);
+          }
+
           phase = 'open';
           phaseStart = now;
         }
       }
+
       else if (phase === 'open') {
         if (!coverHinge) {
           phase = 'done';
           portNav.classList.add('visible');
         } else {
-          const t     = Math.min((now - phaseStart) / OPEN_DUR,  1);
+          const t     = Math.min((now - phaseStart) / OPEN_DUR, 1);
           const tZoom = Math.min((now - phaseStart) / ZOOM_DUR, 1);
+          const ez    = easeOutCubic(tZoom);
 
           // Open exactly 180°
           coverHinge.rotation.z = Math.PI * easeInOutCubic(t);
 
-          // Simultaneously zoom in to fill screen with open spread
-          camera.position.y = finalCamY - (finalCamY - zoomCamY) * easeOutCubic(tZoom);
-          camera.lookAt(0, 0, 0);
+          // Zoom out to fit spread, shifting camera Y
+          camera.position.y = finalCamY + (zoomCamY - finalCamY) * ez;
+
+          // Shift lookAt from (0,0,0) toward spine center (center of opened spread)
+          camera.lookAt(
+            openLookTarget.x * ez,
+            0,
+            openLookTarget.z * ez
+          );
 
           if (t >= 1) {
             coverHinge.rotation.z = Math.PI;
             camera.position.y = zoomCamY;
+            camera.lookAt(openLookTarget.x, 0, openLookTarget.z);
             phase = 'done';
             portNav.classList.add('visible');
           }
@@ -381,17 +406,14 @@
           localMat.decompose(part.position, part.quaternion, part.scale);
         }
       }
+
       phase = 'flatten';
       phaseStart = performance.now();
     });
 
-    // Page nav (placeholder — wire up to actual page meshes later)
-    document.getElementById('btn-prev').addEventListener('click', () => {
-      console.log('prev page');
-    });
-    document.getElementById('btn-next').addEventListener('click', () => {
-      console.log('next page');
-    });
+    // Page nav (wired up later when page meshes are ready)
+    document.getElementById('btn-prev').addEventListener('click', () => console.log('prev'));
+    document.getElementById('btn-next').addEventListener('click', () => console.log('next'));
 
     new GLTFLoader().load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
@@ -404,6 +426,7 @@
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
+        modelSize.copy(size); // store for zoom calc
         scene.remove(model);
         model.position.set(-center.x, -center.y, -center.z);
         model.rotation.set(0, 0, 0);
@@ -412,7 +435,6 @@
         scene.add(pivot);
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
-        zoomCamY  = finalCamY * 0.6; // zoom to fill screen with open spread
         camera.position.set(0, finalCamY, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
