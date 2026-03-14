@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Benjamin Reed Perks</title>
-
   <script type="importmap">
   {
     "imports": {
@@ -13,10 +12,8 @@
     }
   }
   </script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
       --ink:    #1a1a18;
       --paper:  #f5f3ee;
@@ -26,7 +23,6 @@
       --rule:   rgba(26,26,24,0.12);
       --font:   'Century Gothic', 'AppleGothic', 'Gill Sans', sans-serif;
     }
-
     html, body {
       width: 100%; height: 100%;
       overflow: hidden;
@@ -34,7 +30,6 @@
       font-family: var(--font); font-weight: 300;
       background: #030302;
     }
-
     #intro-overlay {
       position: fixed; inset: 0; z-index: 9999;
       background: #030302;
@@ -43,7 +38,6 @@
       transition: opacity 0.9s ease;
     }
     #intro-overlay.fade-out { opacity: 0; }
-
     nav {
       flex-shrink: 0;
       display: grid; grid-template-columns: 1fr 1fr 1fr;
@@ -55,7 +49,7 @@
       background: none; border: none; cursor: pointer;
       text-transform: uppercase; transition: color 0.3s;
     }
-    .nav-logo  { font-size: clamp(0.55rem, 1.2vw, 0.75rem); letter-spacing: 0.22em; text-align: left; }
+    .nav-logo { font-size: clamp(0.55rem, 1.2vw, 0.75rem); letter-spacing: 0.22em; text-align: left; }
     .nav-title {
       font-size: 1.4rem; font-weight: 300; letter-spacing: 0.35em;
       text-transform: uppercase; text-align: center;
@@ -71,7 +65,6 @@
     }
     .nav-links button:hover::after,
     .nav-links button.active::after { transform: scaleX(1); }
-
     nav.dark        { background: transparent; }
     nav.dark button { color: #fff; }
     nav.dark .nav-title { color: #fff; }
@@ -79,13 +72,10 @@
     nav.light button { color: var(--ink); }
     nav.light .nav-title { color: var(--ink); }
     nav.show-title .nav-title { opacity: 1; }
-
     .view { display: none; }
     .view.active { display: flex; flex: 1; position: relative; align-items: center; justify-content: center; }
-
     #view-portfolio { background: transparent; }
     #portfolio-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-
     #view-resume.active { display: flex; flex-direction: column; background: var(--ink); color: var(--paper); }
     .resume-name-row { padding: 28px 8vw; border-bottom: 1px solid rgba(245,243,238,0.1); flex-shrink: 0; }
     .resume-name { font-size: 1.5rem; font-weight: 300; letter-spacing: 0.02em; margin-bottom: 5px; }
@@ -117,7 +107,6 @@
     .resume-footer { text-align: center; padding: 20px 0; border-top: 1px solid rgba(245,243,238,0.08); flex-shrink: 0; }
     .resume-dl { font-size: 0.65rem; font-weight: 300; letter-spacing: 0.2em; text-transform: uppercase; color: var(--paper); text-decoration: none; padding-bottom: 3px; border-bottom: 1px solid rgba(245,243,238,0.3); transition: color 0.25s; }
     .resume-dl:hover { color: rgba(245,243,238,0.6); }
-
     #view-contact.active { display: grid; grid-template-columns: 1fr 1fr; background: var(--white); }
     .contact-left { display: flex; align-items: center; justify-content: center; padding: 0 72px; border-right: 1px solid var(--rule); }
     .contact-list { display: flex; flex-direction: column; width: 100%; }
@@ -270,9 +259,9 @@
     key.castShadow = true;
     key.shadow.mapSize.width  = 4096;
     key.shadow.mapSize.height = 4096;
-    key.shadow.camera.near = 0.1;
-    key.shadow.camera.far  = 100;
-    key.shadow.bias = -0.001;
+    key.shadow.camera.near    = 0.1;
+    key.shadow.camera.far     = 100;
+    key.shadow.bias           = -0.001;
     scene.add(key);
     const fill = new THREE.DirectionalLight(0xb8c8e8, 0.18);
     fill.position.set(8, 2, -4);
@@ -287,39 +276,40 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
-    // Easing functions
     function easeOutQuad(t)  { return 1 - (1 - t) * (1 - t); }
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-    // Final resting Z rotation
-    const FINAL_ROT_Z = THREE.MathUtils.degToRad(30);
-    // Two full spins ahead of final — winds down to FINAL_ROT_Z
-    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;
+    // Final resting rotation — model always ends exactly here
+    const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
+    // Two full spins ahead — animation winds down to FINAL_ROT_Z
+    const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
+    const ANIM_DURATION = 2800; // ms
 
-    // Slightly slower than original 1800ms
-    const ANIM_DURATION = 2200;
-
-    let pivot        = null;
-    let modelMesh    = null;
-    let animating    = false;
-    let animStart    = null;
-    let startOffsetZ = 0;
+    let modelMesh  = null;
+    let camDist    = 0;
+    let riseAmount = 0;
+    let animating  = false;
+    let animStart  = null;
 
     (function loop(now) {
       requestAnimationFrame(loop);
 
-      if (pivot && animating) {
+      if (modelMesh && animating) {
         if (!animStart) animStart = now;
         const t = Math.min((now - animStart) / ANIM_DURATION, 1);
 
-        // Rise: use quad ease so model reaches center quickly
-        pivot.position.z = startOffsetZ * (1 - easeOutQuad(t));
+        // ── RISE: camera lookAt slides from below screen up to origin
+        // The model itself never moves — spin center = screen center the whole time
+        const lookZ = riseAmount * (1 - easeOutQuad(t));
+        camera.position.set(0, camDist, 0);
+        camera.up.set(0, 0, -1);
+        camera.lookAt(0, 0, lookZ);
 
-        // Spin: use cubic ease so it slows into final angle nicely
+        // ── SPIN: model.rotation.z winds from START_ROT_Z to FINAL_ROT_Z
         modelMesh.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
 
         if (t >= 1) {
-          pivot.position.z     = 0;
+          camera.lookAt(0, 0, 0);
           modelMesh.rotation.z = FINAL_ROT_Z;
           animating = false;
         }
@@ -333,12 +323,8 @@
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         modelMesh = gltf.scene;
-
         modelMesh.traverse(child => {
-          if (child.isMesh) {
-            child.castShadow    = true;
-            child.receiveShadow = true;
-          }
+          if (child.isMesh) { child.castShadow = true; child.receiveShadow = true; }
         });
 
         // Add flat so bbox is accurate
@@ -349,31 +335,25 @@
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
 
-        // Center model inside pivot
-        scene.remove(modelMesh);
+        // Center model at world origin — this is the permanent spin center
         modelMesh.position.set(-center.x, -center.y, -center.z);
 
-        // Start at two spins ahead — animation eases to FINAL_ROT_Z
+        // Start rotation two spins ahead
         modelMesh.rotation.z = START_ROT_Z;
 
-        // Pivot at world origin
-        pivot = new THREE.Group();
-        pivot.add(modelMesh);
-        scene.add(pivot);
-
-        // Camera above, looking straight down
+        // Camera: straight above, looking down at origin
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov    = camera.fov * (Math.PI / 180);
-        const dist   = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
-        camera.position.set(0, dist, 0);
+        camDist      = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
+        camera.position.set(0, camDist, 0);
         camera.up.set(0, 0, -1);
-        camera.lookAt(0, 0, 0);
+
+        // Camera starts looking at a point below screen center
+        // giving the illusion the model rises from the bottom
+        riseAmount = maxDim * 2;
+        camera.lookAt(0, 0, riseAmount);
+
         resize();
-
-        // Start just below screen — close enough to appear quickly
-        startOffsetZ     = maxDim * 1.8;
-        pivot.position.z = startOffsetZ;
-
         animating = true;
       },
       undefined,
