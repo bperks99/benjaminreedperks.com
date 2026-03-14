@@ -16,6 +16,7 @@
     *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     :root {
       --ink:#1a1a18; --paper:#f5f3ee; --white:#faf9f6;
+      --grey:#e8e5de;
       --mid:#9a9690; --accent:#a8b8d8; --rule:rgba(26,26,24,0.12);
       --font:'Century Gothic','AppleGothic','Gill Sans',sans-serif;
     }
@@ -34,7 +35,7 @@
     nav.dark { background:transparent; }
     nav.dark button { color:#fff; }
     nav.dark .nav-title { color:#fff; }
-    nav.light { background:var(--white); }
+    nav.light { background:var(--grey); }
     nav.light button { color:var(--ink); }
     nav.light .nav-title { color:var(--ink); }
     nav.show-title .nav-title { opacity:1; }
@@ -54,21 +55,25 @@
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
 
-    /* ── RESUME ── */
-    #view-resume.active { display:flex; flex-direction:column; background:var(--paper); color:var(--ink); }
-    .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(26,26,24,0.12); flex-shrink:0; }
-    .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--ink); text-align:left; }
+    /* ── RESUME — full page grey, name left-aligned ── */
+    #view-resume.active {
+      display:flex; flex-direction:column;
+      align-items:stretch; justify-content:flex-start;
+      background:var(--grey); color:var(--ink);
+    }
+    .resume-name-row { padding:28px 8vw; border-bottom:1px solid var(--rule); flex-shrink:0; }
+    .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--ink); }
     .resume-name span { color:var(--accent); }
-    .resume-name-sub { font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--mid); text-align:left; }
+    .resume-name-sub { font-size:0.62rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--mid); }
     .resume-body { display:grid; grid-template-columns:1fr 1px 1fr; flex:1; min-height:0; overflow:hidden; }
     .resume-col-left { padding:4vh 4vw 4vh 8vw; display:flex; flex-direction:column; }
     .resume-col-right { padding:4vh 8vw 4vh 4vw; display:flex; flex-direction:column; justify-content:space-between; }
-    .resume-col-divider { background:rgba(26,26,24,0.1); }
+    .resume-col-divider { background:var(--rule); }
     .resume-col-left .resume-block { flex:1; display:flex; flex-direction:column; }
-    .resume-col-left .resume-entry { flex:1; display:flex; flex-direction:column; justify-content:center; border-bottom:1px solid rgba(26,26,24,0.06); }
+    .resume-col-left .resume-entry { flex:1; display:flex; flex-direction:column; justify-content:center; border-bottom:1px solid var(--rule); }
     .resume-col-left .resume-entry:last-child { border-bottom:none; }
-    .resume-block-title { font-size:0.55rem; font-weight:300; letter-spacing:0.3em; text-transform:uppercase; color:var(--mid); padding-bottom:10px; border-bottom:1px solid rgba(26,26,24,0.1); flex-shrink:0; }
-    .resume-entry { border-bottom:1px solid rgba(26,26,24,0.06); }
+    .resume-block-title { font-size:0.55rem; font-weight:300; letter-spacing:0.3em; text-transform:uppercase; color:var(--mid); padding-bottom:10px; border-bottom:1px solid var(--rule); flex-shrink:0; }
+    .resume-entry { border-bottom:1px solid var(--rule); }
     .resume-entry:last-child { border-bottom:none; }
     .resume-entry-header { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; padding-top:12px; margin-bottom:6px; }
     .resume-org { font-size:0.88rem; font-weight:300; letter-spacing:0.03em; margin-bottom:2px; color:var(--ink); }
@@ -76,14 +81,14 @@
     .resume-role { font-size:0.62rem; font-weight:300; letter-spacing:0.18em; color:var(--accent); text-transform:uppercase; }
     .resume-year { font-size:0.62rem; color:var(--mid); letter-spacing:0.08em; white-space:nowrap; text-align:right; flex-shrink:0; line-height:1.6; }
     .resume-bullets { list-style:none; padding-bottom:12px; display:flex; flex-direction:column; gap:4px; }
-    .resume-bullets li { font-size:0.7rem; line-height:1.65; color:var(--ink); opacity:0.6; padding-left:14px; position:relative; }
+    .resume-bullets li { font-size:0.7rem; line-height:1.65; color:var(--ink); opacity:0.65; padding-left:14px; position:relative; }
     .resume-bullets li::before { content:'—'; position:absolute; left:0; color:var(--mid); font-size:0.6rem; top:1px; }
     .skills-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:12px 0; }
     .skill-group-label { font-size:0.58rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--mid); margin-bottom:8px; }
     .skill-list { list-style:none; display:flex; flex-direction:column; gap:6px; }
     .skill-list li { font-size:0.7rem; color:var(--ink); opacity:0.7; padding-left:12px; position:relative; }
     .skill-list li::before { content:'·'; position:absolute; left:0; color:var(--mid); }
-    .resume-footer { text-align:center; padding:20px 0; border-top:1px solid rgba(26,26,24,0.1); flex-shrink:0; }
+    .resume-footer { text-align:center; padding:20px 0; border-top:1px solid var(--rule); flex-shrink:0; }
     .resume-dl { font-size:0.65rem; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:var(--ink); text-decoration:none; padding-bottom:3px; border-bottom:1px solid var(--accent); transition:color 0.25s; }
     .resume-dl:hover { color:var(--accent); }
 
@@ -198,7 +203,7 @@
     const btns  = { portfolio:document.getElementById('nav-portfolio'), resume:document.getElementById('nav-resume'), contact:document.getElementById('nav-contact') };
     const logo  = document.getElementById('nav-logo');
     const titles = { portfolio:'', resume:'Resume', contact:'Contact' };
-    const themes = { portfolio:'dark', resume:'dark', contact:'light' };
+    const themes = { portfolio:'dark', resume:'light', contact:'light' };
     function switchView(name) {
       Object.values(views).forEach(v => v.classList.remove('active'));
       Object.values(btns).forEach(b => b.classList.remove('active'));
@@ -286,7 +291,6 @@
           btn.classList.add('visible');
         }
       }
-
       else if (phase === 'flatten') {
         const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
         pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
@@ -296,16 +300,12 @@
           phaseStart = now;
         }
       }
-
       else if (phase === 'open') {
         if (!coverHinge) { phase = 'done'; }
         else {
           const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
           coverHinge.rotation.z = Math.PI * 0.83 * easeInOutCubic(t);
-          if (t >= 1) {
-            coverHinge.rotation.z = Math.PI * 0.83;
-            phase = 'done';
-          }
+          if (t >= 1) { coverHinge.rotation.z = Math.PI * 0.83; phase = 'done'; }
         }
       }
 
@@ -315,32 +315,25 @@
     btn.addEventListener('click', () => {
       if (phase !== 'idle') return;
       btn.classList.remove('visible');
-
       if (coverMeshRef && axisMeshRef) {
         scene.updateMatrixWorld(true);
-
         const axisBox         = new THREE.Box3().setFromObject(axisMeshRef);
         const axisCenterWorld = axisBox.getCenter(new THREE.Vector3());
         axisMeshRef.visible   = false;
-
         const coverWorldMat   = new THREE.Matrix4().copy(coverMeshRef.matrixWorld);
         const modelObj        = coverMeshRef.parent;
         const invModelWorld   = new THREE.Matrix4().copy(modelObj.matrixWorld).invert();
         const axisCenterLocal = axisCenterWorld.clone().applyMatrix4(invModelWorld);
-
         coverHinge = new THREE.Group();
         coverHinge.position.copy(axisCenterLocal);
         modelObj.add(coverHinge);
-
         coverMeshRef.removeFromParent();
         coverHinge.add(coverMeshRef);
-
         scene.updateMatrixWorld(true);
         const invHingeWorld = new THREE.Matrix4().copy(coverHinge.matrixWorld).invert();
         const newLocalMat   = invHingeWorld.multiply(coverWorldMat);
         newLocalMat.decompose(coverMeshRef.position, coverMeshRef.quaternion, coverMeshRef.scale);
       }
-
       phase = 'flatten';
       phaseStart = performance.now();
     });
@@ -350,34 +343,27 @@
       gltf => {
         const model = gltf.scene;
         model.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
-
         scene.add(model);
         scene.updateMatrixWorld(true);
-
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
-
         scene.remove(model);
         model.position.set(-center.x, -center.y, -center.z);
         model.rotation.set(0, 0, 0);
-
         pivot = new THREE.Group();
         pivot.add(model);
         scene.add(pivot);
-
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
         resize();
-
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
-
         coverMeshRef = model.getObjectByName('cover-front');
         axisMeshRef  = model.getObjectByName('cover-rotation-axis');
         if (axisMeshRef) axisMeshRef.visible = false;
