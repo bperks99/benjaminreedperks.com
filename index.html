@@ -360,16 +360,19 @@
           }
         });
 
-        // Rotate around Z axis +20 degrees — spine tilts away
         model.rotation.z = THREE.MathUtils.degToRad(20);
 
-        scene.add(model);
+        // Wrap in pivot so we can center the model's bbox at world origin
+        const pivot = new THREE.Group();
+        pivot.add(model);
+        scene.add(pivot);
 
-        // Compute bounding box AFTER rotation, then reposition to world origin
+        // Compute bbox in world space, then offset model inside pivot
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
-        const size   = box.getSize(new THREE.Vector3()).length();
-        model.position.sub(center); // shift model so bbox center is exactly at (0,0,0)
+        model.position.set(-center.x, -center.y, -center.z);
+
+        const size = box.getSize(new THREE.Vector3()).length();
 
         // Camera directly above center, zoomed in, slight upward shift for bottom breathing room
         const dist = size * 1.55;
