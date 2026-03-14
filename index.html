@@ -372,8 +372,8 @@
         model.position.sub(center); // shift model so bbox center is exactly at (0,0,0)
 
         // Camera directly above center, zoomed in, slight upward shift for bottom breathing room
-        const dist = size * 1.3;
-        camera.position.set(0, dist, size * 0.08);
+        const dist = size * 1.55;
+        camera.position.set(0, dist, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
 
