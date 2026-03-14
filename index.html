@@ -250,7 +250,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#d4b6b1babeb5b9bdbaa6b1b1b0a4b1a6bfa794b3b9b5bdb8fab7bbb9" class="contact-val"><span class="__cf_email__" data-cfemail="0361666d69626e6a6d71666667736671687043646e626a6f2d606c6e">[email&#160;protected]</span></a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -259,7 +259,7 @@
   </div>
 
   <!-- ── BLOB URL INTERCEPT ── -->
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     (function () {
       const store = new Map();
       let counter = 0;
@@ -400,42 +400,25 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
-    // ── Decode base64 GLB ──
-    const b64 = `Z2xURgIAAAAwdTMA+N8GAEpTT057ImV4dGVuc2lvbnNVc2VkIjpbIktIUl9tYXRlcmlhbHNfdHJhbnNtaXNzaW9uIiwiS0hSX21hdGVyaWFsc19jbGVhcmNvYXQiLCJLSFJfbWF0ZXJpYWxzX2lvciIsIktIUl9tYXRlcmlhbHNfc3BlY3VsYXIiLCJLSFJfbWF0ZXJpYWxzX2VtaXNzaXZlX3N0cmVuZ3RoIiwiS0hSX3RleHR1cmVfdHJhbnNmb3JtIl0sImFjY2Vzc29ycyI6W3siYnVmZmVyVmlldyI6MCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjQsInR5cGUiOiJWRUMzIiwibWF4IjpbMC4wNzIzMzY5NiwtMC4wMDk5NzI0OTksMC45NjMwMzIyXSwibWluIjpbLTAuMTc4NDg4MDMsLTAuMDE2MzIyNSwwLjk2MzAzMjJdfSx7ImJ1ZmZlclZpZXciOjEsImNvbXBvbmVudFR5cGUiOjUxMjUsImNvdW50Ijo2LCJ0eXBlIjoiU0NBTEFSIiwibWF4IjpbMy4wXSwibWluIjpbMC4wXX0seyJidWZmZXJWaWV3IjoyLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6NCwidHlwZSI6IlZFQzMiLCJtYXgiOlswLjAsMC4wLC0xLjBdLCJtaW4iOlswLjAsMC4wLC0xLjBdfSx7ImJ1ZmZlclZpZXciOjMsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50Ijo0LCJ0eXBlIjoiVkVDMiIsIm1heCI6WzEuMCwxLjBdLCJtaW4iOlswLjAsMC4wXX0seyJidWZmZXJWaWV3Ijo0LCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6NCwidHlwZSI6IlZFQzMiLCJtYXgiOlswLjA3MjMzNjk2LC0wLjAwOTk3MjQ5OSwxLjIxMDY4MjJdLCJtaW4iOlswLjA3MjMzNjk2LC0wLjAxNjMyMjUsMS45NjMwMzIyXX0=`;
-
-    function b64ToArrayBuffer(b64) {
-      const bin = atob(b64);
-      const buf = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-      return buf.buffer;
-    }
-
+    // ── Load GLB from GitHub ──
     const loader = new GLTFLoader();
-    loader.parse(b64ToArrayBuffer(b64), '', gltf => {
-      const model = gltf.scene;
-      scene.add(model);
+    loader.load(
+      'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
+      gltf => {
+        const model = gltf.scene;
+        scene.add(model);
 
-      const box = new THREE.Box3().setFromObject(model);
-      const center = box.getCenter(new THREE.Vector3());
-      const size   = box.getSize(new THREE.Vector3()).length();
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size   = box.getSize(new THREE.Vector3()).length();
 
-      controls.target.copy(center);
-      camera.position.set(center.x + size * 0.6, center.y + size * 0.3, center.z + size * 0.8);
-      camera.lookAt(center);
+        controls.target.copy(center);
+        camera.position.set(center.x + size * 0.6, center.y + size * 0.3, center.z + size * 0.8);
+        camera.lookAt(center);
 
-      homePos.copy(camera.position);
-      homeTarget.copy(controls.target);
-      controls.update();
-    }, err => console.warn('GLB parse error', err));
-
-    // ── Render loop ──
-    (function animate() {
-      requestAnimationFrame(animate);
-      controls.update();
-      updateHud();
-      renderer.render(scene, camera);
-    })();
-  </script>
-
-</body>
-</html>
+        homePos.copy(camera.position);
+        homeTarget.copy(controls.target);
+        controls.update();
+      },
+      undefined,
+      err =
