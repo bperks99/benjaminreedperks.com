@@ -74,17 +74,15 @@
 
     /* ── VIEWS ── */
     .view { display: none; }
+    .view.active { display: flex; flex: 1; position: relative; align-items: center; justify-content: center; }
 
     /* ── PORTFOLIO ── */
     #view-portfolio { background: transparent; }
-
     #portfolio-canvas {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       display: block;
     }
-
-    .view.active { display: flex; flex: 1; position: relative; align-items: center; justify-content: center; }
 
     /* ── RESUME ── */
     #view-resume.active {
@@ -227,14 +225,13 @@
 
   <!-- ── NAV LOGIC ── -->
   <script>
-    const nav       = document.getElementById('main-nav');
-    const navTitle  = document.getElementById('nav-title');
-    const views     = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
-    const btns      = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
-    const logo      = document.getElementById('nav-logo');
-
-    const titles = { portfolio: '', resume: 'Resume', contact: 'Contact' };
-    const themes  = { portfolio: 'dark', resume: 'dark', contact: 'light' };
+    const nav      = document.getElementById('main-nav');
+    const navTitle = document.getElementById('nav-title');
+    const views    = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
+    const btns     = { portfolio: document.getElementById('nav-portfolio'),  resume: document.getElementById('nav-resume'),  contact: document.getElementById('nav-contact') };
+    const logo     = document.getElementById('nav-logo');
+    const titles   = { portfolio: '', resume: 'Resume', contact: 'Contact' };
+    const themes   = { portfolio: 'dark', resume: 'dark', contact: 'light' };
 
     function switchView(name) {
       Object.values(views).forEach(v => v.classList.remove('active'));
@@ -259,7 +256,7 @@
 
     const canvas   = document.getElementById('portfolio-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(window.devicePixelRatio * 5);
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.toneMapping         = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled  = true;
@@ -269,10 +266,9 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // Almost no ambient — forces deep shadows
+    // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.04));
 
-    // Powerful key light top-left
     const key = new THREE.DirectionalLight(0xfff8f0, 5.5);
     key.position.set(-10, 12, 6);
     key.castShadow = true;
@@ -283,12 +279,11 @@
     key.shadow.bias = -0.001;
     scene.add(key);
 
-    // Tiny cool edge fill
     const fill = new THREE.DirectionalLight(0xb8c8e8, 0.18);
     fill.position.set(8, 2, -4);
     scene.add(fill);
 
-    // ── Resize ──
+    // Resize handler
     function resize() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       renderer.setSize(w, h, false);
@@ -298,7 +293,13 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
-    // ── Load GLB ──
+    // Render loop
+    (function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    })();
+
+    // Load GLB
     const loader = new GLTFLoader();
     loader.load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
@@ -312,21 +313,24 @@
           }
         });
 
-        model.rotation.z = THREE.MathUtils.degToRad(20);
-
-        // Add to scene first so world matrices are valid
+        // Step 1 — add to scene flat (no rotation) so bbox is clean
         scene.add(model);
         scene.updateMatrixWorld(true);
 
-        // Compute bbox in world space, then offset model to center it at origin
+        // Step 2 — compute bbox, move model so its center sits exactly at origin
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
+        model.position.sub(center);
 
-        model.position.set(-center.x, -center.y, -center.z);
+        // Step 3 — NOW apply the tilt (rotation around centered origin, so it stays centered)
+        model.rotation.z = THREE.MathUtils.degToRad(20);
 
-        // Camera directly above, looking down at origin
-        const dist = size.length() * 1.55;
+        // Step 4 — position camera above origin, looking straight down
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const fov    = camera.fov * (Math.PI / 180);
+        const dist   = (maxDim / 2) / Math.tan(fov / 2) * 2.2;
+
         camera.position.set(0, dist, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
@@ -336,12 +340,6 @@
       undefined,
       err => console.warn('GLB load error', err)
     );
-
-    // ── Render loop ──
-    (function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    })();
   </script>
 
 </body>
