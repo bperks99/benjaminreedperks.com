@@ -45,6 +45,8 @@
     .view.active { display:flex; flex:1; position:relative; align-items:center; justify-content:center; }
     #view-portfolio { background:transparent; }
     #portfolio-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+
+    /* Open Portfolio button */
     #btn-open-portfolio {
       position:absolute; right:56px; top:50%; transform:translateY(-50%);
       z-index:10; font-family:var(--font); font-size:0.85rem; font-weight:300;
@@ -56,6 +58,28 @@
     }
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
+
+    /* Page navigation */
+    #portfolio-nav {
+      position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
+      z-index:10; display:flex; align-items:center; gap:40px;
+      opacity:0; pointer-events:none; transition:opacity 0.8s;
+    }
+    #portfolio-nav.visible { opacity:1; pointer-events:auto; }
+    .portfolio-nav-btn {
+      font-family:var(--font); font-size:0.62rem; font-weight:300;
+      letter-spacing:0.22em; text-transform:uppercase;
+      color:rgba(245,243,238,0.5); background:none; border:none;
+      border-bottom:1px solid rgba(168,184,216,0.4); padding-bottom:4px;
+      cursor:pointer; transition:color 0.3s, border-color 0.3s;
+    }
+    .portfolio-nav-btn:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
+    #portfolio-page-num {
+      font-family:var(--font); font-size:0.58rem; font-weight:300;
+      letter-spacing:0.2em; color:rgba(245,243,238,0.3);
+    }
+
+    /* ── RESUME ── */
     #view-resume.active { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; background:#383836; color:var(--paper); }
     .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(245,243,238,0.1); flex-shrink:0; }
     .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--paper); }
@@ -87,6 +111,8 @@
     .resume-footer { text-align:center; padding:20px 0; border-top:1px solid rgba(245,243,238,0.08); flex-shrink:0; }
     .resume-dl { font-size:0.65rem; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:var(--paper); text-decoration:none; padding-bottom:3px; border-bottom:1px solid var(--accent); transition:color 0.25s; }
     .resume-dl:hover { color:var(--accent); }
+
+    /* ── CONTACT ── */
     #view-contact.active { display:grid; grid-template-columns:1fr 1fr; background:var(--white); }
     .contact-left { display:flex; align-items:center; justify-content:center; padding:0 72px; border-right:1px solid var(--rule); }
     .contact-list { display:flex; flex-direction:column; width:100%; }
@@ -116,6 +142,11 @@
   <div class="view active" id="view-portfolio">
     <canvas id="portfolio-canvas"></canvas>
     <button id="btn-open-portfolio">Open Portfolio &nbsp;↗</button>
+    <div id="portfolio-nav">
+      <button class="portfolio-nav-btn" id="btn-prev">← Prev</button>
+      <span id="portfolio-page-num">1 / 1</span>
+      <button class="portfolio-nav-btn" id="btn-next">Next →</button>
+    </div>
   </div>
 
   <div class="view" id="view-resume">
@@ -254,18 +285,21 @@
     const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;
     const INTRO_DUR   = 3400;
     const FLATTEN_DUR = 1600;
-    const OPEN_DUR    = 2200;
+    const OPEN_DUR    = 2400;
+    const ZOOM_DUR    = 1800;
 
     let pivot        = null;
     let finalCamY    = 0;
+    let zoomCamY     = 0;
     let rise         = 0;
     let coverHinge   = null;
     let phase        = 'intro';
     let phaseStart   = null;
-    let coverMeshRef = []; // array — supports single mesh or multiple surfaces
+    let coverMeshRef = [];
     let axisMeshRef  = null;
 
-    const btn = document.getElementById('btn-open-portfolio');
+    const btn     = document.getElementById('btn-open-portfolio');
+    const portNav = document.getElementById('portfolio-nav');
 
     (function loop(now) {
       requestAnimationFrame(loop);
@@ -295,11 +329,26 @@
         }
       }
       else if (phase === 'open') {
-        if (!coverHinge) { phase = 'done'; }
-        else {
-          const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
-          coverHinge.rotation.z = Math.PI * 0.83 * easeInOutCubic(t);
-          if (t >= 1) { coverHinge.rotation.z = Math.PI * 0.83; phase = 'done'; }
+        if (!coverHinge) {
+          phase = 'done';
+          portNav.classList.add('visible');
+        } else {
+          const t     = Math.min((now - phaseStart) / OPEN_DUR,  1);
+          const tZoom = Math.min((now - phaseStart) / ZOOM_DUR, 1);
+
+          // Open exactly 180°
+          coverHinge.rotation.z = Math.PI * easeInOutCubic(t);
+
+          // Simultaneously zoom in to fill screen with open spread
+          camera.position.y = finalCamY - (finalCamY - zoomCamY) * easeOutCubic(tZoom);
+          camera.lookAt(0, 0, 0);
+
+          if (t >= 1) {
+            coverHinge.rotation.z = Math.PI;
+            camera.position.y = zoomCamY;
+            phase = 'done';
+            portNav.classList.add('visible');
+          }
         }
       }
 
@@ -312,22 +361,15 @@
 
       if (coverMeshRef.length > 0 && axisMeshRef) {
         scene.updateMatrixWorld(true);
-
-        // Get hinge position from axis tube center
         const axisBox         = new THREE.Box3().setFromObject(axisMeshRef);
         const axisCenterWorld = axisBox.getCenter(new THREE.Vector3());
         axisMeshRef.visible   = false;
-
-        // Build hinge group at axis center in model-local space
         const modelObj        = coverMeshRef[0].parent;
         const invModelWorld   = new THREE.Matrix4().copy(modelObj.matrixWorld).invert();
         const axisCenterLocal = axisCenterWorld.clone().applyMatrix4(invModelWorld);
-
         coverHinge = new THREE.Group();
         coverHinge.position.copy(axisCenterLocal);
         modelObj.add(coverHinge);
-
-        // Re-parent every cover part into hinge, preserving exact world position
         for (const part of coverMeshRef) {
           scene.updateMatrixWorld(true);
           const partWorldMat = new THREE.Matrix4().copy(part.matrixWorld);
@@ -339,9 +381,16 @@
           localMat.decompose(part.position, part.quaternion, part.scale);
         }
       }
-
       phase = 'flatten';
       phaseStart = performance.now();
+    });
+
+    // Page nav (placeholder — wire up to actual page meshes later)
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      console.log('prev page');
+    });
+    document.getElementById('btn-next').addEventListener('click', () => {
+      console.log('next page');
     });
 
     new GLTFLoader().load(
@@ -363,6 +412,7 @@
         scene.add(pivot);
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
+        zoomCamY  = finalCamY * 0.6; // zoom to fill screen with open spread
         camera.position.set(0, finalCamY, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
@@ -370,15 +420,13 @@
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
-
-        // Collect all meshes whose name starts with 'cover-front'
         coverMeshRef = [];
         model.traverse(n => {
           if (n.name && n.name.startsWith('cover-front')) coverMeshRef.push(n);
         });
         axisMeshRef = model.getObjectByName('cover-rotation-axis');
         if (axisMeshRef) axisMeshRef.visible = false;
-        if (coverMeshRef.length === 0) console.warn('no cover-front meshes found — check names in Rhino');
+        if (coverMeshRef.length === 0) console.warn('no cover-front meshes found');
         if (!axisMeshRef) console.warn('cover-rotation-axis not found');
       },
       undefined,
