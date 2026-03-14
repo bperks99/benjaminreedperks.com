@@ -33,9 +33,11 @@
       display: flex; flex-direction: column;
       font-family: var(--font); font-weight: 300;
       background:
-        radial-gradient(ellipse 55% 45% at 18% 15%, #35352e 0%, transparent 70%),
-        radial-gradient(ellipse 80% 60% at 10% 5%,  #1e1e18 0%, transparent 60%),
-        #060604;
+        radial-gradient(ellipse 30% 28% at 10% 8%,  #888878 0%,  transparent 100%),
+        radial-gradient(ellipse 55% 45% at 15% 15%, #4a4a3c 0%,  transparent 100%),
+        radial-gradient(ellipse 85% 65% at 20% 22%, #28281e 0%,  transparent 100%),
+        radial-gradient(ellipse 130% 90% at 10% 5%, #141410 0%,  transparent 75%),
+        #030302;
     }
 
     /* ── NAV ── */
@@ -309,7 +311,7 @@
 
     const canvas   = document.getElementById('portfolio-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio * 4, 10));
+    renderer.setPixelRatio(window.devicePixelRatio * 5);
     renderer.toneMapping         = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled  = true;
