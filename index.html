@@ -352,8 +352,9 @@
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3()).length();
 
-        // Perspective camera — straight on, slightly elevated
-        camera.position.set(center.x, center.y + size * 0.1, center.z + size * 0.9);
+        // Same position as the ortho was — straight above looking down, spine to left
+        camera.position.set(center.x, center.y + size * 2, center.z);
+        camera.up.set(0, 0, -1);
         camera.lookAt(center);
 
         function resizePerspective() {
