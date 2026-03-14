@@ -13,13 +13,14 @@
   }
   </script>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     :root {
-      --ink: #1a1a18; --paper: #f5f3ee; --white: #faf9f6;
-      --mid: #9a9690; --accent: #a8b8d8; --rule: rgba(26,26,24,0.12);
-      --font: 'Century Gothic', 'AppleGothic', 'Gill Sans', sans-serif;
+      --ink:#1a1a18; --paper:#f5f3ee; --white:#faf9f6;
+      --mid:#9a9690; --accent:#a8b8d8; --rule:rgba(26,26,24,0.12);
+      --font:'Century Gothic','AppleGothic','Gill Sans',sans-serif;
     }
     html, body { width:100%; height:100%; overflow:hidden; display:flex; flex-direction:column; font-family:var(--font); font-weight:300; background:#030302; }
+
     #intro-overlay { position:fixed; inset:0; z-index:9999; background:#030302; pointer-events:none; opacity:1; transition:opacity 0.9s ease; }
     #intro-overlay.fade-out { opacity:0; }
 
@@ -45,28 +46,17 @@
     #view-portfolio { background:transparent; }
     #portfolio-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
 
-    /* ── OPEN PORTFOLIO BUTTON ── */
     #btn-open-portfolio {
-      position: absolute;
-      right: 56px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 10;
-      font-family: var(--font);
-      font-size: 0.62rem;
-      font-weight: 300;
-      letter-spacing: 0.22em;
-      text-transform: uppercase;
-      color: rgba(245,243,238,0.5);
-      background: none;
-      border: none;
-      border-bottom: 1px solid rgba(168,184,216,0.4);
-      padding-bottom: 4px;
-      cursor: pointer;
-      transition: color 0.3s, border-color 0.3s, opacity 0.5s;
+      position:absolute; right:56px; top:50%; transform:translateY(-50%);
+      z-index:10; font-family:var(--font); font-size:0.62rem; font-weight:300;
+      letter-spacing:0.22em; text-transform:uppercase;
+      color:rgba(245,243,238,0.5); background:none; border:none;
+      border-bottom:1px solid rgba(168,184,216,0.4); padding-bottom:4px;
+      cursor:pointer; transition:color 0.3s, border-color 0.3s, opacity 0.6s;
+      opacity:0; pointer-events:none;
     }
-    #btn-open-portfolio:hover { color: rgba(245,243,238,0.9); border-color: var(--accent); }
-    #btn-open-portfolio.hidden { opacity:0; pointer-events:none; }
+    #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
+    #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
 
     #view-resume.active { display:flex; flex-direction:column; background:var(--ink); color:var(--paper); }
     .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(245,243,238,0.1); flex-shrink:0; }
@@ -99,7 +89,6 @@
     .resume-footer { text-align:center; padding:20px 0; border-top:1px solid rgba(245,243,238,0.08); flex-shrink:0; }
     .resume-dl { font-size:0.65rem; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:var(--paper); text-decoration:none; padding-bottom:3px; border-bottom:1px solid rgba(245,243,238,0.3); transition:color 0.25s; }
     .resume-dl:hover { color:rgba(245,243,238,0.6); }
-
     #view-contact.active { display:grid; grid-template-columns:1fr 1fr; background:var(--white); }
     .contact-left { display:flex; align-items:center; justify-content:center; padding:0 72px; border-right:1px solid var(--rule); }
     .contact-list { display:flex; flex-direction:column; width:100%; }
@@ -113,6 +102,7 @@
   </style>
 </head>
 <body>
+
   <div id="intro-overlay"></div>
 
   <nav id="main-nav" class="dark">
@@ -127,7 +117,7 @@
 
   <div class="view active" id="view-portfolio">
     <canvas id="portfolio-canvas"></canvas>
-    <button id="btn-open-portfolio" class="hidden">Open Portfolio &nbsp;↗</button>
+    <button id="btn-open-portfolio">Open Portfolio &nbsp;↗</button>
   </div>
 
   <div class="view" id="view-resume">
@@ -205,8 +195,8 @@
     setTimeout(() => { document.getElementById('intro-overlay').classList.add('fade-out'); }, 700);
     const nav = document.getElementById('main-nav');
     const navTitle = document.getElementById('nav-title');
-    const views = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
-    const btns  = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
+    const views = { portfolio:document.getElementById('view-portfolio'), resume:document.getElementById('view-resume'), contact:document.getElementById('view-contact') };
+    const btns  = { portfolio:document.getElementById('nav-portfolio'), resume:document.getElementById('nav-resume'), contact:document.getElementById('nav-contact') };
     const logo  = document.getElementById('nav-logo');
     const titles = { portfolio:'', resume:'Resume', contact:'Contact' };
     const themes = { portfolio:'dark', resume:'dark', contact:'light' };
@@ -239,7 +229,7 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // Lighting — top-left raking angle to make shapes pop
+    // Lighting
     scene.add(new THREE.AmbientLight(0xffffff, 0.4));
     const key = new THREE.DirectionalLight(0xfff6e8, 4.0);
     key.position.set(-10, 5, -8);
@@ -260,73 +250,83 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
-    function easeOutQuad(t)  { return 1 - (1-t)*(1-t); }
-    function easeOutCubic(t) { return 1 - Math.pow(1-t, 3); }
-    function easeInOutCubic(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+    function easeOutQuad(t)    { return 1 - (1-t)*(1-t); }
+    function easeOutCubic(t)   { return 1 - Math.pow(1-t,3); }
+    function easeInOutCubic(t) { return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
 
-    // ── State ──
-    const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
-    const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
-    const INTRO_DUR     = 3400;
+    // ── Constants ──
+    const FINAL_ROT_Z = THREE.MathUtils.degToRad(30); // resting tilt
+    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;    // two full spins ahead
+    const INTRO_DUR   = 3400;
+    const FLATTEN_DUR = 1600; // rotate tilt back to 0
+    const OPEN_DUR    = 2200; // swing cover open
 
-    let pivot      = null;
-    let finalCamY  = 0;
-    let rise       = 0;
-    let animating  = false;
-    let animStart  = null;
+    // ── Shared state ──
+    let pivot     = null;
+    let finalCamY = 0;
+    let rise      = 0;
 
-    // Cover open state
-    let coverHinge    = null;  // pivot group at spine edge
-    let openAnim      = false;
-    let openStart     = null;
-    const OPEN_DUR    = 2200;
-    const FLATTEN_DUR = 1400; // time to flatten the 30° tilt before opening
+    // Phases: 'intro' → 'idle' → 'flatten' → 'open' → 'done'
+    let phase     = 'intro';
+    let phaseStart = null;
 
-    // Phase: 'intro' | 'flatten' | 'open'
-    let phase = 'intro';
+    // Cover hinge — built after GLB loads if cover-front found
+    let coverHinge = null;
 
     // ── Render loop ──
     (function loop(now) {
       requestAnimationFrame(loop);
 
-      // INTRO animation
-      if (pivot && phase === 'intro') {
-        if (!animStart) animStart = now;
-        const t = Math.min((now - animStart) / INTRO_DUR, 1);
-        camera.lookAt(0, 0, -rise * (1 - easeOutQuad(t)));
-        camera.position.y = finalCamY * (1 + 0.1 * (1 - easeOutQuad(t)));
-        pivot.rotation.z  = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
+      if (!pivot) { renderer.render(scene, camera); return; }
+
+      if (phase === 'intro') {
+        if (!phaseStart) phaseStart = now;
+        const t  = Math.min((now - phaseStart) / INTRO_DUR, 1);
+        const eq = easeOutQuad(t);
+        const ec = easeOutCubic(t);
+
+        // Rise from bottom
+        camera.lookAt(0, 0, -rise * (1 - eq));
+        // Subtle zoom in
+        camera.position.y = finalCamY * (1 + 0.1 * (1 - eq));
+        // Two-spin entry
+        pivot.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * ec;
+
         if (t >= 1) {
+          // Snap to exact finals
           camera.position.set(0, finalCamY, 0);
           camera.lookAt(0, 0, 0);
           pivot.rotation.z = FINAL_ROT_Z;
           phase = 'idle';
-          // Reveal the button once intro finishes
-          document.getElementById('btn-open-portfolio').classList.remove('hidden');
+          // Show button
+          document.getElementById('btn-open-portfolio').classList.add('visible');
         }
       }
 
-      // FLATTEN: smoothly rotate pivot to 0 (top-down) before opening cover
-      if (pivot && phase === 'flatten') {
-        if (!openStart) openStart = now;
-        const t = Math.min((now - openStart) / FLATTEN_DUR, 1);
+      else if (phase === 'flatten') {
+        // Rotate pivot.z from FINAL_ROT_Z back to 0
+        // Camera never moves — still above looking straight down
+        const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
         pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
         if (t >= 1) {
           pivot.rotation.z = 0;
           phase = 'open';
-          openStart = null;
+          phaseStart = now;
         }
       }
 
-      // OPEN: rotate the cover hinge
-      if (coverHinge && phase === 'open') {
-        if (!openStart) openStart = now;
-        const t = Math.min((now - openStart) / OPEN_DUR, 1);
-        // Open ~150° around the spine (Z axis), lifting away from camera
-        coverHinge.rotation.z = -Math.PI * 0.83 * easeInOutCubic(t);
-        if (t >= 1) {
-          coverHinge.rotation.z = -Math.PI * 0.83;
-          phase = 'done';
+      else if (phase === 'open') {
+        if (!coverHinge) { phase = 'done'; }
+        else {
+          // Swing cover open ~150° around its spine (left edge)
+          // Spine runs along the model's local X axis after flatten
+          // Rotating coverHinge on Z opens it like a book lid from above
+          const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
+          coverHinge.rotation.z = -Math.PI * 0.83 * easeInOutCubic(t);
+          if (t >= 1) {
+            coverHinge.rotation.z = -Math.PI * 0.83;
+            phase = 'done';
+          }
         }
       }
 
@@ -335,20 +335,20 @@
 
     // ── Button ──
     document.getElementById('btn-open-portfolio').addEventListener('click', () => {
-      if (phase !== 'idle' && phase !== 'done') return;
-      document.getElementById('btn-open-portfolio').classList.add('hidden');
-      openStart = null;
+      if (phase !== 'idle') return;
+      document.getElementById('btn-open-portfolio').classList.remove('visible');
       phase = 'flatten';
+      phaseStart = performance.now();
     });
 
     // ── Load GLB ──
-    const loader = new GLTFLoader();
-    loader.load(
+    new GLTFLoader().load(
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         const model = gltf.scene;
         model.traverse(n => { if (n.isMesh) { n.castShadow = true; n.receiveShadow = true; } });
 
+        // Add flat so bbox is accurate
         scene.add(model);
         scene.updateMatrixWorld(true);
 
@@ -357,6 +357,7 @@
         const size   = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
 
+        // Center model inside pivot
         scene.remove(model);
         model.position.set(-center.x, -center.y, -center.z);
         model.rotation.set(0, 0, 0);
@@ -365,7 +366,7 @@
         pivot.add(model);
         scene.add(pivot);
 
-        // Camera
+        // Set final camera position immediately — model visible from frame 1
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
@@ -378,40 +379,28 @@
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
 
-        // ── Set up cover hinge ──
-        // Find the named cover mesh
+        // ── Build cover hinge ──
+        // Find cover-front by name
         const coverMesh = model.getObjectByName('cover-front');
         if (coverMesh) {
-          // Get cover bbox in world space
-          scene.updateMatrixWorld(true);
-          const coverBox = new THREE.Box3().setFromObject(coverMesh);
+          // Get coverMesh bbox in local model space
+          // (model is centered at origin, no rotation yet)
+          const coverBox   = new THREE.Box3().setFromObject(coverMesh);
+          const spineX     = coverBox.min.x; // leftmost edge = spine
 
-          // Spine = left edge = min X in world space
-          // But we need it in model's local space since model is inside pivot
-          const spineX_world = coverBox.min.x;
-
-          // Convert spine X to model local space
-          const modelWorldInv = new THREE.Matrix4().copy(model.matrixWorld).invert();
-          const spineLocal = new THREE.Vector3(spineX_world, 0, 0).applyMatrix4(modelWorldInv);
-
-          // Create hinge group at spine position inside model
+          // Create a hinge group at the spine X position
           coverHinge = new THREE.Group();
-          coverHinge.position.set(spineLocal.x, 0, 0);
-          model.add(coverHinge);
+          coverHinge.position.set(spineX, 0, 0);
 
-          // Reparent coverMesh into hinge, offset so its left edge = hinge origin
-          const coverWorldPos = new THREE.Vector3();
-          coverMesh.getWorldPosition(coverWorldPos);
-          coverMesh.parent.remove(coverMesh);
+          // Move coverMesh into hinge, shifting so spine aligns with hinge origin
+          coverMesh.removeFromParent();
           coverHinge.add(coverMesh);
+          coverMesh.position.x -= spineX;
 
-          // Reposition coverMesh relative to hinge so spine aligns
-          coverMesh.position.x -= spineLocal.x;
+          model.add(coverHinge);
         } else {
-          console.warn('cover-front mesh not found — check the name in your GLB');
+          console.warn('cover-front not found — check mesh name in Rhino/GLB');
         }
-
-        animating = true;
       },
       undefined,
       err => console.warn('GLB load error', err)
