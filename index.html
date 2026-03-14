@@ -343,7 +343,7 @@
       gltf => {
         const model = gltf.scene;
 
-        // Rotate around Z axis +20 degrees
+        // Rotate around Z axis +20 degrees — spine tilts away
         model.rotation.z = THREE.MathUtils.degToRad(20);
 
         scene.add(model);
@@ -352,34 +352,20 @@
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3()).length();
 
-        const aspect = canvas.clientWidth / canvas.clientHeight;
-        const orthoSize = size * 0.6;
-        const ortho = new THREE.OrthographicCamera(
-          -orthoSize * aspect, orthoSize * aspect,
-           orthoSize, -orthoSize,
-          0.01, 1000
-        );
+        // Perspective camera — straight on, slightly elevated
+        camera.position.set(center.x, center.y + size * 0.1, center.z + size * 0.9);
+        camera.lookAt(center);
 
-        ortho.position.set(center.x, center.y + size * 2, center.z);
-        ortho.lookAt(center);
-        ortho.up.set(0, 0, -1);
-
-        window._ortho = ortho;
-
-        function resizeOrtho() {
+        function resizePerspective() {
           const w = canvas.clientWidth, h = canvas.clientHeight;
           renderer.setSize(w, h, false);
-          const a = w / h;
-          ortho.left   = -orthoSize * a;
-          ortho.right  =  orthoSize * a;
-          ortho.top    =  orthoSize;
-          ortho.bottom = -orthoSize;
-          ortho.updateProjectionMatrix();
+          camera.aspect = w / h;
+          camera.updateProjectionMatrix();
         }
-        new ResizeObserver(resizeOrtho).observe(canvas);
-        resizeOrtho();
+        new ResizeObserver(resizePerspective).observe(canvas);
+        resizePerspective();
 
-        window._useOrtho = true;
+        window._useOrtho = false;
       },
       undefined,
       err => console.warn('GLB load error', err)
@@ -388,7 +374,7 @@
     // ── Render loop ──
     (function animate() {
       requestAnimationFrame(animate);
-      renderer.render(scene, window._useOrtho ? window._ortho : camera);
+      renderer.render(scene, camera);
     })();  </script>
 
 </body>
