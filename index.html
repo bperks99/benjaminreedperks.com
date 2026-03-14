@@ -35,9 +35,12 @@
     nav.dark { background:transparent; }
     nav.dark button { color:#fff; }
     nav.dark .nav-title { color:#fff; }
-    nav.light { background:var(--grey); }
+    nav.light { background:var(--white); }
     nav.light button { color:var(--ink); }
     nav.light .nav-title { color:var(--ink); }
+    nav.grey { background:#b8b8b4; }
+    nav.grey button { color:var(--ink); }
+    nav.grey .nav-title { color:var(--ink); }
     nav.show-title .nav-title { opacity:1; }
     .view { display:none; }
     .view.active { display:flex; flex:1; position:relative; align-items:center; justify-content:center; }
@@ -59,7 +62,7 @@
     #view-resume.active {
       display:flex; flex-direction:column;
       align-items:stretch; justify-content:flex-start;
-      background:var(--grey); color:var(--ink);
+      background:#b8b8b4; color:var(--ink);
     }
     .resume-name-row { padding:28px 8vw; border-bottom:1px solid var(--rule); flex-shrink:0; }
     .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--ink); }
@@ -203,7 +206,7 @@
     const btns  = { portfolio:document.getElementById('nav-portfolio'), resume:document.getElementById('nav-resume'), contact:document.getElementById('nav-contact') };
     const logo  = document.getElementById('nav-logo');
     const titles = { portfolio:'', resume:'Resume', contact:'Contact' };
-    const themes = { portfolio:'dark', resume:'light', contact:'light' };
+    const themes = { portfolio:'dark', resume:'grey', contact:'light' };
     function switchView(name) {
       Object.values(views).forEach(v => v.classList.remove('active'));
       Object.values(btns).forEach(b => b.classList.remove('active'));
