@@ -227,7 +227,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#6f0d0a01050e0206011d0a0a0b1f0a1d041c2f08020e0603410c0002" class="contact-val"><span class="__cf_email__" data-cfemail="a1c3c4cfcbc0ccc8cfd3c4c4c5d1c4d3cad2e1c6ccc0c8cd8fc2cecc">[email&#160;protected]</span></a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -236,7 +236,12 @@
   </div>
 
   <!-- ── NAV LOGIC ── -->
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  <script>
+    // Overlay always fades out on a timer — never depends on GLB loading
+    setTimeout(() => {
+      document.getElementById('intro-overlay').classList.add('fade-out');
+    }, 700);
+
     const nav      = document.getElementById('main-nav');
     const navTitle = document.getElementById('nav-title');
     const views    = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
@@ -308,11 +313,11 @@
 
     // Animation state
     const ANIM_DURATION = 1800;
-    let pivot      = null;
-    let animating  = false;
-    let animStart  = null;
+    let pivot        = null;
+    let animating    = false;
+    let animStart    = null;
     let startOffsetZ = 0;
-    let startRotZ    = 0;
+    let startRotY    = 0;
 
     // Render loop
     (function loop(now) {
@@ -323,15 +328,12 @@
         const t = Math.min((now - animStart) / ANIM_DURATION, 1);
         const e = easeOutCubic(t);
 
-        // Interpolate pivot's Z offset from startOffsetZ → 0
         pivot.position.z = startOffsetZ * (1 - e);
-        // Interpolate Z spin from startRotZ → 0
-        pivot.rotation.z = startRotZ * (1 - e);
+        pivot.rotation.y = startRotY    * (1 - e);
 
         if (t >= 1) {
-          // Snap exactly to zero — guaranteed resting position
           pivot.position.z = 0;
-          pivot.rotation.z = 0;
+          pivot.rotation.y = 0;
           animating = false;
         }
       }
@@ -353,45 +355,48 @@
           }
         });
 
-        // Add model flat first so bbox is clean
+        // Add flat first so bbox is accurate
         scene.add(model);
         scene.updateMatrixWorld(true);
 
-        // Get bbox and size
         const box    = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size   = box.getSize(new THREE.Vector3());
 
-        // Remove from scene — we'll re-add inside pivot
+        // Remove and re-add inside pivot
         scene.remove(model);
-
-        // Center model inside pivot by offsetting by -center
         model.position.set(-center.x, -center.y, -center.z);
 
-        // Apply the 30° tilt to the model (around its own centered origin)
+        // 30° tilt on Z — applied to model, never touched again
         model.rotation.z = THREE.MathUtils.degToRad(30);
 
-        // Pivot sits at world origin — camera always looks at (0,0,0)
+        // Pivot at world origin
         pivot = new THREE.Group();
         pivot.add(model);
         scene.add(pivot);
 
-        // Camera: above, looking straight down at origin
+        // Camera above, looking straight down
         const maxDim = Math.max(size.x, size.y, size.z);
         const fov    = camera.fov * (Math.PI / 180);
         const dist   = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
-
         camera.position.set(0, dist, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Set intro animation start state on the PIVOT
-        // Camera looks down Y, so Z is the horizontal "bottom of screen" axis
-        startOffsetZ = maxDim * 3;   // start far off the bottom of screen
-        startRotZ    = Math.PI * 2;  // one full Z spin to reveal sides
+        // Intro: rise from below + Y spin to show all sides
+        startOffsetZ = maxDim * 3;
+        startRotY    = Math.PI * 2;
 
         pivot.position.z = startOffsetZ;
-        pivot.rotation.z = startRotZ;
+        pivot.rotation.y = startRotY;
 
         animating = true;
+      },
+      undefined,
+      err => console.warn('GLB load error', err)
+    );
+  </script>
+
+</body>
+</html>
