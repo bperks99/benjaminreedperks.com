@@ -66,6 +66,9 @@
     nav.dark        { background: #0e0e0c; }
     nav.dark button { color: #fff; }
     nav.dark .nav-title { color: #fff; }
+    nav.resume        { background: #1a1a18; }
+    nav.resume button { color: #fff; }
+    nav.resume .nav-title { color: #fff; }
     nav.light        { background: var(--white); }
     nav.light button { color: var(--ink); }
     nav.light .nav-title { color: var(--ink); }
@@ -99,15 +102,18 @@
     }
     #btn-home:hover { color: rgba(245,243,238,0.7); }
 
-    /* ── CAMERA HUD ── */
-    #cam-hud {
-      position: absolute; bottom: 24px; left: 24px; z-index: 9999;
-      background: rgba(0,0,0,0.75); color: #fff;
-      padding: 14px 18px; font-family: monospace; font-size: 11px;
-      border-radius: 6px; line-height: 1.9; pointer-events: none;
-      border: 1px solid rgba(255,255,255,0.12);
+    /* ── LOADING INDICATOR ── */
+    #loading {
+      position: absolute; inset: 0; z-index: 20;
+      display: flex; align-items: center; justify-content: center;
+      background: #0e0e0c; pointer-events: none;
+      transition: opacity 0.6s;
     }
-    #cam-hud b { color: var(--accent, #a8b8d8); }
+    #loading span {
+      font-size: 0.55rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: rgba(245,243,238,0.25);
+    }
+    #loading.hidden { opacity: 0; }
 
     /* ── RESUME ── */
     #view-resume.active {
@@ -175,14 +181,7 @@
     <canvas id="portfolio-canvas"></canvas>
     <div id="viewer-hint">Drag to orbit &nbsp;·&nbsp; Scroll to zoom</div>
     <button id="btn-home">&#8962; &nbsp; Home View</button>
-
-    <!-- CAMERA POSITION HUD -->
-    <div id="cam-hud">
-      <b>camera.position</b><br>
-      x: —<br>y: —<br>z: —<br><br>
-      <b>controls.target</b><br>
-      x: —<br>y: —<br>z: —
-    </div>
+    <div id="loading"><span>Loading</span></div>
   </div>
 
   <!-- ── RESUME ── -->
@@ -197,7 +196,7 @@
           <p class="resume-block-title">Work Experience</p>
           <div class="resume-entry">
             <div class="resume-entry-header"><div><p class="resume-org">Crough Center for Architecture</p><p class="resume-org-sub">Catholic University of America</p><p class="resume-role">3D Print Lab Technician</p></div><p class="resume-year">Sept. 2024 – May 2025</p></div>
-            <ul class="resume-bullets"><li>Maintained and operated 3D printers and lab equipment</li><li>Led introductory training sessions in 3D modeling, printer operation, and slicer software for incoming students</li></ul>
+            <ul class="resume-bullets"><li>Maintained and operated 3D printers and lab equipment</li><li>Led training sessions in 3D modeling, printer operation, and slicer software for incoming students</li></ul>
           </div>
           <div class="resume-entry">
             <div class="resume-entry-header"><div><p class="resume-org">HDR</p><p class="resume-org-sub">Philadelphia, PA</p><p class="resume-role">Design Intern</p></div><p class="resume-year">June – Aug. 2024</p></div>
@@ -250,7 +249,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#d4b6b1babeb5b9bdbaa6b1b1b0a4b1a6bfa794b3b9b5bdb8fab7bbb9" class="contact-val"><span class="__cf_email__" data-cfemail="0361666d69626e6a6d71666667736671687043646e626a6f2d606c6e">[email&#160;protected]</span></a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -258,68 +257,30 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <!-- ── BLOB URL INTERCEPT ── -->
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-    (function () {
-      const store = new Map();
-      let counter = 0;
-
-      URL.createObjectURL = function (blob) {
-        const key = 'blob:synthetic/' + (++counter);
-        store.set(key, blob);
-        return key;
-      };
-      URL.revokeObjectURL = function (key) { store.delete(key); };
-
-      const _fetch = window.fetch;
-      window.fetch = function (input, init) {
-        const url = (input instanceof Request) ? input.url : String(input);
-        if (store.has(url)) {
-          const blob = store.get(url);
-          return blob.arrayBuffer().then(buf =>
-            new Response(buf, { status: 200, headers: { 'Content-Type': blob.type } })
-          );
-        }
-        if (url.startsWith('blob-request://')) {
-          return _fetch.call(this, url.replace('blob-request://', ''), init);
-        }
-        return _fetch.apply(this, arguments);
-      };
-
-      const _open = XMLHttpRequest.prototype.open;
-      XMLHttpRequest.prototype.open = function (method, url) {
-        if (typeof url === 'string' && url.startsWith('blob-request://'))
-          url = url.replace('blob-request://', '');
-        return _open.apply(this, arguments);
-      };
-    })();
-  </script>
-
   <!-- ── NAV LOGIC ── -->
   <script>
-    const nav       = document.getElementById('main-nav');
-    const navTitle  = document.getElementById('nav-title');
-    const views     = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
-    const btns      = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
-    const logo      = document.getElementById('nav-logo');
+    const nav        = document.getElementById('main-nav');
+    const navTitle   = document.getElementById('nav-title');
+    const views      = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
+    const navBtns    = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
+    const navSchemes = { portfolio: 'dark', resume: 'resume', contact: 'light' };
+    const navTitles  = { portfolio: '', resume: 'Resume', contact: 'Contact' };
 
-    const titles = { portfolio: '', resume: 'Résumé', contact: 'Contact' };
-    const themes  = { portfolio: 'dark', resume: 'dark', contact: 'light' };
-
-    function switchView(name) {
+    function switchView(key) {
       Object.values(views).forEach(v => v.classList.remove('active'));
-      Object.values(btns).forEach(b => b.classList.remove('active'));
-      views[name].classList.add('active');
-      btns[name].classList.add('active');
-      nav.className = themes[name];
-      navTitle.textContent = titles[name];
-      if (titles[name]) nav.classList.add('show-title'); else nav.classList.remove('show-title');
+      Object.values(navBtns).forEach(b => b.classList.remove('active'));
+      views[key].classList.add('active');
+      navBtns[key].classList.add('active');
+      nav.className = navSchemes[key];
+      navTitle.innerHTML = navTitles[key];
+      if (navTitles[key]) nav.classList.add('show-title');
+      else nav.classList.remove('show-title');
     }
 
-    btns.portfolio.addEventListener('click', () => switchView('portfolio'));
-    btns.resume.addEventListener('click',    () => switchView('resume'));
-    btns.contact.addEventListener('click',   () => switchView('contact'));
-    logo.addEventListener('click',           () => switchView('portfolio'));
+    document.getElementById('nav-logo').addEventListener('click', () => switchView('portfolio'));
+    document.getElementById('nav-portfolio').addEventListener('click', () => switchView('portfolio'));
+    document.getElementById('nav-resume').addEventListener('click',    () => switchView('resume'));
+    document.getElementById('nav-contact').addEventListener('click',   () => switchView('contact'));
   </script>
 
   <!-- ── 3D VIEWER ── -->
@@ -329,6 +290,7 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
     const canvas   = document.getElementById('portfolio-canvas');
+    const loading  = document.getElementById('loading');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping         = THREE.ACESFilmicToneMapping;
@@ -339,35 +301,60 @@
 
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const key = new THREE.DirectionalLight(0xffffff, 2);
-    key.position.set(5, 10, 6); key.castShadow = true;
+    scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+    const key = new THREE.DirectionalLight(0xffffff, 4.5);
+    key.position.set(12, 4, 2); key.castShadow = true;
     scene.add(key);
-    const fill = new THREE.DirectionalLight(0xa8b8d8, 0.6);
-    fill.position.set(-6, 4, -4);
+    const fill = new THREE.DirectionalLight(0xc8d4e8, 0.4);
+    fill.position.set(-8, 2, -6);
     scene.add(fill);
 
-    const controls = new OrbitControls(camera, canvas);
-    controls.enableDamping = true; controls.dampingFactor = 0.07;
-    controls.enablePan = false;
-    controls.minDistance = 0.5; controls.maxDistance = 30;
+    // ── Custom globe-style trackball ──
+    let pivot = new THREE.Group();
+    scene.add(pivot);
 
-    // ── Expose to HUD ──
-    window._cam  = camera;
-    window._ctrl = controls;
+    let isDragging = false;
+    let prevX = 0, prevY = 0;
+    let velX = 0, velY = 0;
+    let zoomDist = 1;
 
-    // ── HUD updater ──
-    const hud = document.getElementById('cam-hud');
-    function updateHud() {
-      hud.innerHTML =
-        `<b>camera.position</b><br>` +
-        `x: ${camera.position.x.toFixed(4)}<br>` +
-        `y: ${camera.position.y.toFixed(4)}<br>` +
-        `z: ${camera.position.z.toFixed(4)}<br><br>` +
-        `<b>controls.target</b><br>` +
-        `x: ${controls.target.x.toFixed(4)}<br>` +
-        `y: ${controls.target.y.toFixed(4)}<br>` +
-        `z: ${controls.target.z.toFixed(4)}`;
+    canvas.addEventListener('pointerdown', e => {
+      isDragging = true;
+      prevX = e.clientX; prevY = e.clientY;
+      velX = 0; velY = 0;
+      canvas.setPointerCapture(e.pointerId);
+    });
+
+    canvas.addEventListener('pointermove', e => {
+      if (!isDragging) return;
+      const dx = e.clientX - prevX;
+      const dy = e.clientY - prevY;
+      velX = dx; velY = dy;
+      pivot.rotateOnWorldAxis(new THREE.Vector3(0,1,0), dx * 0.005);
+      pivot.rotateOnWorldAxis(new THREE.Vector3(1,0,0), dy * 0.005);
+      prevX = e.clientX; prevY = e.clientY;
+    });
+
+    canvas.addEventListener('pointerup',   () => isDragging = false);
+    canvas.addEventListener('pointerleave',() => isDragging = false);
+
+    // Scroll to zoom
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 1.1 : 0.9;
+      const newDist = camera.position.length() * factor;
+      if (newDist > 0.15 && newDist < 15) {
+        camera.position.multiplyScalar(factor);
+      }
+    }, { passive: false });
+
+    // Momentum after release
+    function applyMomentum() {
+      if (!isDragging && (Math.abs(velX) > 0.01 || Math.abs(velY) > 0.01)) {
+        pivot.rotateOnWorldAxis(new THREE.Vector3(0,1,0), velX * 0.005);
+        pivot.rotateOnWorldAxis(new THREE.Vector3(1,0,0), velY * 0.005);
+        velX *= 0.92; velY *= 0.92;
+      }
     }
 
     let homePos    = new THREE.Vector3();
@@ -375,20 +362,43 @@
     let animating  = false;
 
     function goHome() {
-      if (animating) return;
-      animating = true;
-      const sp = camera.position.clone(), st = controls.target.clone();
-      const t0 = performance.now();
-      (function step(now) {
-        const t = Math.min((now - t0) / 900, 1);
-        const e = t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3) / 2;
-        camera.position.lerpVectors(sp, homePos, e);
-        controls.target.lerpVectors(st, homeTarget, e);
-        controls.update();
-        if (t < 1) requestAnimationFrame(step); else animating = false;
-      })(t0);
+      pivot.rotation.set(0, 0, 0);
+      camera.position.copy(homePos);
+      velX = 0; velY = 0;
     }
     document.getElementById('btn-home').addEventListener('click', goHome);
+
+    // ── Load GLB from file ──
+    const loader = new GLTFLoader();
+    loader.load(
+      'cover.glb',
+      function (gltf) {
+        const model = gltf.scene;
+        // Center the model on the world origin before adding to pivot
+        const box    = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size   = box.getSize(new THREE.Vector3());
+        model.position.sub(center);  // shift model so its center is at 0,0,0
+        pivot.add(model);
+
+        // Auto-fit camera
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const dist   = maxDim / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * 1.5;
+
+        camera.position.set(0, dist, 0);
+        camera.lookAt(0, 0, 0);
+        homePos.set(0, dist, 0);
+
+        // Hide loading overlay
+        loading.classList.add('hidden');
+        setTimeout(() => loading.style.display = 'none', 700);
+      },
+      undefined,
+      function (err) {
+        console.error('Error loading cover.glb:', err);
+        loading.querySelector('span').textContent = 'Failed to load model';
+      }
+    );
 
     // ── Resize ──
     function resize() {
@@ -397,28 +407,16 @@
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
-    new ResizeObserver(resize).observe(canvas);
+    window.addEventListener('resize', resize);
     resize();
 
-    // ── Load GLB from GitHub ──
-    const loader = new GLTFLoader();
-    loader.load(
-      'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
-      gltf => {
-        const model = gltf.scene;
-        scene.add(model);
+    // ── Render loop ──
+    (function animate() {
+      requestAnimationFrame(animate);
+      applyMomentum();
+      renderer.render(scene, camera);
+    })();
+  </script>
 
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size   = box.getSize(new THREE.Vector3()).length();
-
-        controls.target.copy(center);
-        camera.position.set(center.x + size * 0.6, center.y + size * 0.3, center.z + size * 0.8);
-        camera.lookAt(center);
-
-        homePos.copy(camera.position);
-        homeTarget.copy(controls.target);
-        controls.update();
-      },
-      undefined,
-      err =
+</body>
+</html>
