@@ -254,13 +254,12 @@
     const scene  = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.01, 1000);
 
-    // Nearly no ambient — deep shadows make shapes read clearly
-    scene.add(new THREE.AmbientLight(0xffffff, 0.02));
+    // Ambient kept reasonable so model is always visible
+    scene.add(new THREE.AmbientLight(0xffffff, 0.35));
 
-    // Key light: top-left of screen, raking angle across the surface
+    // Key light: top-left raking angle to make surface shapes pop
     // Camera looks down Y, so screen-top = -Z, screen-left = -X
-    // Low Y relative to X/Z spread = grazing angle = shapes pop
-    const key = new THREE.DirectionalLight(0xfff6e8, 7.0);
+    const key = new THREE.DirectionalLight(0xfff6e8, 4.5);
     key.position.set(-12, 6, -10);
     key.castShadow = true;
     key.shadow.mapSize.width  = 4096;
@@ -270,8 +269,8 @@
     key.shadow.bias           = -0.001;
     scene.add(key);
 
-    // Very faint cool rim from the opposite side — just stops it going full silhouette
-    const fill = new THREE.DirectionalLight(0xa8c0e0, 0.12);
+    // Soft fill from opposite side — keeps shadows readable not black
+    const fill = new THREE.DirectionalLight(0xa8c0e0, 0.6);
     fill.position.set(10, 3, 8);
     scene.add(fill);
 
