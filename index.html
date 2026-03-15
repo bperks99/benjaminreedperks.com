@@ -268,12 +268,11 @@
 
     const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
     const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
-    const INTRO_DUR      = 3800;
-    const FLATTEN_DUR    = 2000;
-    const OPEN_DUR       = 3000;
-    const ORTHO_TRANS_DUR = 1800;
-    const CLOSE_DUR      = 3000;
-    const UNFLATTEN_DUR  = 2000;
+    const INTRO_DUR     = 3800;
+    const FLATTEN_DUR   = 2000;
+    const OPEN_DUR      = 3000;
+    const CLOSE_DUR     = 3000;
+    const UNFLATTEN_DUR = 2000;
 
     let pivot          = null;
     let finalCamY      = 0;
@@ -338,34 +337,21 @@
           if (coverHinge) coverHinge.rotation.z = Math.PI;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
-          phase = 'ortho_trans';
-          phaseStart = now;
-        }
-      }
 
-      // ── ORTHO_TRANS: camera frozen, FOV eases 38°→1° to flatten perspective,
-      //    then snaps to a true OrthographicCamera with pixel-matched centered bounds ──
-      else if (phase === 'ortho_trans') {
-        const t = Math.min((now - phaseStart) / ORTHO_TRANS_DUR, 1);
-        const e = easeInOutCubic(t);
-        camera.fov = 38 * (1 - e) + 1 * e;   // 38° → 1°
-        camera.updateProjectionMatrix();
-        if (t >= 1) {
-          // halfH = what the ortho height must be to match the scene at this camera distance
-          // left/right are camera-LOCAL (centered at 0), position handles the X offset
+          // Swap to ortho — bounds derived from perspective camera's exact FOV + distance
+          // left/right are camera-local (centered 0), position.x carries the world offset
           const aspect = canvas.clientWidth / canvas.clientHeight;
-          const halfH  = camera.position.y * Math.tan(THREE.MathUtils.degToRad(1) / 2);
+          const halfH  = camera.position.y * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
           const ortho  = new THREE.OrthographicCamera(
             -halfH * aspect,  halfH * aspect,
-             halfH,           -halfH,
-            0.01,             camera.position.y * 3
+             halfH,          -halfH,
+             0.01,            camera.position.y * 3
           );
-          ortho.position.copy(camera.position);  // x = openLookTarget.x already
+          ortho.position.copy(camera.position);
           ortho.up.set(0, 0, -1);
           ortho.lookAt(openLookTarget.x, 0, 0);
           activeCamera = ortho;
-          camera.fov   = 38;                     // reset for close cycle
-          camera.updateProjectionMatrix();
+
           phase = 'done';
           portNav.classList.add('visible');
         }
@@ -415,7 +401,6 @@
       if (phase !== 'done') return;
       if (currentPage === 1) {
         portNav.classList.remove('visible');
-        activeCamera = camera;   // back to perspective for the close animation
         phase = 'close';
         phaseStart = performance.now();
       } else {
