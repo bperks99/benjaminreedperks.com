@@ -283,14 +283,13 @@
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
     let currentPage    = 1;
-    let activeCamera   = camera;
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
 
     (function loop(now) {
       requestAnimationFrame(loop);
-      if (!pivot) { renderer.render(scene, activeCamera); return; }
+      if (!pivot) { renderer.render(scene, camera); return; }
 
       // ── INTRO: spin down + zoom in ──
       if (phase === 'intro') {
@@ -337,21 +336,6 @@
           if (coverHinge) coverHinge.rotation.z = Math.PI;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
-
-          // Swap to ortho — bounds derived from perspective camera's exact FOV + distance
-          // left/right are camera-local (centered 0), position.x carries the world offset
-          const aspect = canvas.clientWidth / canvas.clientHeight;
-          const halfH  = camera.position.y * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-          const ortho  = new THREE.OrthographicCamera(
-            -halfH * aspect,  halfH * aspect,
-             halfH,          -halfH,
-             0.01,            camera.position.y * 3
-          );
-          ortho.position.copy(camera.position);
-          ortho.up.set(0, 0, -1);
-          ortho.lookAt(openLookTarget.x, 0, 0);
-          activeCamera = ortho;
-
           phase = 'done';
           portNav.classList.add('visible');
         }
@@ -385,7 +369,7 @@
         }
       }
 
-      renderer.render(scene, activeCamera);
+      renderer.render(scene, camera);
     })(0);
 
     // ── Open Portfolio button ──
