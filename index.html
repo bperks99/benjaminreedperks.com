@@ -201,7 +201,7 @@
     <div class="contact-left">
       <div class="contact-list">
         <div class="contact-row"><span class="contact-lbl">Phone</span><a href="tel:6096133117" class="contact-val">609-613-3117</a></div>
-        <div class="contact-row"><span class="contact-lbl">Email</span><a href="mailto:benjaminreedperks@gmail.com" class="contact-val">benjaminreedperks@gmail.com</a></div>
+        <div class="contact-row"><span class="contact-lbl">Email</span><a href="/cdn-cgi/l/email-protection#88eaede6e2e9e5e1e6faededecf8edfae3fbc8efe5e9e1e4a6ebe7e5" class="contact-val"><span class="__cf_email__" data-cfemail="4f2d2a21252e2226213d2a2a2b3f2a3d243c0f28222e2623612c2022">[email&#160;protected]</span></a></div>
         <div class="contact-row"><span class="contact-lbl">LinkedIn</span><a href="https://www.linkedin.com/in/benjamin-perks-519191309/" target="_blank" class="contact-val">linkedin.com/in/benjaminperks</a></div>
         <div class="contact-row"><span class="contact-lbl">Address</span><span class="contact-val">174 Homestead Road, Wayne PA 19087</span></div>
       </div>
@@ -209,7 +209,7 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script>
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
     setTimeout(() => { document.getElementById('intro-overlay').classList.add('fade-out'); }, 700);
     const nav = document.getElementById('main-nav');
     const navTitle = document.getElementById('nav-title');
@@ -280,9 +280,11 @@
     const FINAL_ROT_Z = THREE.MathUtils.degToRad(30);
     const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;
     const INTRO_DUR   = 3400;
-    const FLATTEN_DUR = 1600;
-    const OPEN_DUR    = 2400;
-    const PAN_DUR     = 2000;
+    const FLATTEN_DUR   = 1600;
+    const OPEN_DUR      = 2400;
+    const PAN_DUR       = 2000;
+    const CLOSE_DUR     = 2400;
+    const UNFLATTEN_DUR = 1600;
 
     let pivot          = null;
     let finalCamY      = 0;
@@ -294,6 +296,7 @@
     let axisMeshRef    = null;
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
+    let currentPage    = 1;
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
@@ -380,6 +383,41 @@
         }
       }
 
+      // ── CLOSE: reverse of open — cover swings back 180°→0°, camera pans back ──
+      else if (phase === 'close') {
+        const t  = Math.min((now - phaseStart) / CLOSE_DUR, 1);
+        const tp = Math.min((now - phaseStart) / PAN_DUR,   1);
+        const ep = easeInOutCubic(tp);
+
+        if (coverHinge) coverHinge.rotation.z = Math.PI * (1 - easeInOutCubic(t));
+
+        if (orthoCamera) {
+          const cx = openLookTarget.x * (1 - ep);
+          orthoCamera.position.x = cx;
+          orthoCamera.lookAt(cx, 0, 0);
+        }
+
+        if (t >= 1) {
+          if (coverHinge) coverHinge.rotation.z = 0;
+          if (orthoCamera) { orthoCamera.position.x = 0; orthoCamera.lookAt(0, 0, 0); }
+          phase = 'unflatten';
+          phaseStart = now;
+        }
+      }
+
+      // ── UNFLATTEN: reverse of flatten — switch back to perspective, tilt re-appears ──
+      else if (phase === 'unflatten') {
+        activeCamera = camera;   // switch back to perspective camera
+        const t = Math.min((now - phaseStart) / UNFLATTEN_DUR, 1);
+        pivot.rotation.z = FINAL_ROT_Z * easeInOutCubic(t);
+        if (t >= 1) {
+          pivot.rotation.z = FINAL_ROT_Z;
+          orthoCamera = null;
+          phase = 'idle';
+          btn.classList.add('visible');
+        }
+      }
+
       renderer.render(scene, activeCamera);
     })(0);
 
@@ -415,8 +453,28 @@
       phaseStart = performance.now();
     });
 
-    document.getElementById('btn-prev').addEventListener('click', () => console.log('prev'));
-    document.getElementById('btn-next').addEventListener('click', () => console.log('next'));
+    document.getElementById('btn-prev').addEventListener('click', () => {
+      if (phase !== 'done') return;
+      if (currentPage === 1) {
+        // Reverse the opening animation back to the closed idle state
+        portNav.classList.remove('visible');
+        phase = 'close';
+        phaseStart = performance.now();
+      } else {
+        currentPage--;
+        updatePageNum();
+        // TODO: navigate to previous portfolio page
+      }
+    });
+    function updatePageNum() {
+      document.getElementById('portfolio-page-num').textContent = currentPage + ' / 1';
+    }
+
+    document.getElementById('btn-next').addEventListener('click', () => {
+      if (phase !== 'done') return;
+      // TODO: navigate to next portfolio page
+      console.log('next');
+    });
 
     // ── Load GLB ──
     new GLTFLoader().load(
@@ -452,12 +510,3 @@
         });
         axisMeshRef = model.getObjectByName('cover-rotation-axis');
         if (axisMeshRef) axisMeshRef.visible = false;
-        if (coverMeshRef.length === 0) console.warn('no cover-front meshes found');
-        if (!axisMeshRef) console.warn('cover-rotation-axis not found');
-      },
-      undefined,
-      err => console.warn('GLB load error', err)
-    );
-  </script>
-</body>
-</html>
