@@ -273,18 +273,16 @@
     new ResizeObserver(resize).observe(canvas);
     resize();
 
-    function easeOutQuad(t)    { return 1-(1-t)*(1-t); }
-    function easeOutCubic(t)   { return 1-Math.pow(1-t,3); }
-    function easeInOutCubic(t) { return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+    function easeInOutCubic(t)  { return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
+    function easeInOutQuint(t)  { return t<0.5?16*t*t*t*t*t:1-Math.pow(-2*t+2,5)/2; }
 
-    const FINAL_ROT_Z = THREE.MathUtils.degToRad(30);
-    const START_ROT_Z = FINAL_ROT_Z + Math.PI * 4;
-    const INTRO_DUR   = 3400;
-    const FLATTEN_DUR   = 1600;
-    const OPEN_DUR      = 2400;
-    const PAN_DUR       = 2000;
-    const CLOSE_DUR     = 2400;
-    const UNFLATTEN_DUR = 1600;
+    const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
+    const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
+    const INTRO_DUR     = 3800;
+    const FLATTEN_DUR   = 2000;
+    const OPEN_DUR      = 3000;
+    const CLOSE_DUR     = 3000;
+    const UNFLATTEN_DUR = 2000;
 
     let pivot          = null;
     let finalCamY      = 0;
@@ -297,6 +295,8 @@
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
     let currentPage    = 1;
+    let perspMatchH    = 0; // ortho height that perfectly matches the perspective frustum
+    let openSpreadH    = 0; // ortho height needed to frame the full open spread
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
@@ -305,13 +305,14 @@
       requestAnimationFrame(loop);
       if (!pivot) { renderer.render(scene, activeCamera); return; }
 
-      // ── INTRO ──
+      // ── INTRO: spin down + zoom in, all easeInOutQuint so it glides to a stop ──
       if (phase === 'intro') {
         if (!phaseStart) phaseStart = now;
         const t = Math.min((now - phaseStart) / INTRO_DUR, 1);
-        camera.lookAt(0, 0, -rise * (1 - easeOutQuad(t)));
-        camera.position.y = finalCamY * (1 + 0.1 * (1 - easeOutQuad(t)));
-        pivot.rotation.z  = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * easeOutCubic(t);
+        const e = easeInOutQuint(t);
+        camera.position.y = finalCamY * (1 + 0.1 * (1 - e));
+        camera.lookAt(0, 0, -rise * (1 - e));
+        pivot.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * e;
         if (t >= 1) {
           camera.position.set(0, finalCamY, 0);
           camera.lookAt(0, 0, 0);
@@ -321,14 +322,13 @@
         }
       }
 
-      // ── FLATTEN: tilt eases from 30° back to 0, then switch to ortho ──
+      // ── FLATTEN: tilt eases to 0; at the end, switch to ortho sized to match
+      //    the perspective frustum exactly — the switch is visually invisible ──
       else if (phase === 'flatten') {
         const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
         pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
         if (t >= 1) {
           pivot.rotation.z = 0;
-
-          // Find spine center and build ortho camera for the open phase
           if (coverHinge) {
             scene.updateMatrixWorld(true);
             coverHinge.getWorldPosition(openLookTarget);
@@ -337,43 +337,62 @@
             const navH    = document.getElementById('main-nav').offsetHeight;
             const canvH   = canvas.clientHeight;
             const navFrac = navH / canvH;
-            const oH      = (modelSize.z / (1 - navFrac * 2)) * 1.05;
             const ar      = canvas.clientWidth / canvH;
 
+            // Match perspective frustum exactly so the switch is imperceptible
+            perspMatchH = 2 * finalCamY * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+            // Target size for the fully open spread
+            openSpreadH = (modelSize.z / (1 - navFrac * 2)) * 1.05;
+
             orthoCamera = new THREE.OrthographicCamera(
-              -(oH*ar)/2, (oH*ar)/2, oH/2, -oH/2, 0.01, 1000
+              -(perspMatchH * ar) / 2,  (perspMatchH * ar) / 2,
+               perspMatchH / 2,        -perspMatchH / 2,
+               0.01, 1000
             );
             orthoCamera.position.set(0, finalCamY, 0);
             orthoCamera.up.set(0, 0, -1);
             orthoCamera.lookAt(0, 0, 0);
-            activeCamera = orthoCamera; // ← pure ortho from here on, no perspective tilt
+            activeCamera = orthoCamera; // invisible — frustums are identical
           }
-
           phase = 'open';
           phaseStart = now;
         }
       }
 
-      // ── OPEN: cover swings 180°, camera pans to spread center ──
+      // ── OPEN: cover swings 180°; ortho zooms out from perspMatchH → openSpreadH
+      //    and pans to spread center — all on one easeInOutCubic curve ──
       else if (phase === 'open') {
         if (!coverHinge) {
           phase = 'done';
           portNav.classList.add('visible');
         } else {
-          const t  = Math.min((now - phaseStart) / OPEN_DUR, 1);
-          const tp = Math.min((now - phaseStart) / PAN_DUR,  1);
-          const ep = easeOutCubic(tp);
+          const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
+          const e = easeInOutCubic(t);
 
-          coverHinge.rotation.z = Math.PI * easeInOutCubic(t);
+          coverHinge.rotation.z = Math.PI * e;
 
           if (orthoCamera) {
-            orthoCamera.position.x = openLookTarget.x * ep;
-            orthoCamera.lookAt(openLookTarget.x * ep, 0, 0);
+            const oH = perspMatchH + (openSpreadH - perspMatchH) * e;
+            const ar = canvas.clientWidth / canvas.clientHeight;
+            orthoCamera.left   = -(oH * ar) / 2;
+            orthoCamera.right  =  (oH * ar) / 2;
+            orthoCamera.top    =   oH / 2;
+            orthoCamera.bottom =  -oH / 2;
+            orthoCamera.updateProjectionMatrix();
+            const cx = openLookTarget.x * e;
+            orthoCamera.position.x = cx;
+            orthoCamera.lookAt(cx, 0, 0);
           }
 
           if (t >= 1) {
             coverHinge.rotation.z = Math.PI;
             if (orthoCamera) {
+              const ar = canvas.clientWidth / canvas.clientHeight;
+              orthoCamera.left   = -(openSpreadH * ar) / 2;
+              orthoCamera.right  =  (openSpreadH * ar) / 2;
+              orthoCamera.top    =   openSpreadH / 2;
+              orthoCamera.bottom =  -openSpreadH / 2;
+              orthoCamera.updateProjectionMatrix();
               orthoCamera.position.x = openLookTarget.x;
               orthoCamera.lookAt(openLookTarget.x, 0, 0);
             }
@@ -383,36 +402,43 @@
         }
       }
 
-      // ── CLOSE: reverse of open — cover swings back 180°→0°, camera pans back ──
+      // ── CLOSE: reverse — cover swings back, ortho zooms back to perspMatchH,
+      //    pan returns; at the end switch back to perspective (again invisible) ──
       else if (phase === 'close') {
-        const t  = Math.min((now - phaseStart) / CLOSE_DUR, 1);
-        const tp = Math.min((now - phaseStart) / PAN_DUR,   1);
-        const ep = easeInOutCubic(tp);
+        const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
+        const e = easeInOutCubic(t);
 
-        if (coverHinge) coverHinge.rotation.z = Math.PI * (1 - easeInOutCubic(t));
+        if (coverHinge) coverHinge.rotation.z = Math.PI * (1 - e);
 
         if (orthoCamera) {
-          const cx = openLookTarget.x * (1 - ep);
+          const oH = openSpreadH + (perspMatchH - openSpreadH) * e;
+          const ar = canvas.clientWidth / canvas.clientHeight;
+          orthoCamera.left   = -(oH * ar) / 2;
+          orthoCamera.right  =  (oH * ar) / 2;
+          orthoCamera.top    =   oH / 2;
+          orthoCamera.bottom =  -oH / 2;
+          orthoCamera.updateProjectionMatrix();
+          const cx = openLookTarget.x * (1 - e);
           orthoCamera.position.x = cx;
           orthoCamera.lookAt(cx, 0, 0);
         }
 
         if (t >= 1) {
           if (coverHinge) coverHinge.rotation.z = 0;
-          if (orthoCamera) { orthoCamera.position.x = 0; orthoCamera.lookAt(0, 0, 0); }
+          // Switch back to perspective — invisible since ortho is now at perspMatchH
+          activeCamera = camera;
+          orthoCamera  = null;
           phase = 'unflatten';
           phaseStart = now;
         }
       }
 
-      // ── UNFLATTEN: reverse of flatten — switch back to perspective, tilt re-appears ──
+      // ── UNFLATTEN: tilt eases back in ──
       else if (phase === 'unflatten') {
-        activeCamera = camera;   // switch back to perspective camera
         const t = Math.min((now - phaseStart) / UNFLATTEN_DUR, 1);
         pivot.rotation.z = FINAL_ROT_Z * easeInOutCubic(t);
         if (t >= 1) {
           pivot.rotation.z = FINAL_ROT_Z;
-          orthoCamera = null;
           phase = 'idle';
           btn.classList.add('visible');
         }
