@@ -112,6 +112,26 @@
     .contact-val:hover { color:var(--accent); }
     .contact-right { overflow:hidden; }
     .contact-photo { width:100%; height:100%; object-fit:cover; display:block; }
+
+    #spread-layer {
+      position:absolute; inset:0; z-index:5;
+      background:#000; opacity:0; pointer-events:none;
+      transition:opacity 0.8s ease;
+    }
+    #spread-layer.visible { opacity:1; pointer-events:auto; }
+    #spread-book { position:relative; width:100%; height:100%; perspective:2400px; }
+    #spread-current { position:absolute; inset:0; background-size:cover; background-position:center; }
+    #spread-next { position:absolute; inset:0; background-size:cover; background-position:center; opacity:0; }
+    #spread-next.reveal { opacity:1; }
+    #page-flipper {
+      position:absolute; top:0; right:0; width:50%; height:100%;
+      transform-style:preserve-3d; transform-origin:left center; transform:rotateY(0deg);
+      transition:transform 0.9s cubic-bezier(0.645,0.045,0.355,1.000); pointer-events:none;
+    }
+    #page-flipper.flipping-next { transform:rotateY(-180deg); }
+    #page-flipper.flipping-prev { transform:rotateY(180deg); }
+    #flipper-front { position:absolute; inset:0; backface-visibility:hidden; background-size:200% 100%; background-position:right center; }
+    #flipper-back  { position:absolute; inset:0; backface-visibility:hidden; transform:rotateY(180deg); background-size:200% 100%; background-position:left center; }
   </style>
 </head>
 <body>
@@ -135,6 +155,16 @@
       <button class="portfolio-nav-btn" id="btn-prev">← Prev</button>
       <span id="portfolio-page-num">1 / 1</span>
       <button class="portfolio-nav-btn" id="btn-next">Next →</button>
+    </div>
+    <div id="spread-layer">
+      <div id="spread-book">
+        <div id="spread-current"></div>
+        <div id="spread-next"></div>
+        <div id="page-flipper">
+          <div id="flipper-front"></div>
+          <div id="flipper-back"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -380,21 +410,81 @@
       phaseStart = performance.now();
     });
 
-    // ── Prev / Next ──
+    // ── Spreads — add URLs here as spread1.jpg, spread2.jpg etc. ──
+    const SPREADS = [
+      'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/spread1.jpg',
+      // 'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/spread2.jpg',
+    ];
+    const TOTAL = 1 + SPREADS.length;
+
+    const spreadLayer   = document.getElementById('spread-layer');
+    const spreadCurrent = document.getElementById('spread-current');
+    const spreadNext    = document.getElementById('spread-next');
+    const flipper       = document.getElementById('page-flipper');
+    const flipFront     = document.getElementById('flipper-front');
+    const flipBack      = document.getElementById('flipper-back');
+    let flipping = false;
+
+    function updatePageNum() {
+      document.getElementById('portfolio-page-num').textContent = currentPage + ' / ' + TOTAL;
+    }
+
+    function flipToSpread(toIndex, dir) {
+      if (flipping) return;
+      flipping = true;
+      const fromIndex = toIndex + (dir === 'next' ? -1 : 1);
+      flipFront.style.backgroundImage = `url('${SPREADS[fromIndex]}')`;
+      flipBack.style.backgroundImage  = `url('${SPREADS[toIndex]}')`;
+      spreadNext.style.backgroundImage = `url('${SPREADS[toIndex]}')`;
+      spreadNext.classList.add('reveal');
+      flipper.classList.remove('flipping-next','flipping-prev');
+      void flipper.offsetWidth;
+      flipper.classList.add(dir === 'next' ? 'flipping-next' : 'flipping-prev');
+      setTimeout(() => {
+        spreadCurrent.style.backgroundImage = `url('${SPREADS[toIndex]}')`;
+        spreadNext.classList.remove('reveal');
+        flipper.classList.remove('flipping-next','flipping-prev');
+        flipper.style.transition = 'none';
+        void flipper.offsetWidth;
+        flipper.style.transition = '';
+        flipping = false;
+      }, 950);
+    }
+
+    // ── Prev ──
     document.getElementById('btn-prev').addEventListener('click', () => {
-      if (phase !== 'done') return;
+      if (phase !== 'done' || flipping) return;
       if (currentPage === 1) {
         portNav.classList.remove('visible');
         phase = 'close';
         phaseStart = performance.now();
+      } else if (currentPage === 2) {
+        // First spread → back to GLB
+        spreadLayer.classList.remove('visible');
+        currentPage = 1;
+        updatePageNum();
       } else {
+        flipToSpread(currentPage - 3, 'prev');
         currentPage--;
-        document.getElementById('portfolio-page-num').textContent = currentPage + ' / 1';
+        updatePageNum();
       }
     });
+
+    // ── Next ──
     document.getElementById('btn-next').addEventListener('click', () => {
-      if (phase !== 'done') return;
-      console.log('next');
+      if (phase !== 'done' || flipping) return;
+      if (currentPage >= TOTAL) return;
+      if (currentPage === 1) {
+        // GLB → first spread
+        spreadCurrent.style.backgroundImage = `url('${SPREADS[0]}')`;
+        spreadLayer.classList.add('visible');
+        currentPage = 2;
+        updatePageNum();
+      } else {
+        flipToSpread(currentPage - 1, 'next');
+        currentPage++;
+        updatePageNum();
+      }
     });
 
     // ── Load GLB ──
