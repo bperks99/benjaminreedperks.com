@@ -257,8 +257,17 @@
     function resize() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
       renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+      if (orthoCamera && activeCamera === orthoCamera) {
+        const aspect = w / h;
+        orthoCamera.left   = openLookTarget.x - orthoHalfH * aspect;
+        orthoCamera.right  = openLookTarget.x + orthoHalfH * aspect;
+        orthoCamera.top    =  orthoHalfH;
+        orthoCamera.bottom = -orthoHalfH;
+        orthoCamera.updateProjectionMatrix();
+      } else {
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
     }
     new ResizeObserver(resize).observe(canvas);
     resize();
@@ -266,13 +275,14 @@
     function easeInOutCubic(t)  { return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
     function easeInOutQuint(t)  { return t<0.5?16*t*t*t*t*t:1-Math.pow(-2*t+2,5)/2; }
 
-    const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
-    const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
-    const INTRO_DUR     = 3800;
-    const FLATTEN_DUR   = 2000;
-    const OPEN_DUR      = 3000;
-    const CLOSE_DUR     = 3000;
-    const UNFLATTEN_DUR = 2000;
+    const FINAL_ROT_Z    = THREE.MathUtils.degToRad(30);
+    const START_ROT_Z    = FINAL_ROT_Z + Math.PI * 4;
+    const INTRO_DUR      = 3800;
+    const FLATTEN_DUR    = 2000;
+    const OPEN_DUR       = 3000;
+    const ORTHO_TRANS_DUR = 1600;
+    const CLOSE_DUR      = 3000;
+    const UNFLATTEN_DUR  = 2000;
 
     let pivot          = null;
     let finalCamY      = 0;
@@ -283,13 +293,16 @@
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
     let currentPage    = 1;
+    let activeCamera   = camera;
+    let orthoCamera    = null;
+    let orthoHalfH     = 0;
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
 
     (function loop(now) {
       requestAnimationFrame(loop);
-      if (!pivot) { renderer.render(scene, camera); return; }
+      if (!pivot) { renderer.render(scene, activeCamera); return; }
 
       // ── INTRO: spin down + zoom in ──
       if (phase === 'intro') {
@@ -336,8 +349,8 @@
           if (coverHinge) coverHinge.rotation.z = Math.PI;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
-          phase = 'done';
-          portNav.classList.add('visible');
+          phase = 'ortho_trans';
+          phaseStart = now;
         }
       }
 
@@ -369,7 +382,38 @@
         }
       }
 
-      renderer.render(scene, camera);
+      // ── ORTHO_TRANS: dolly back while collapsing FOV → swap to OrthographicCamera ──
+      else if (phase === 'ortho_trans') {
+        const t = Math.min((now - phaseStart) / ORTHO_TRANS_DUR, 1);
+        const e = easeInOutCubic(t);
+        const startFov = 38;
+        const endFov   = 0.4;
+        // Capture the half-height on first frame (stays constant throughout)
+        if (!orthoHalfH) orthoHalfH = finalCamY * Math.tan(THREE.MathUtils.degToRad(startFov) / 2);
+        // Compress FOV
+        camera.fov = startFov + (endFov - startFov) * e;
+        camera.updateProjectionMatrix();
+        // Dolly camera back to maintain apparent scene size (dist * tan(fov/2) = orthoHalfH)
+        camera.position.y = orthoHalfH / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+        if (t >= 1) {
+          // Swap to a true OrthographicCamera with equivalent bounds
+          const aspect = canvas.clientWidth / canvas.clientHeight;
+          orthoCamera = new THREE.OrthographicCamera(
+            openLookTarget.x - orthoHalfH * aspect,
+            openLookTarget.x + orthoHalfH * aspect,
+            orthoHalfH, -orthoHalfH,
+            0.01, camera.position.y * 2
+          );
+          orthoCamera.position.set(openLookTarget.x, camera.position.y, 0);
+          orthoCamera.up.set(0, 0, -1);
+          orthoCamera.lookAt(openLookTarget.x, 0, 0);
+          activeCamera = orthoCamera;
+          phase = 'done';
+          portNav.classList.add('visible');
+        }
+      }
+
+      renderer.render(scene, activeCamera);
     })(0);
 
     // ── Open Portfolio button ──
@@ -385,6 +429,16 @@
       if (phase !== 'done') return;
       if (currentPage === 1) {
         portNav.classList.remove('visible');
+        // Reset back to perspective camera so the close animation works
+        if (activeCamera !== camera) {
+          camera.fov = 38;
+          camera.position.set(openLookTarget.x, finalCamY, 0);
+          camera.lookAt(openLookTarget.x, 0, 0);
+          camera.updateProjectionMatrix();
+          activeCamera = camera;
+          orthoCamera  = null;
+          orthoHalfH   = 0;
+        }
         phase = 'close';
         phaseStart = performance.now();
       } else {
