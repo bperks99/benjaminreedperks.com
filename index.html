@@ -273,8 +273,6 @@
     const OPEN_DUR      = 3000;
     const CLOSE_DUR     = 3000;
     const UNFLATTEN_DUR = 2000;
-    const SPREAD_IN_DUR = 1000;
-    const PAGE_TURN_DUR = 1200;
 
     let pivot          = null;
     let finalCamY      = 0;
@@ -285,14 +283,6 @@
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
     let currentPage    = 1;
-
-    // ── Page spread ──
-    let spreadCamY  = 0;   // camera height that frames the full spread
-    let pageW       = 0;   // single page width (model units)
-    let pageH       = 0;   // single page height (model units)
-    let leftPage    = null;
-    let rightPage   = null;
-    let pageHinge   = null; // group that rotates during a page turn
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
@@ -334,7 +324,7 @@
         }
       }
 
-      // ── OPEN: cover swings 180°, camera pans to spine ──
+      // ── OPEN: cover swings 180°, camera pans to spread center ──
       else if (phase === 'open') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const e = easeInOutCubic(t);
@@ -346,62 +336,23 @@
           if (coverHinge) coverHinge.rotation.z = Math.PI;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
-          phase = 'spread_in';
-          phaseStart = now;
-        }
-      }
-
-      // ── SPREAD_IN: camera zooms out to frame the full 20×10 spread,
-      //    page planes fade in ──
-      else if (phase === 'spread_in') {
-        const t = Math.min((now - phaseStart) / SPREAD_IN_DUR, 1);
-        const e = easeInOutCubic(t);
-        camera.position.y = finalCamY + (spreadCamY - finalCamY) * e;
-        camera.lookAt(openLookTarget.x, 0, 0);
-        if (leftPage)  leftPage.material.opacity  = e;
-        if (rightPage) rightPage.material.opacity = e;
-        if (t >= 1) {
-          camera.position.y = spreadCamY;
-          if (leftPage)  leftPage.material.opacity  = 1;
-          if (rightPage) rightPage.material.opacity = 1;
           phase = 'done';
           portNav.classList.add('visible');
         }
       }
 
-      // ── PAGE TURN: right-page hinge rotates 180° over the spine,
-      //    arcing upward at the midpoint for a natural lift ──
-      else if (phase === 'pageturn') {
-        const t = Math.min((now - phaseStart) / PAGE_TURN_DUR, 1);
-        const e = easeInOutCubic(t);
-        if (pageHinge) {
-          pageHinge.rotation.z = Math.PI * e;
-          // Lift the page toward the camera at the midpoint
-          pageHinge.position.y = Math.sin(Math.PI * e) * pageW * 0.18;
-        }
-        if (t >= 1) {
-          finishPageTurn();
-          phase = 'done';
-        }
-      }
-
-      // ── CLOSE: pages fade out, cover closes, camera zooms back out ──
+      // ── CLOSE: cover swings back, camera pans back to center ──
       else if (phase === 'close') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const e = easeInOutCubic(t);
         if (coverHinge) coverHinge.rotation.z = Math.PI * (1 - e);
         const cx = openLookTarget.x * (1 - e);
         camera.position.x = cx;
-        camera.position.y = spreadCamY + (finalCamY - spreadCamY) * e;
         camera.lookAt(cx, 0, 0);
-        if (leftPage)  leftPage.material.opacity  = Math.max(0, 1 - e * 2);
-        if (rightPage) rightPage.material.opacity = Math.max(0, 1 - e * 2);
         if (t >= 1) {
           if (coverHinge) coverHinge.rotation.z = 0;
-          camera.position.set(0, finalCamY, 0);
+          camera.position.x = 0;
           camera.lookAt(0, 0, 0);
-          if (leftPage)  leftPage.material.opacity  = 0;
-          if (rightPage) rightPage.material.opacity = 0;
           phase = 'unflatten';
           phaseStart = now;
         }
@@ -434,7 +385,6 @@
       if (phase !== 'done') return;
       if (currentPage === 1) {
         portNav.classList.remove('visible');
-        currentPage = 1;
         phase = 'close';
         phaseStart = performance.now();
       } else {
@@ -442,62 +392,10 @@
         document.getElementById('portfolio-page-num').textContent = currentPage + ' / 1';
       }
     });
-
     document.getElementById('btn-next').addEventListener('click', () => {
       if (phase !== 'done') return;
-      startPageTurn();
+      console.log('next');
     });
-
-    // ── Build the page-turn hinge and kick off the animation ──
-    function startPageTurn() {
-      if (!rightPage || !pageW) return;
-
-      // Create a hinge group anchored at the spine (right edge of left page)
-      pageHinge = new THREE.Group();
-      pageHinge.position.set(openLookTarget.x, 0, 0);
-      scene.add(pageHinge);
-
-      // Re-parent the right page into the hinge
-      // Its world centre is at (openLookTarget.x + pageW/2, 0, 0)
-      // In hinge-local space that is (pageW/2, 0, 0)
-      rightPage.removeFromParent();
-      pageHinge.add(rightPage);
-      rightPage.position.set(pageW / 2, 0.002, 0);
-      rightPage.rotation.set(-Math.PI / 2, 0, 0);
-
-      phase = 'pageturn';
-      phaseStart = performance.now();
-    }
-
-    // ── Called when the turn animation finishes ──
-    function finishPageTurn() {
-      // Detach turned page from hinge and remove hinge
-      if (pageHinge) {
-        rightPage.removeFromParent();
-        scene.add(rightPage);
-        scene.remove(pageHinge);
-        pageHinge = null;
-      }
-
-      // The turned page now lives on the left side — snap it there
-      rightPage.position.set(openLookTarget.x - pageW / 2, 0.002, 0);
-      rightPage.rotation.set(-Math.PI / 2, 0, 0);
-      leftPage = rightPage;
-
-      // Create a fresh blank right page for the next spread
-      rightPage = new THREE.Mesh(
-        new THREE.PlaneGeometry(pageW, pageH),
-        new THREE.MeshLambertMaterial({
-          color: 0xf5f3ee, side: THREE.DoubleSide,
-        })
-      );
-      rightPage.rotation.x = -Math.PI / 2;
-      rightPage.position.set(openLookTarget.x + pageW / 2, 0.002, 0);
-      scene.add(rightPage);
-
-      currentPage++;
-      document.getElementById('portfolio-page-num').textContent = currentPage + ' / 1';
-    }
 
     // ── Load GLB ──
     new GLTFLoader().load(
@@ -582,41 +480,6 @@
           coverHinge.getWorldPosition(hingeWorld);
           openLookTarget.set(hingeWorld.x, 0, 0);
         }
-
-        // ── Build the flat page spread meshes ──
-        // One page = modelSize.x wide × modelSize.z tall (book lying flat in XZ)
-        pageW = modelSize.x;
-        pageH = modelSize.z;
-
-        // Camera height that frames the full 20×10 spread with breathing room
-        const fovR = camera.fov * (Math.PI / 180);
-        const ar   = canvas.clientWidth / canvas.clientHeight;
-        const camH = (pageH / 2) / Math.tan(fovR / 2) * 1.25;        // fit height
-        const camW = pageW        / (Math.tan(fovR / 2) * ar) * 1.25; // fit full spread width
-        spreadCamY = Math.max(camH, camW);
-
-        // Shared page geometry (XZ-plane, origin centred on the page)
-        const pageGeo = new THREE.PlaneGeometry(pageW, pageH);
-
-        // Left page — inside cover / left spread page
-        const leftMat = new THREE.MeshLambertMaterial({
-          color: 0xf2f0eb, side: THREE.DoubleSide,
-          transparent: true, opacity: 0,
-        });
-        leftPage = new THREE.Mesh(pageGeo, leftMat);
-        leftPage.rotation.x = -Math.PI / 2;
-        leftPage.position.set(openLookTarget.x - pageW / 2, 0.002, 0);
-        scene.add(leftPage);
-
-        // Right page — first right-hand page
-        const rightMat = new THREE.MeshLambertMaterial({
-          color: 0xf2f0eb, side: THREE.DoubleSide,
-          transparent: true, opacity: 0,
-        });
-        rightPage = new THREE.Mesh(pageGeo.clone(), rightMat);
-        rightPage.rotation.x = -Math.PI / 2;
-        rightPage.position.set(openLookTarget.x + pageW / 2, 0.002, 0);
-        scene.add(rightPage);
       },
       undefined,
       err => console.error('GLB load error', err)
