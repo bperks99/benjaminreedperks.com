@@ -510,3 +510,10 @@
         });
         axisMeshRef = model.getObjectByName('cover-rotation-axis');
         if (axisMeshRef) axisMeshRef.visible = false;
+      },
+      undefined,
+      err => console.error('GLB load error', err)
+    );
+  </script>
+</body>
+</html>
