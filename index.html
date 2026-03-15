@@ -280,8 +280,6 @@
     let coverHinge     = null;
     let phase          = 'intro';
     let phaseStart     = null;
-    let coverMeshRef   = [];
-    let axisMeshRef    = null;
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
     let currentPage    = 1;
@@ -328,23 +326,18 @@
 
       // ── OPEN: cover swings 180°, camera pans to spread center ──
       else if (phase === 'open') {
-        if (!coverHinge) {
+        const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
+        const e = easeInOutCubic(t);
+        if (coverHinge) coverHinge.rotation.z = Math.PI * e;
+        const cx = openLookTarget.x * e;
+        camera.position.x = cx;
+        camera.lookAt(cx, 0, 0);
+        if (t >= 1) {
+          if (coverHinge) coverHinge.rotation.z = Math.PI;
+          camera.position.x = openLookTarget.x;
+          camera.lookAt(openLookTarget.x, 0, 0);
           phase = 'done';
           portNav.classList.add('visible');
-        } else {
-          const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
-          const e = easeInOutCubic(t);
-          coverHinge.rotation.z = Math.PI * e;
-          const cx = openLookTarget.x * e;
-          camera.position.x = cx;
-          camera.lookAt(cx, 0, 0);
-          if (t >= 1) {
-            coverHinge.rotation.z = Math.PI;
-            camera.position.x = openLookTarget.x;
-            camera.lookAt(openLookTarget.x, 0, 0);
-            phase = 'done';
-            portNav.classList.add('visible');
-          }
         }
       }
 
@@ -379,58 +372,28 @@
       renderer.render(scene, camera);
     })(0);
 
-    // ── Button: build hinge then start flatten ──
+    // ── Open Portfolio button ──
     btn.addEventListener('click', () => {
       if (phase !== 'idle') return;
       btn.classList.remove('visible');
-
-      if (coverMeshRef.length > 0 && axisMeshRef) {
-        scene.updateMatrixWorld(true);
-        const axisBox         = new THREE.Box3().setFromObject(axisMeshRef);
-        const axisCenterWorld = axisBox.getCenter(new THREE.Vector3());
-        axisMeshRef.visible   = false;
-        const modelObj        = coverMeshRef[0].parent;
-        const invModelWorld   = new THREE.Matrix4().copy(modelObj.matrixWorld).invert();
-        const axisCenterLocal = axisCenterWorld.clone().applyMatrix4(invModelWorld);
-        coverHinge = new THREE.Group();
-        coverHinge.position.copy(axisCenterLocal);
-        modelObj.add(coverHinge);
-        for (const part of coverMeshRef) {
-          scene.updateMatrixWorld(true);
-          const partWorldMat = new THREE.Matrix4().copy(part.matrixWorld);
-          part.removeFromParent();
-          coverHinge.add(part);
-          scene.updateMatrixWorld(true);
-          const invHinge = new THREE.Matrix4().copy(coverHinge.matrixWorld).invert();
-          const localMat = invHinge.multiply(partWorldMat);
-          localMat.decompose(part.position, part.quaternion, part.scale);
-        }
-      }
-
       phase = 'flatten';
       phaseStart = performance.now();
     });
 
+    // ── Prev / Next ──
     document.getElementById('btn-prev').addEventListener('click', () => {
       if (phase !== 'done') return;
       if (currentPage === 1) {
-        // Reverse the opening animation back to the closed idle state
         portNav.classList.remove('visible');
         phase = 'close';
         phaseStart = performance.now();
       } else {
         currentPage--;
-        updatePageNum();
-        // TODO: navigate to previous portfolio page
+        document.getElementById('portfolio-page-num').textContent = currentPage + ' / 1';
       }
     });
-    function updatePageNum() {
-      document.getElementById('portfolio-page-num').textContent = currentPage + ' / 1';
-    }
-
     document.getElementById('btn-next').addEventListener('click', () => {
       if (phase !== 'done') return;
-      // TODO: navigate to next portfolio page
       console.log('next');
     });
 
@@ -439,7 +402,13 @@
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         const model = gltf.scene;
-        model.traverse(n => { if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; } });
+
+        // Disable shadows on all meshes
+        model.traverse(n => {
+          if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; }
+        });
+
+        // Centre the model at the origin inside a pivot group
         scene.add(model);
         scene.updateMatrixWorld(true);
         const box    = new THREE.Box3().setFromObject(model);
@@ -453,21 +422,64 @@
         pivot = new THREE.Group();
         pivot.add(model);
         scene.add(pivot);
+
+        // Position camera above, looking straight down
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
         resize();
+
+        // Start intro with spin + rise
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
-        coverMeshRef = [];
+
+        // ── Build the cover hinge once, right here at load time ──
+        //    Find the axis mesh and all cover-front parts
+        const axisObj = model.getObjectByName('cover-rotation-axis');
+        const frontParts = [];
         model.traverse(n => {
-          if (n.name && n.name.startsWith('cover-front')) coverMeshRef.push(n);
+          if (n.name && n.name.startsWith('cover-front')) frontParts.push(n);
         });
-        axisMeshRef = model.getObjectByName('cover-rotation-axis');
-        if (axisMeshRef) axisMeshRef.visible = false;
+
+        if (axisObj && frontParts.length > 0) {
+          // Hide the axis helper mesh
+          axisObj.visible = false;
+
+          // Get the world-space centre of the axis object
+          scene.updateMatrixWorld(true);
+          const axisBox    = new THREE.Box3().setFromObject(axisObj);
+          const axisCentre = axisBox.getCenter(new THREE.Vector3());
+
+          // Create the hinge group at the axis position, parented to the model
+          coverHinge = new THREE.Group();
+          // Express axisCentre in model-local space
+          const invModel = new THREE.Matrix4().copy(model.matrixWorld).invert();
+          coverHinge.position.copy(axisCentre.clone().applyMatrix4(invModel));
+          model.add(coverHinge);
+
+          // Reparent each cover-front part into the hinge,
+          // preserving its exact world transform
+          scene.updateMatrixWorld(true);
+          for (const part of frontParts) {
+            const worldMat = part.matrixWorld.clone();
+            part.removeFromParent();
+            coverHinge.add(part);
+            scene.updateMatrixWorld(true);
+            // Compute part's local matrix relative to hinge
+            const invHinge = new THREE.Matrix4().copy(coverHinge.matrixWorld).invert();
+            const localMat = invHinge.multiply(worldMat);
+            localMat.decompose(part.position, part.quaternion, part.scale);
+          }
+
+          // Store the hinge's world-x position for the camera pan during open
+          scene.updateMatrixWorld(true);
+          const hingeWorld = new THREE.Vector3();
+          coverHinge.getWorldPosition(hingeWorld);
+          openLookTarget.set(hingeWorld.x, 0, 0);
+        }
       },
       undefined,
       err => console.error('GLB load error', err)
