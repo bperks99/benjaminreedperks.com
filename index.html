@@ -288,6 +288,7 @@
     let pivotShiftX = 0, pivotShiftZ = 0;
     let modelRef = null;
     let coverFrontAxisRef = null;
+    let hingeFrontAxisRef = null;  // the hole on hinge-front — beta0 must be measured from THIS, not from C0
     let phase          = 'intro';
     let phaseStart     = null;
     let modelSize      = new THREE.Vector3();
@@ -333,23 +334,36 @@
           kin_prevAngle = 0;
           // Snapshot the full 4-bar state RIGHT NOW: scene is settled (pivot flat, frontHinge.z=0)
           // Use object .position for pivots (already model-local), getWorldPosition→worldToLocal for C0
-          if (coverFrontAxisRef && modelRef && frontHinge && backHinge) {
+          if (coverFrontAxisRef && hingeFrontAxisRef && modelRef && frontHinge && backHinge) {
             scene.updateMatrixWorld(true);
-            // A = frontHinge pivot in model-local (never changes — it's frontHinge.position)
-            kin_Ax = frontHinge.position.x;
-            kin_Ay = frontHinge.position.y;
-            // B = backHinge pivot in model-local (never changes — it's backHinge.position)
-            kin_Bx = backHinge.position.x;
-            kin_By = backHinge.position.y;
-            // C0 = pin position at theta=0, in model-local
-            const _Cw = new THREE.Vector3();
-            coverFrontAxisRef.getWorldPosition(_Cw);
-            const _Cl = modelRef.worldToLocal(_Cw);
-            // arm A→C0 — this is what rotates with frontHinge
-            kin_rACx = _Cl.x - kin_Ax;
-            kin_rACy = _Cl.y - kin_Ay;
-            // baseline angle B→C0 — backHinge delta is measured from this
-            kin_beta0 = Math.atan2(_Cl.y - kin_By, _Cl.x - kin_Bx);
+
+            // Helper: world pos → model-local XY (consistent single method for all 4 points)
+            function toModelLocal(obj) {
+              const w = new THREE.Vector3();
+              obj.getWorldPosition(w);
+              return modelRef.worldToLocal(w);
+            }
+
+            // A = frontHinge pivot (its getWorldPosition = its origin, since it's a bare Group)
+            const A_l = toModelLocal(frontHinge);
+            kin_Ax = A_l.x; kin_Ay = A_l.y;
+
+            // B = backHinge pivot (same — bare Group)
+            const B_l = toModelLocal(backHinge);
+            kin_Bx = B_l.x; kin_By = B_l.y;
+
+            // C0 = where the pin (cover-front-axis) is right now — arm A→C rotates with frontHinge
+            const C_l = toModelLocal(coverFrontAxisRef);
+            kin_rACx = C_l.x - kin_Ax;
+            kin_rACy = C_l.y - kin_Ay;
+
+            // H0 = where the hole (hinge-front-axis) is right now — THIS is what backHinge is pointing at
+            // beta0 MUST be measured from H, not C, so that a=0 at theta=0 is exactly correct
+            const H_l = toModelLocal(hingeFrontAxisRef);
+            kin_beta0 = Math.atan2(H_l.y - kin_By, H_l.x - kin_Bx);
+
+            console.log('4-bar snapshot — A:', A_l, 'B:', B_l, 'C0:', C_l, 'H0:', H_l);
+            console.log('rAC:', kin_rACx, kin_rACy, '  beta0 (deg):', THREE.MathUtils.radToDeg(kin_beta0));
           }
           phase = 'opening';
           phaseStart = now;
@@ -571,9 +585,10 @@
 
           openLookTarget.set(A_loc.x, 0, 0);
 
-          // Store refs for per-frame ground-truth pin angle
+          // Store refs needed for kinematic snapshot at opening start
           modelRef          = model;
-          coverFrontAxisRef = coverFrontAxisObj;
+          coverFrontAxisRef = coverFrontAxisObj;   // the pin — defines arm A→C
+          hingeFrontAxisRef = hingeFrontAxisObj;   // the hole — defines arm B→H (beta0 must come from here)
         }
       },
       undefined,
