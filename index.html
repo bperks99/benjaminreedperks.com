@@ -277,7 +277,8 @@
     let pivot          = null;
     let finalCamY      = 0;
     let rise           = 0;
-    let centralHinge   = null;   // single group at central-hinge axis; rotates 180°
+    let backHinge      = null;   // at hinge-back-axis: carries spine + hinge-front + frontHinge → 90°
+    let frontHinge     = null;   // at cover-front-axis (child of backHinge): carries cover-front + cover-page → 90° relative (180° world)
     let phase          = 'intro';
     let phaseStart     = null;
     let modelSize      = new THREE.Vector3();
@@ -319,16 +320,20 @@
         }
       }
 
-      // ── OPENING: cover + hinge-front + spine rotate 180° around central-hinge axis ──
+      // ── OPENING: spine+hinge-front rotate 90° around hinge-back-axis (backHinge)
+      //            cover-front+cover-page rotate 90° relative around cover-front-axis (frontHinge)
+      //            net world rotation of cover = 180° — lands flat on cover-image ──
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const e = easeInOutCubic(t);
-        if (centralHinge) centralHinge.rotation.z = Math.PI * e;
+        if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * e;
+        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * e;
         const cx = openLookTarget.x * e;
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
         if (t >= 1) {
-          if (centralHinge) centralHinge.rotation.z = Math.PI;
+          if (backHinge)  backHinge.rotation.z  = Math.PI / 2;
+          if (frontHinge) frontHinge.rotation.z = Math.PI / 2;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
           phase = 'done';
@@ -336,16 +341,18 @@
         }
       }
 
-      // ── CLOSING: exact reverse — 180° back to 0° ──
+      // ── CLOSING: exact reverse ──
       else if (phase === 'closing') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const e = easeInOutCubic(t);
-        if (centralHinge) centralHinge.rotation.z = Math.PI * (1 - e);
+        if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * (1 - e);
+        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * (1 - e);
         const cx = openLookTarget.x * (1 - e);
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
         if (t >= 1) {
-          if (centralHinge) centralHinge.rotation.z = 0;
+          if (backHinge)  backHinge.rotation.z  = 0;
+          if (frontHinge) frontHinge.rotation.z = 0;
           camera.position.x = 0;
           camera.lookAt(0, 0, 0);
           phase = 'unflatten';
@@ -455,39 +462,49 @@
         const backAxisObj     = model.getObjectByName('cover-back-axis');
         const centralHingeObj = model.getObjectByName('central-hinge');
 
-        // Hide all axis/helper objects
-        if (frontAxisObj)    frontAxisObj.visible    = false;
-        if (backAxisObj)     backAxisObj.visible     = false;
+        if (frontAxisObj) frontAxisObj.visible = false;
+        if (backAxisObj)  backAxisObj.visible  = false;
         if (centralHingeObj) centralHingeObj.visible = false;
 
-        if (centralHingeObj) {
-          // ── Build a single rotation group at the central-hinge world position ──
-          // Everything that should rotate 180° (cover-front, cover-page, hinge-front, spine)
-          // gets reparented here. cover-back and hinge-back stay fixed in the model.
+        if (backAxisObj && frontAxisObj) {
+          const frontAxisWorld = worldCentre(frontAxisObj);
+          const backAxisWorld  = worldCentre(backAxisObj);
+          const invModel       = new THREE.Matrix4().copy(model.matrixWorld).invert();
 
-          const centralWorld = worldCentre(centralHingeObj);
-          const invModel     = new THREE.Matrix4().copy(model.matrixWorld).invert();
+          // ── 1. backHinge at hinge-back-axis, parented to model ──
+          // carries: spine + hinge-front (hinge-back stays fixed with cover-back)
+          backHinge = new THREE.Group();
+          backHinge.position.copy(backAxisWorld.clone().applyMatrix4(invModel));
+          model.add(backHinge);
 
-          centralHinge = new THREE.Group();
-          centralHinge.position.copy(centralWorld.clone().applyMatrix4(invModel));
-          model.add(centralHinge);
-
-          const movingParts = [];
+          const middleParts = [];
           model.traverse(n => {
             if (!n.name) return;
-            if (n === frontAxisObj || n === backAxisObj || n === centralHingeObj) return;
-            if (n.name.startsWith('cover-front') ||
-                n.name === 'cover-page'          ||
-                n.name.startsWith('hinge-front') ||
-                n.name.startsWith('spine')) movingParts.push(n);
+            if (n.name.startsWith('hinge-front') || n.name.startsWith('spine')) middleParts.push(n);
           });
-          for (const p of movingParts) reparentTo(p, centralHinge);
+          for (const p of middleParts) reparentTo(p, backHinge);
 
-          // Camera pan target = central-hinge world X (spine centreline)
+          // ── 2. frontHinge at cover-front-axis, parented to backHinge ──
+          // carries: cover-front + cover-page (rigid body, rotates 90° relative → 180° world)
+          frontHinge = new THREE.Group();
           scene.updateMatrixWorld(true);
-          const chWorld = new THREE.Vector3();
-          centralHinge.getWorldPosition(chWorld);
-          openLookTarget.set(chWorld.x, 0, 0);
+          const invBack = new THREE.Matrix4().copy(backHinge.matrixWorld).invert();
+          frontHinge.position.copy(frontAxisWorld.clone().applyMatrix4(invBack));
+          backHinge.add(frontHinge);
+
+          const frontParts = [];
+          model.traverse(n => {
+            if (!n.name) return;
+            if ((n.name.startsWith('cover-front') || n.name === 'cover-page') &&
+                n !== frontAxisObj && n !== backAxisObj && n !== centralHingeObj) frontParts.push(n);
+          });
+          for (const p of frontParts) reparentTo(p, frontHinge);
+
+          // Camera pan target = hinge-back world X (spine centreline)
+          scene.updateMatrixWorld(true);
+          const backWorld = new THREE.Vector3();
+          backHinge.getWorldPosition(backWorld);
+          openLookTarget.set(backWorld.x, 0, 0);
         }
       },
       undefined,
