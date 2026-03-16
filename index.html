@@ -274,26 +274,22 @@
     const CLOSE_DUR      = 3200;  // live-hinge: both hinges rotate simultaneously 90→0°
     const UNFLATTEN_DUR  = 2000;
 
-    let pivot          = null;
-    let finalCamY      = 0;
-    let rise           = 0;
-    let backHinge      = null;
-    let frontHinge     = null;
-    // 4-bar kinematic state — all in model-local space, computed fresh at opening start
-    let kin_Ax = 0, kin_Ay = 0;   // driver pivot A = frontHinge.position
-    let kin_Bx = 0, kin_By = 0;   // follower pivot B = backHinge.position
-    let kin_rACx = 0, kin_rACy = 0; // arm A→C at theta=0 (measured when opening starts)
-    let kin_beta0 = 0;             // angle B→C at theta=0 (measured when opening starts)
-    let kin_prevAngle = 0;         // continuity tracker — prevents direction flips
+    let pivot        = null;
+    let finalCamY    = 0;
+    let rise         = 0;
+    let coverFront   = null;   // the cover-front block — rotates around its own origin (= central-hinge axis)
+    let hingeSpine   = null;   // the hinge+spine block — rotates around its own origin (= hinge-back-axis)
+    // 4-bar constants — measured once at load time in model-local XY, never change
+    let kin_Ax = 0, kin_Ay = 0;     // coverFront pivot = coverFront.position
+    let kin_Bx = 0, kin_By = 0;     // hingeSpine pivot = hingeSpine.position
+    let kin_rACx = 0, kin_rACy = 0; // arm from A to pin (cover-front-axis) at rest
+    let kin_beta0 = 0;               // angle B→pin at rest — follower delta measured from this
+    let kin_prevAngle = 0;
     let pivotShiftX = 0, pivotShiftZ = 0;
-    let modelRef = null;
-    let coverFrontAxisRef = null;
-    let hingeFrontAxisRef = null;  // the hole on hinge-front — beta0 must be measured from THIS, not from C0
-    let phase          = 'intro';
-    let phaseStart     = null;
-    let modelSize      = new THREE.Vector3();
-    let openLookTarget = new THREE.Vector3();
-    let currentPage    = 1;
+    let phase      = 'intro';
+    let phaseStart = null;
+    let modelSize  = new THREE.Vector3();
+    let currentPage = 1;
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
@@ -332,39 +328,6 @@
           pivot.position.x = pivotShiftX;
           pivot.position.z = pivotShiftZ;
           kin_prevAngle = 0;
-          // Snapshot the full 4-bar state RIGHT NOW: scene is settled (pivot flat, frontHinge.z=0)
-          // Use object .position for pivots (already model-local), getWorldPosition→worldToLocal for C0
-          if (coverFrontAxisRef && hingeFrontAxisRef && modelRef && frontHinge && backHinge) {
-            scene.updateMatrixWorld(true);
-
-            // Helper: world pos → model-local XY (consistent single method for all 4 points)
-            function toModelLocal(obj) {
-              const w = new THREE.Vector3();
-              obj.getWorldPosition(w);
-              return modelRef.worldToLocal(w);
-            }
-
-            // A = frontHinge pivot (its getWorldPosition = its origin, since it's a bare Group)
-            const A_l = toModelLocal(frontHinge);
-            kin_Ax = A_l.x; kin_Ay = A_l.y;
-
-            // B = backHinge pivot (same — bare Group)
-            const B_l = toModelLocal(backHinge);
-            kin_Bx = B_l.x; kin_By = B_l.y;
-
-            // C0 = where the pin (cover-front-axis) is right now — arm A→C rotates with frontHinge
-            const C_l = toModelLocal(coverFrontAxisRef);
-            kin_rACx = C_l.x - kin_Ax;
-            kin_rACy = C_l.y - kin_Ay;
-
-            // H0 = where the hole (hinge-front-axis) is right now — THIS is what backHinge is pointing at
-            // beta0 MUST be measured from H, not C, so that a=0 at theta=0 is exactly correct
-            const H_l = toModelLocal(hingeFrontAxisRef);
-            kin_beta0 = Math.atan2(H_l.y - kin_By, H_l.x - kin_Bx);
-
-            console.log('4-bar snapshot — A:', A_l, 'B:', B_l, 'C0:', C_l, 'H0:', H_l);
-            console.log('rAC:', kin_rACx, kin_rACy, '  beta0 (deg):', THREE.MathUtils.radToDeg(kin_beta0));
-          }
           phase = 'opening';
           phaseStart = now;
         }
@@ -373,9 +336,8 @@
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const theta = Math.PI * easeInOutCubic(t);
-        if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge) {
-          // Pure analytic 4-bar: C = A + rotate(rAC, theta) — no scene graph queries
+        if (coverFront) coverFront.rotation.z = theta;
+        if (hingeSpine) {
           const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
           const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
           let a = Math.atan2(Cy - kin_By, Cx - kin_Bx) - kin_beta0;
@@ -383,7 +345,7 @@
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
           a = Math.max(0, a);
           kin_prevAngle = a;
-          backHinge.rotation.z = a;
+          hingeSpine.rotation.z = a;
         }
         if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
       }
@@ -391,9 +353,8 @@
       else if (phase === 'closing') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const theta = Math.PI * (1 - easeInOutCubic(t));
-        if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge) {
-          // Same analytic 4-bar — theta drives from π down to 0 during close
+        if (coverFront) coverFront.rotation.z = theta;
+        if (hingeSpine) {
           const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
           const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
           let a = Math.atan2(Cy - kin_By, Cx - kin_Bx) - kin_beta0;
@@ -401,11 +362,11 @@
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
           a = Math.max(0, a);
           kin_prevAngle = a;
-          backHinge.rotation.z = a;
+          hingeSpine.rotation.z = a;
         }
         if (t >= 1) {
-          if (frontHinge) frontHinge.rotation.z = 0;
-          if (backHinge)  { backHinge.rotation.z = 0; }
+          if (coverFront) coverFront.rotation.z = 0;
+          if (hingeSpine) hingeSpine.rotation.z = 0;
           kin_prevAngle = 0;
           phase = 'unflatten'; phaseStart = now;
         }
@@ -461,12 +422,15 @@
       gltf => {
         const model = gltf.scene;
 
-        // Disable shadows on all meshes
         model.traverse(n => {
           if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; }
         });
 
-        // Centre the model on bbox for intro — central-hinge shift happens at open time
+        // Log everything so we can verify names
+        console.log('=== GLB OBJECTS ===(name : type)');
+        model.traverse(n => { if (n.name) console.log(' ', n.name, ':', n.type); });
+
+        // ── Centre model on bbox ──
         scene.add(model);
         scene.updateMatrixWorld(true);
         const box    = new THREE.Box3().setFromObject(model);
@@ -475,15 +439,6 @@
         const maxDim = Math.max(size.x, size.y, size.z);
         modelSize.copy(size);
 
-        // Pre-compute pivot shift so central-hinge lands at world origin when opening
-        const _ch = model.getObjectByName('central-hinge');
-        if (_ch) {
-          const _chPos = new THREE.Box3().setFromObject(_ch).getCenter(new THREE.Vector3());
-          // After bbox-centering, central-hinge will be at (_chPos - center) in world space
-          pivotShiftX = -(_chPos.x - center.x);
-          pivotShiftZ = -(_chPos.z - center.z);
-        }
-
         scene.remove(model);
         model.position.set(-center.x, -center.y, -center.z);
         model.rotation.set(0, 0, 0);
@@ -491,7 +446,7 @@
         pivot.add(model);
         scene.add(pivot);
 
-        // Position camera above, looking straight down
+        // Camera setup
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
@@ -499,96 +454,52 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Start intro with spin + rise
+        // Intro spin
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
 
-        // ── Build hinges at load time ──
-        // Helper: reparent a node into a new parent, preserving world transform
-        function reparentTo(node, newParent) {
+        // ── Find the two blocks by name ──
+        // Block names should match exactly what you named them in Rhino
+        coverFront = model.getObjectByName('cover-front');
+        hingeSpine = model.getObjectByName('hinge-spine');
+
+        // Fallback: try alternate common names if exact match not found
+        if (!coverFront) coverFront = model.getObjectByName('Cover-Front') || model.getObjectByName('cover front');
+        if (!hingeSpine) hingeSpine = model.getObjectByName('hinge-front') || model.getObjectByName('Hinge-Spine') || model.getObjectByName('spine');
+
+        console.log('coverFront found:', coverFront ? coverFront.name : 'NOT FOUND — check name in Rhino');
+        console.log('hingeSpine found:', hingeSpine ? hingeSpine.name : 'NOT FOUND — check name in Rhino');
+
+        if (coverFront && hingeSpine) {
           scene.updateMatrixWorld(true);
-          const worldMat = node.matrixWorld.clone();
-          node.removeFromParent();
-          newParent.add(node);
-          scene.updateMatrixWorld(true);
-          const localMat = new THREE.Matrix4()
-            .copy(newParent.matrixWorld).invert()
-            .multiply(worldMat);
-          localMat.decompose(node.position, node.quaternion, node.scale);
-        }
 
-        // Helper: get world-centre of a named object
-        function worldCentre(obj) {
-          scene.updateMatrixWorld(true);
-          return new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
-        }
+          // A and B are the block origins — their .position IS the pivot point in model-local space
+          // because Rhino blocks bake the insertion point as the local origin
+          kin_Ax = coverFront.position.x;
+          kin_Ay = coverFront.position.y;
+          kin_Bx = hingeSpine.position.x;
+          kin_By = hingeSpine.position.y;
 
-        // All 4 axis tubes + central-hinge curve
-        const coverFrontAxisObj = model.getObjectByName('cover-front-axis');
-        const hingeFrontAxisObj = model.getObjectByName('hinge-front-axis');
-        const hingeBackAxisObj  = model.getObjectByName('hinge-back-axis');
-        const coverBackAxisObj  = model.getObjectByName('cover-back-axis');
-        const centralHingeObj   = model.getObjectByName('central-hinge');
+          // C0 = the cover-front-axis pin at rest — it lives inside coverFront block
+          // at rest (rotation=0) we can read its world position and convert to model-local
+          const pinObj = coverFront.getObjectByName('cover-front-axis');
+          if (pinObj) {
+            const pinWorld = new THREE.Vector3();
+            pinObj.getWorldPosition(pinWorld);
+            const pinLocal = model.worldToLocal(pinWorld);
+            kin_rACx = pinLocal.x - kin_Ax;
+            kin_rACy = pinLocal.y - kin_Ay;
+            kin_beta0 = Math.atan2(pinLocal.y - kin_By, pinLocal.x - kin_Bx);
+            console.log('A:', kin_Ax, kin_Ay, '  B:', kin_Bx, kin_By);
+            console.log('rAC:', kin_rACx, kin_rACy, '  beta0 (deg):', THREE.MathUtils.radToDeg(kin_beta0));
+          } else {
+            console.warn('cover-front-axis not found inside coverFront block — check Rhino grouping');
+          }
 
-        // Collect ALL named meshes/objects in model so we can explicitly assign each one
-        const allObjs = [];
-        model.traverse(n => { if (n.name && n !== model) allObjs.push(n); });
-
-        // Axis helper objects — hidden
-        const axisObjs = new Set([coverFrontAxisObj, hingeFrontAxisObj,
-                                   hingeBackAxisObj, coverBackAxisObj, centralHingeObj]
-                                  .filter(Boolean));
-        // axis poles are real visible geometry — do not hide them
-
-        // Decide which group each mesh belongs to by name prefix:
-        //   frontGroup  (driver 0→180° around central-hinge):  cover-front*, cover-page, cover-front-axis tube
-        //   backGroup   (follower kinematic around hinge-back-axis): spine*, hinge-front*, hinge-front-axis, hinge-back-axis tubes
-        //   fixed       (cover-back*, hinge-back*, cover-back-axis): stay in model, never move
-        const frontNames  = new Set(['cover-front-axis']);
-        const backNames   = new Set(['hinge-back-axis', 'hinge-front-axis']);
-
-        allObjs.forEach(n => {
-          const nm = n.name.toLowerCase();
-          if (nm.startsWith('cover-front') || nm === 'cover-page') frontNames.add(n.name);
-          if (nm.startsWith('spine') || nm.startsWith('hinge-front')) backNames.add(n.name);
-        });
-
-        console.log('frontGroup parts:', [...frontNames]);
-        console.log('backGroup parts:',  [...backNames]);
-
-        if (centralHingeObj && hingeBackAxisObj && coverFrontAxisObj) {
-          const A  = worldCentre(centralHingeObj);   // driver pivot (cover rotates here)
-          const B  = worldCentre(hingeBackAxisObj);  // follower pivot (spine rotates here, fixed)
-          const C0 = worldCentre(coverFrontAxisObj); // pin linking cover-front to hinge-front
-
-          const invModel = new THREE.Matrix4().copy(model.matrixWorld).invert();
-          const A_loc  = A.clone().applyMatrix4(invModel);
-          const B_loc  = B.clone().applyMatrix4(invModel);
-          const C0_loc = C0.clone().applyMatrix4(invModel);
-
-          // Kinematic constants
-          kin_Bx = B_loc.x;   kin_By = B_loc.y;   // backHinge pivot — used every frame
-          kin_prevAngle = 0;
-
-          // ── frontHinge: driver, at central-hinge, parented to model ──
-          frontHinge = new THREE.Group();
-          frontHinge.position.copy(A_loc);
-          model.add(frontHinge);
-          allObjs.filter(n => frontNames.has(n.name)).forEach(n => reparentTo(n, frontHinge));
-
-          // ── backHinge: follower, at hinge-back-axis, parented to model ──
-          backHinge = new THREE.Group();
-          backHinge.position.copy(B_loc);
-          model.add(backHinge);
-          allObjs.filter(n => backNames.has(n.name)).forEach(n => reparentTo(n, backHinge));
-
-          openLookTarget.set(A_loc.x, 0, 0);
-
-          // Store refs needed for kinematic snapshot at opening start
-          modelRef          = model;
-          coverFrontAxisRef = coverFrontAxisObj;   // the pin — defines arm A→C
-          hingeFrontAxisRef = hingeFrontAxisObj;   // the hole — defines arm B→H (beta0 must come from here)
+          // pivotShift: slide pivot so coverFront origin lands at world centre during open
+          pivotShiftX = -(coverFront.position.x);
+          pivotShiftZ = -(coverFront.position.z);
         }
       },
       undefined,
