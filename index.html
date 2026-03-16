@@ -536,8 +536,8 @@
         console.log('hingeSpine pieces:', hingeSpinePieces.map(n => n.name));
 
         // pivotShift: during open, slide world so A lands at screen centre
-        pivotShiftX = -A_loc.x;
-        pivotShiftZ = -A_loc.z;
+        pivotShiftX = -A_world.x;
+        pivotShiftZ = -A_world.z;
       },
       undefined,
       err => console.error('GLB load error', err)
