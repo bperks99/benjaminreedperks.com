@@ -515,7 +515,7 @@
         const coverFrontPieces = directChildren.filter(n => {
           if (!n.name) return false;
           const nm = n.name.toLowerCase();
-          return nm.startsWith('cover-front') || nm === 'cover-image';
+          return nm.startsWith('cover-front');
         });
         coverFrontPieces.forEach(n => reparentTo(n, coverFront));
         console.log('coverFront pieces:', coverFrontPieces.map(n => n.name));
