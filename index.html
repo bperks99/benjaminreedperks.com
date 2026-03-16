@@ -485,18 +485,26 @@
           return new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
         }
 
+        // Log every object name so we can see exactly what's in the GLB
+        console.log('=== ALL GLB OBJECT NAMES ===');
+        model.traverse(n => { if (n.name) console.log(n.type, ':', n.name); });
+        console.log('=== END ===');
+
         const frontAxisObj    = model.getObjectByName('cover-front-axis');
         const backAxisObj     = model.getObjectByName('cover-back-axis');
         const centralHingeObj = model.getObjectByName('central-hinge');
 
-        if (frontAxisObj)    frontAxisObj.visible    = false;
-        if (backAxisObj)     backAxisObj.visible     = false;
-        if (centralHingeObj) centralHingeObj.visible = false;
+        if (frontAxisObj)    frontAxisObj.visible    = true;
+        if (backAxisObj)     backAxisObj.visible     = true;
+        if (centralHingeObj) centralHingeObj.visible = true;
 
         if (backAxisObj && centralHingeObj && frontAxisObj) {
-          const A  = worldCentre(centralHingeObj);  // cover rotation pivot
-          const B  = worldCentre(backAxisObj);       // spine/hinge-front pivot (fixed)
-          const C0 = worldCentre(frontAxisObj);      // pin connecting cover to hinge-front
+          const A  = worldCentre(centralHingeObj);
+          const B  = worldCentre(backAxisObj);
+          const C0 = worldCentre(frontAxisObj);
+          console.log('central-hinge (A):', A);
+          console.log('cover-back-axis (B):', B);
+          console.log('cover-front-axis (C):', C0);
 
           const invModel = new THREE.Matrix4().copy(model.matrixWorld).invert();
           const A_loc  = A.clone().applyMatrix4(invModel);
