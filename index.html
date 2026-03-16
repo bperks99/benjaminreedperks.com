@@ -277,9 +277,13 @@
     let pivot          = null;
     let finalCamY      = 0;
     let rise           = 0;
-    let backHinge      = null;   // at hinge-back-axis, parented to model → 90°: carries spine + hinge-front
-    let frontHinge     = null;   // at central-hinge, parented to model → 180°: carries cover-front + cover-page
-    let coverPivot     = null;   // at cover-front-axis, parented to frontHinge → pins cover to hinge-front
+    let backHinge      = null;   // at cover-back-axis: carries hinge-front + spine, angle solved kinematically
+    let frontHinge     = null;   // at central-hinge: carries cover-front + cover-page, drives 0→180°
+    // Kinematic precompute (set at GLB load, used every frame)
+    let kin_Ax = 0, kin_Ay = 0;   // central-hinge in model-local XY
+    let kin_Bx = 0, kin_By = 0;   // cover-back-axis in model-local XY
+    let kin_rACx = 0, kin_rACy = 0; // cover-front-axis relative to central-hinge (initial)
+    let kin_beta0 = 0;              // initial angle of cover-front-axis around cover-back-axis
     let phase          = 'intro';
     let phaseStart     = null;
     let modelSize      = new THREE.Vector3();
@@ -321,22 +325,23 @@
         }
       }
 
-      // ── OPENING: backHinge 0→90° carries spine+hinge-front
-      //            frontHinge 0→90° relative, child of backHinge
-      //            world rotation of cover = 90+90 = 180° ──
+      // ── OPENING: cover drives 0→180° around central-hinge
+      //    cover-front-axis pin position is computed each frame
+      //    backHinge angle solved so hinge-front+spine always meet the pin ──
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
-        const e = easeInOutCubic(t);
-        if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * e;
-        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * e;
-        const cx = openLookTarget.x * e;
+        const theta = Math.PI * easeInOutCubic(t);
+        if (frontHinge) frontHinge.rotation.z = theta;
+        if (backHinge) {
+          // Where is the cover-front-axis pin after cover rotates theta?
+          const cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
+          const cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+          backHinge.rotation.z = Math.atan2(cy - kin_By, cx - kin_Bx) - kin_beta0;
+        }
+        const cx = openLookTarget.x * easeInOutCubic(t);
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
         if (t >= 1) {
-          if (backHinge)  backHinge.rotation.z  = Math.PI / 2;
-          if (frontHinge) frontHinge.rotation.z = Math.PI / 2;
-          camera.position.x = openLookTarget.x;
-          camera.lookAt(openLookTarget.x, 0, 0);
           phase = 'done';
           portNav.classList.add('visible');
         }
@@ -345,15 +350,19 @@
       // ── CLOSING: exact reverse ──
       else if (phase === 'closing') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
-        const e = easeInOutCubic(t);
-        if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * (1 - e);
-        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * (1 - e);
-        const cx = openLookTarget.x * (1 - e);
-        camera.position.x = cx;
-        camera.lookAt(cx, 0, 0);
+        const theta = Math.PI * (1 - easeInOutCubic(t));
+        if (frontHinge) frontHinge.rotation.z = theta;
+        if (backHinge) {
+          const cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
+          const cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+          backHinge.rotation.z = Math.atan2(cy - kin_By, cx - kin_Bx) - kin_beta0;
+        }
+        const cx2 = openLookTarget.x * (1 - easeInOutCubic(t));
+        camera.position.x = cx2;
+        camera.lookAt(cx2, 0, 0);
         if (t >= 1) {
-          if (backHinge)  backHinge.rotation.z  = 0;
           if (frontHinge) frontHinge.rotation.z = 0;
+          if (backHinge)  backHinge.rotation.z  = 0;
           camera.position.x = 0;
           camera.lookAt(0, 0, 0);
           phase = 'unflatten';
@@ -467,32 +476,28 @@
         if (backAxisObj)     backAxisObj.visible     = false;
         if (centralHingeObj) centralHingeObj.visible = false;
 
-        if (backAxisObj && centralHingeObj) {
-          const backAxisWorld = worldCentre(backAxisObj);
-          const centralWorld  = worldCentre(centralHingeObj);
-          const invModel      = new THREE.Matrix4().copy(model.matrixWorld).invert();
+        if (backAxisObj && centralHingeObj && frontAxisObj) {
+          const A  = worldCentre(centralHingeObj);  // cover rotation pivot
+          const B  = worldCentre(backAxisObj);       // spine/hinge-front pivot (fixed)
+          const C0 = worldCentre(frontAxisObj);      // pin connecting cover to hinge-front
 
-          // ── 1. backHinge at hinge-back-axis, parented to model → 90° ──
-          //    carries spine + hinge-front (and frontHinge as a child)
-          backHinge = new THREE.Group();
-          backHinge.position.copy(backAxisWorld.clone().applyMatrix4(invModel));
-          model.add(backHinge);
+          const invModel = new THREE.Matrix4().copy(model.matrixWorld).invert();
+          const A_loc  = A.clone().applyMatrix4(invModel);
+          const B_loc  = B.clone().applyMatrix4(invModel);
+          const C0_loc = C0.clone().applyMatrix4(invModel);
 
-          const middleParts = [];
-          model.traverse(n => {
-            if (!n.name) return;
-            if (n.name.startsWith('hinge-front') || n.name.startsWith('spine')) middleParts.push(n);
-          });
-          for (const p of middleParts) reparentTo(p, backHinge);
+          // Store kinematic constants for the animation loop
+          kin_Ax   = A_loc.x;  kin_Ay   = A_loc.y;
+          kin_Bx   = B_loc.x;  kin_By   = B_loc.y;
+          kin_rACx = C0_loc.x - A_loc.x;
+          kin_rACy = C0_loc.y - A_loc.y;
+          kin_beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x);
 
-          // ── 2. frontHinge at central-hinge, parented to backHinge → 90° relative ──
-          //    because it rides with backHinge, world rotation = 90 + 90 = 180°
-          //    pivot at central-hinge keeps cover coplanar with cover-image at end
+          // ── 1. frontHinge at central-hinge (A), parented to model ──
+          //    Driver: rotates 0→180°. Carries cover-front + cover-page.
           frontHinge = new THREE.Group();
-          scene.updateMatrixWorld(true);
-          const invBack = new THREE.Matrix4().copy(backHinge.matrixWorld).invert();
-          frontHinge.position.copy(centralWorld.clone().applyMatrix4(invBack));
-          backHinge.add(frontHinge);
+          frontHinge.position.copy(A_loc);
+          model.add(frontHinge);
 
           const frontParts = [];
           model.traverse(n => {
@@ -502,11 +507,22 @@
           });
           for (const p of frontParts) reparentTo(p, frontHinge);
 
+          // ── 2. backHinge at cover-back-axis (B), parented to model ──
+          //    Follower: angle solved from pin C each frame. Carries hinge-front + spine.
+          backHinge = new THREE.Group();
+          backHinge.position.copy(B_loc);
+          model.add(backHinge);
+
+          const middleParts = [];
+          model.traverse(n => {
+            if (!n.name) return;
+            if (n.name.startsWith('hinge-front') || n.name.startsWith('spine')) middleParts.push(n);
+          });
+          for (const p of middleParts) reparentTo(p, backHinge);
+
           // Camera pan target = central-hinge world X
           scene.updateMatrixWorld(true);
-          const chWorld = new THREE.Vector3();
-          frontHinge.getWorldPosition(chWorld);
-          openLookTarget.set(chWorld.x, 0, 0);
+          openLookTarget.set(A_loc.x, 0, 0);
         }
       },
       undefined,
