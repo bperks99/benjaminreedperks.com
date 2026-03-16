@@ -300,50 +300,50 @@
     const portNav = document.getElementById('portfolio-nav');
 
     // ── 4-bar solver: given cover angle theta, position spine + floating hinge-front ──
+    // All geometry is in the XZ plane (X = across hinge, Z = depth along spine)
+    // Rotations are around the Y axis (rotation.y) for spine and hinge-front
     function applyFourBar(theta) {
-      // C = cover-front-axis current position (rotates around A with cover)
+      // C = cover-front-axis current position in XZ (rotates around A with cover)
       const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-      const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+      const Cz = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
 
-      // Solve D = hinge-front-axis position
-      // D sits on circle(C, coupler) AND circle(B, follower) — two-circle intersection
-      const dx = Cx - kin_Bx, dy = Cy - kin_By;
-      const dist = Math.hypot(dx, dy);
-      let Dx, Dy;
+      // Solve D via two-circle intersection:
+      // D on circle(C, coupler) AND circle(B, follower)
+      const dx = Cx - kin_Bx, dz = Cz - kin_By;
+      const dist = Math.hypot(dx, dz);
+      let Dx, Dz;
       if (dist < 1e-9 || dist > kin_coupler + kin_follower + 1e-6) {
-        Dx = kin_D0x; Dy = kin_D0y; // degenerate — hold rest position
+        Dx = kin_D0x; Dz = kin_D0y;
       } else {
-        const cosAngle = (dist*dist + kin_follower*kin_follower - kin_coupler*kin_coupler)
-                         / (2 * dist * kin_follower);
-        const ang = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
-        const phi = Math.atan2(dy, dx);
-        // Two candidate D positions — pick the one closest to D0 (correct side of mechanism)
+        const cosA = (dist*dist + kin_follower*kin_follower - kin_coupler*kin_coupler)
+                     / (2 * dist * kin_follower);
+        const ang = Math.acos(Math.max(-1, Math.min(1, cosA)));
+        const phi = Math.atan2(dz, dx);
         const D1x = kin_Bx + kin_follower * Math.cos(phi + ang);
-        const D1y = kin_By + kin_follower * Math.sin(phi + ang);
+        const D1z = kin_By + kin_follower * Math.sin(phi + ang);
         const D2x = kin_Bx + kin_follower * Math.cos(phi - ang);
-        const D2y = kin_By + kin_follower * Math.sin(phi - ang);
-        if (Math.hypot(D1x-kin_D0x, D1y-kin_D0y) <= Math.hypot(D2x-kin_D0x, D2y-kin_D0y)) {
-          Dx = D1x; Dy = D1y;
+        const D2z = kin_By + kin_follower * Math.sin(phi - ang);
+        if (Math.hypot(D1x-kin_D0x, D1z-kin_D0y) <= Math.hypot(D2x-kin_D0x, D2z-kin_D0y)) {
+          Dx = D1x; Dz = D1z;
         } else {
-          Dx = D2x; Dy = D2y;
+          Dx = D2x; Dz = D2z;
         }
       }
 
-      // Spine rotates around B, pointing toward D
+      // Spine rotates around B in XZ plane — use rotation.y
       if (hingeSpine) {
-        let a = Math.atan2(Dy - kin_By, Dx - kin_Bx) - kin_beta0;
+        let a = Math.atan2(Dz - kin_By, Dx - kin_Bx) - kin_beta0;
         while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
         while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
         kin_prevAngle = a;
-        hingeSpine.rotation.z = a;
+        hingeSpine.rotation.y = a;
       }
 
-      // Hinge-front FLOATS: its C-end tracks C, its D-end tracks D
-      // Move group origin to C, rotate so C→D direction is correct
+      // Hinge-front floats: translate to C in XZ, rotate around Y to face D
       if (hingeFrontGroup) {
         hingeFrontGroup.position.x = Cx;
-        hingeFrontGroup.position.y = Cy;
-        hingeFrontGroup.rotation.z = Math.atan2(Dy - Cy, Dx - Cx) - kin_C0angle;
+        hingeFrontGroup.position.z = Cz;
+        hingeFrontGroup.rotation.y = Math.atan2(Dz - Cz, Dx - Cx) - kin_C0angle;
       }
     }
 
@@ -401,10 +401,10 @@
         applyFourBar(theta);
         if (t >= 1) {
           if (coverFront)      coverFront.rotation.z      = 0;
-          if (hingeSpine)      hingeSpine.rotation.z      = 0;
-          if (hingeFrontGroup) { hingeFrontGroup.position.x = kin_rACx + kin_Ax;
-                                 hingeFrontGroup.position.y = kin_rACy + kin_Ay;
-                                 hingeFrontGroup.rotation.z = 0; }
+          if (hingeSpine)      { hingeSpine.rotation.y = 0; }
+          if (hingeFrontGroup) { hingeFrontGroup.position.x = kin_Ax + kin_rACx;
+                                 hingeFrontGroup.position.z = kin_Ay + kin_rACy;
+                                 hingeFrontGroup.rotation.y = 0; }
           kin_prevAngle = 0;
           phase = 'unflatten'; phaseStart = now;
         }
@@ -539,20 +539,23 @@
         const D0_loc   = D0_world.clone().applyMatrix4(invModel);
 
         // ── 4-bar constants (never change) ──
-        kin_Ax   = A_loc.x;  kin_Ay   = A_loc.y;
-        kin_Bx   = B_loc.x;  kin_By   = B_loc.y;
+        // Use X and Z — the hinge mechanism has negligible XY extent,
+        // the linkage geometry lives in the XZ plane
+        kin_Ax   = A_loc.x;  kin_Ay   = A_loc.z;
+        kin_Bx   = B_loc.x;  kin_By   = B_loc.z;
         kin_rACx = C0_loc.x - A_loc.x;
-        kin_rACy = C0_loc.y - A_loc.y;
-        kin_D0x  = D0_loc.x; kin_D0y  = D0_loc.y;
-        kin_coupler  = Math.hypot(D0_loc.x - C0_loc.x, D0_loc.y - C0_loc.y);
-        kin_follower = Math.hypot(D0_loc.x - B_loc.x,  D0_loc.y - B_loc.y);
-        kin_C0angle  = Math.atan2(D0_loc.y - C0_loc.y, D0_loc.x - C0_loc.x);
-        kin_beta0    = Math.atan2(D0_loc.y - B_loc.y,  D0_loc.x - B_loc.x);
-        console.log('A:', kin_Ax.toFixed(4), kin_Ay.toFixed(4));
-        console.log('B:', kin_Bx.toFixed(4), kin_By.toFixed(4));
-        console.log('C0:', C0_loc.x.toFixed(4), C0_loc.y.toFixed(4));
-        console.log('D0:', kin_D0x.toFixed(4), kin_D0y.toFixed(4));
+        kin_rACy = C0_loc.z - A_loc.z;
+        kin_D0x  = D0_loc.x; kin_D0y  = D0_loc.z;
+        kin_coupler  = Math.hypot(D0_loc.x - C0_loc.x, D0_loc.z - C0_loc.z);
+        kin_follower = Math.hypot(D0_loc.x - B_loc.x,  D0_loc.z - B_loc.z);
+        kin_C0angle  = Math.atan2(D0_loc.z - C0_loc.z, D0_loc.x - C0_loc.x);
+        kin_beta0    = Math.atan2(D0_loc.z - B_loc.z,  D0_loc.x - B_loc.x);
+        console.log('A xz:', kin_Ax.toFixed(4), kin_Ay.toFixed(4));
+        console.log('B xz:', kin_Bx.toFixed(4), kin_By.toFixed(4));
+        console.log('C0 xz:', (kin_Ax+kin_rACx).toFixed(4), (kin_Ay+kin_rACy).toFixed(4));
+        console.log('D0 xz:', kin_D0x.toFixed(4), kin_D0y.toFixed(4));
         console.log('coupler:', kin_coupler.toFixed(4), ' follower:', kin_follower.toFixed(4));
+        console.log('C0angle deg:', THREE.MathUtils.radToDeg(kin_C0angle).toFixed(2), ' beta0 deg:', THREE.MathUtils.radToDeg(kin_beta0).toFixed(2));
 
         // ── Build coverFront group (rotates around central-hinge axis = A) ──
         // Collect all objects whose name starts with 'cover-front' plus cover-image
