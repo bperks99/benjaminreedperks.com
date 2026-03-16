@@ -325,17 +325,18 @@
       //    frontHinge rotates cover-front+cover-page around cover-front axis
       //    Net: cover sweeps ~180° around the central spine — no clipping guaranteed
       //    because each hinge only ever closes its own gap. ──
+      // ── OPENING: backHinge 0→90° (assembly lays flat), frontHinge 0→180° (cover flips fully onto cover-image) ──
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const e = easeInOutCubic(t);
         if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * e;
-        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * e;
+        if (frontHinge) frontHinge.rotation.z = Math.PI * e;
         const cx = openLookTarget.x * e;
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
         if (t >= 1) {
           if (backHinge)  backHinge.rotation.z  = Math.PI / 2;
-          if (frontHinge) frontHinge.rotation.z = Math.PI / 2;
+          if (frontHinge) frontHinge.rotation.z = Math.PI;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
           phase = 'done';
@@ -343,13 +344,12 @@
         }
       }
 
-      // ── CLOSING: live hinge — both hinges rotate simultaneously 90→0°
-      //    Exact reverse of opening; camera pans back to centre. ──
+      // ── CLOSING: exact reverse — frontHinge 180→0°, backHinge 90→0° ──
       else if (phase === 'closing') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const e = easeInOutCubic(t);
         if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * (1 - e);
-        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * (1 - e);
+        if (frontHinge) frontHinge.rotation.z = Math.PI * (1 - e);
         const cx = openLookTarget.x * (1 - e);
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
