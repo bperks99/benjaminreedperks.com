@@ -279,13 +279,14 @@
     let rise           = 0;
     let backHinge      = null;
     let frontHinge     = null;
-    // Kinematic state
-    let kin_Bx = 0, kin_By = 0;       // backHinge pivot in model-local space
-    let kin_dynamicBeta0 = 0;          // angle B→C measured fresh the moment opening begins
-    let kin_prevAngle    = 0;          // continuity tracker — prevents direction flips
-    let pivotShiftX = 0, pivotShiftZ = 0; // world offset applied when opening, undone when closing
-    // Ground-truth pin refs — coverFrontAxisRef lives in frontHinge, so its world pos IS the pin each frame
-    let modelRef          = null;
+    // 4-bar kinematic state — all in model-local space, computed fresh at opening start
+    let kin_Ax = 0, kin_Ay = 0;   // driver pivot A = frontHinge.position
+    let kin_Bx = 0, kin_By = 0;   // follower pivot B = backHinge.position
+    let kin_rACx = 0, kin_rACy = 0; // arm A→C at theta=0 (measured when opening starts)
+    let kin_beta0 = 0;             // angle B→C at theta=0 (measured when opening starts)
+    let kin_prevAngle = 0;         // continuity tracker — prevents direction flips
+    let pivotShiftX = 0, pivotShiftZ = 0;
+    let modelRef = null;
     let coverFrontAxisRef = null;
     let phase          = 'intro';
     let phaseStart     = null;
@@ -330,13 +331,25 @@
           pivot.position.x = pivotShiftX;
           pivot.position.z = pivotShiftZ;
           kin_prevAngle = 0;
-          // Snapshot beta0 right now, same scene state as every animation frame, so angle offset is zero
-          if (coverFrontAxisRef && modelRef) {
+          // Snapshot the full 4-bar state RIGHT NOW: scene is settled (pivot flat, frontHinge.z=0)
+          // Use object .position for pivots (already model-local), getWorldPosition→worldToLocal for C0
+          if (coverFrontAxisRef && modelRef && frontHinge && backHinge) {
             scene.updateMatrixWorld(true);
-            const _C = new THREE.Vector3();
-            coverFrontAxisRef.getWorldPosition(_C);
-            const _Cl = modelRef.worldToLocal(_C.clone());
-            kin_dynamicBeta0 = Math.atan2(_Cl.y - kin_By, _Cl.x - kin_Bx);
+            // A = frontHinge pivot in model-local (never changes — it's frontHinge.position)
+            kin_Ax = frontHinge.position.x;
+            kin_Ay = frontHinge.position.y;
+            // B = backHinge pivot in model-local (never changes — it's backHinge.position)
+            kin_Bx = backHinge.position.x;
+            kin_By = backHinge.position.y;
+            // C0 = pin position at theta=0, in model-local
+            const _Cw = new THREE.Vector3();
+            coverFrontAxisRef.getWorldPosition(_Cw);
+            const _Cl = modelRef.worldToLocal(_Cw);
+            // arm A→C0 — this is what rotates with frontHinge
+            kin_rACx = _Cl.x - kin_Ax;
+            kin_rACy = _Cl.y - kin_Ay;
+            // baseline angle B→C0 — backHinge delta is measured from this
+            kin_beta0 = Math.atan2(_Cl.y - kin_By, _Cl.x - kin_Bx);
           }
           phase = 'opening';
           phaseStart = now;
@@ -347,14 +360,11 @@
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const theta = Math.PI * easeInOutCubic(t);
         if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge && coverFrontAxisRef && modelRef) {
-          // Read actual world position of the driver pin (cover-front-axis moves with frontHinge)
-          scene.updateMatrixWorld(true);
-          const C_world = new THREE.Vector3();
-          coverFrontAxisRef.getWorldPosition(C_world);
-          // Convert to model-local so we can measure the angle from backHinge pivot B
-          const C_local = modelRef.worldToLocal(C_world.clone());
-          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_dynamicBeta0;
+        if (backHinge) {
+          // Pure analytic 4-bar: C = A + rotate(rAC, theta) — no scene graph queries
+          const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
+          const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+          let a = Math.atan2(Cy - kin_By, Cx - kin_Bx) - kin_beta0;
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
           a = Math.max(0, a);
@@ -368,12 +378,11 @@
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const theta = Math.PI * (1 - easeInOutCubic(t));
         if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge && coverFrontAxisRef && modelRef) {
-          scene.updateMatrixWorld(true);
-          const C_world = new THREE.Vector3();
-          coverFrontAxisRef.getWorldPosition(C_world);
-          const C_local = modelRef.worldToLocal(C_world.clone());
-          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_dynamicBeta0;
+        if (backHinge) {
+          // Same analytic 4-bar — theta drives from π down to 0 during close
+          const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
+          const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+          let a = Math.atan2(Cy - kin_By, Cx - kin_Bx) - kin_beta0;
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
           a = Math.max(0, a);
@@ -516,7 +525,7 @@
         const axisObjs = new Set([coverFrontAxisObj, hingeFrontAxisObj,
                                    hingeBackAxisObj, coverBackAxisObj, centralHingeObj]
                                   .filter(Boolean));
-        axisObjs.forEach(o => o.visible = false);
+        // axis poles are real visible geometry — do not hide them
 
         // Decide which group each mesh belongs to by name prefix:
         //   frontGroup  (driver 0→180° around central-hinge):  cover-front*, cover-page, cover-front-axis tube
