@@ -332,7 +332,11 @@
         if (backHinge) {
           const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
           const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          backHinge.rotation.z = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
+          let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
+          // Normalise to [0, PI] — spine always swings up, never through the table
+          while (a < 0)       a += Math.PI * 2;
+          while (a > Math.PI) a -= Math.PI * 2;
+          backHinge.rotation.z = Math.max(0, Math.min(Math.PI, a));
         }
         if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
       }
@@ -344,7 +348,10 @@
         if (backHinge) {
           const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
           const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          backHinge.rotation.z = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
+          let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
+          while (a < 0)       a += Math.PI * 2;
+          while (a > Math.PI) a -= Math.PI * 2;
+          backHinge.rotation.z = Math.max(0, Math.min(Math.PI, a));
         }
         if (t >= 1) {
           if (frontHinge) frontHinge.rotation.z = 0;
@@ -404,6 +411,7 @@
         });
 
         // Centre the model at the origin inside a pivot group
+        // We offset X/Z so central-hinge lands at world origin (camera looks at 0,0,0)
         scene.add(model);
         scene.updateMatrixWorld(true);
         const box    = new THREE.Box3().setFromObject(model);
@@ -411,8 +419,16 @@
         const size   = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         modelSize.copy(size);
+
+        // Find central-hinge world position BEFORE any offset, use it as X/Z centre
+        const _ch = model.getObjectByName('central-hinge');
+        const _chPos = _ch
+          ? new THREE.Box3().setFromObject(_ch).getCenter(new THREE.Vector3())
+          : center;
+
         scene.remove(model);
-        model.position.set(-center.x, -center.y, -center.z);
+        // X/Z centred on central-hinge so camera (looking at 0,0,0) always sees the spine mid-line
+        model.position.set(-_chPos.x, -center.y, -_chPos.z);
         model.rotation.set(0, 0, 0);
         pivot = new THREE.Group();
         pivot.add(model);
