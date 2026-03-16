@@ -279,12 +279,10 @@
     let rise           = 0;
     let backHinge      = null;
     let frontHinge     = null;
-    // Kinematic precompute
-    let kin_Ax = 0, kin_Ay = 0;
-    let kin_Bx = 0, kin_By = 0;
-    let kin_rACx = 0, kin_rACy = 0;
-    let kin_beta0 = 0;
-    let kin_prevAngle = 0;            // continuity tracker — prevents direction flips
+    // Kinematic state
+    let kin_Bx = 0, kin_By = 0;       // backHinge pivot in model-local space
+    let kin_dynamicBeta0 = 0;          // angle B→C measured fresh the moment opening begins
+    let kin_prevAngle    = 0;          // continuity tracker — prevents direction flips
     let pivotShiftX = 0, pivotShiftZ = 0; // world offset applied when opening, undone when closing
     // Ground-truth pin refs — coverFrontAxisRef lives in frontHinge, so its world pos IS the pin each frame
     let modelRef          = null;
@@ -332,6 +330,14 @@
           pivot.position.x = pivotShiftX;
           pivot.position.z = pivotShiftZ;
           kin_prevAngle = 0;
+          // Snapshot beta0 right now, same scene state as every animation frame, so angle offset is zero
+          if (coverFrontAxisRef && modelRef) {
+            scene.updateMatrixWorld(true);
+            const _C = new THREE.Vector3();
+            coverFrontAxisRef.getWorldPosition(_C);
+            const _Cl = modelRef.worldToLocal(_C.clone());
+            kin_dynamicBeta0 = Math.atan2(_Cl.y - kin_By, _Cl.x - kin_Bx);
+          }
           phase = 'opening';
           phaseStart = now;
         }
@@ -348,7 +354,7 @@
           coverFrontAxisRef.getWorldPosition(C_world);
           // Convert to model-local so we can measure the angle from backHinge pivot B
           const C_local = modelRef.worldToLocal(C_world.clone());
-          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_beta0;
+          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_dynamicBeta0;
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
           a = Math.max(0, a);
@@ -367,7 +373,7 @@
           const C_world = new THREE.Vector3();
           coverFrontAxisRef.getWorldPosition(C_world);
           const C_local = modelRef.worldToLocal(C_world.clone());
-          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_beta0;
+          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_dynamicBeta0;
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
           a = Math.max(0, a);
@@ -539,11 +545,7 @@
           const C0_loc = C0.clone().applyMatrix4(invModel);
 
           // Kinematic constants
-          kin_Ax    = A_loc.x;   kin_Ay    = A_loc.y;
-          kin_Bx    = B_loc.x;   kin_By    = B_loc.y;
-          kin_rACx  = C0_loc.x - A_loc.x;  // vector from A to C in rest pose
-          kin_rACy  = C0_loc.y - A_loc.y;
-          kin_beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x); // initial angle B→C
+          kin_Bx = B_loc.x;   kin_By = B_loc.y;   // backHinge pivot — used every frame
           kin_prevAngle = 0;
 
           // ── frontHinge: driver, at central-hinge, parented to model ──
