@@ -320,20 +320,20 @@
         }
       }
 
-      // ── OPENING: spine+hinge-front rotate 90° around hinge-back-axis (backHinge)
-      //            cover-front+cover-page rotate 90° relative around cover-front-axis (frontHinge)
-      //            net world rotation of cover = 180° — lands flat on cover-image ──
+      // ── OPENING: backHinge (spine+hinge-front) 0→90° around hinge-back-axis
+      //            frontHinge (cover-front+cover-page) 0→180° around central-hinge axis
+      //            Both parented to model so pivots are exact world positions ──
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const e = easeInOutCubic(t);
         if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * e;
-        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * e;
+        if (frontHinge) frontHinge.rotation.z = Math.PI * e;
         const cx = openLookTarget.x * e;
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
         if (t >= 1) {
           if (backHinge)  backHinge.rotation.z  = Math.PI / 2;
-          if (frontHinge) frontHinge.rotation.z = Math.PI / 2;
+          if (frontHinge) frontHinge.rotation.z = Math.PI;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
           phase = 'done';
@@ -346,7 +346,7 @@
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const e = easeInOutCubic(t);
         if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * (1 - e);
-        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * (1 - e);
+        if (frontHinge) frontHinge.rotation.z = Math.PI * (1 - e);
         const cx = openLookTarget.x * (1 - e);
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
@@ -462,17 +462,17 @@
         const backAxisObj     = model.getObjectByName('cover-back-axis');
         const centralHingeObj = model.getObjectByName('central-hinge');
 
-        if (frontAxisObj) frontAxisObj.visible = false;
-        if (backAxisObj)  backAxisObj.visible  = false;
+        if (frontAxisObj)    frontAxisObj.visible    = false;
+        if (backAxisObj)     backAxisObj.visible     = false;
         if (centralHingeObj) centralHingeObj.visible = false;
 
-        if (backAxisObj && frontAxisObj) {
-          const frontAxisWorld = worldCentre(frontAxisObj);
-          const backAxisWorld  = worldCentre(backAxisObj);
-          const invModel       = new THREE.Matrix4().copy(model.matrixWorld).invert();
+        if (backAxisObj && centralHingeObj) {
+          const backAxisWorld    = worldCentre(backAxisObj);
+          const centralWorld     = worldCentre(centralHingeObj);
+          const invModel         = new THREE.Matrix4().copy(model.matrixWorld).invert();
 
           // ── 1. backHinge at hinge-back-axis, parented to model ──
-          // carries: spine + hinge-front (hinge-back stays fixed with cover-back)
+          //    carries: spine + hinge-front → 90°
           backHinge = new THREE.Group();
           backHinge.position.copy(backAxisWorld.clone().applyMatrix4(invModel));
           model.add(backHinge);
@@ -484,17 +484,14 @@
           });
           for (const p of middleParts) reparentTo(p, backHinge);
 
-          // ── 2. frontHinge at central-hinge axis, parented to backHinge ──
-          // Using central-hinge as the pivot keeps cover-front coplanar with cover-image at 180°
-          const centralHingeWorld = centralHingeObj
-            ? worldCentre(centralHingeObj)
-            : frontAxisWorld; // fallback if node missing
-
+          // ── 2. frontHinge at central-hinge axis, also parented directly to model ──
+          //    carries: cover-front + cover-page → 180°
+          //    Parented to model (not backHinge) so its world pivot is exactly central-hinge,
+          //    matching the cover positioning that looked correct.
           frontHinge = new THREE.Group();
           scene.updateMatrixWorld(true);
-          const invBack = new THREE.Matrix4().copy(backHinge.matrixWorld).invert();
-          frontHinge.position.copy(centralHingeWorld.clone().applyMatrix4(invBack));
-          backHinge.add(frontHinge);
+          frontHinge.position.copy(centralWorld.clone().applyMatrix4(invModel));
+          model.add(frontHinge);
 
           const frontParts = [];
           model.traverse(n => {
@@ -504,11 +501,11 @@
           });
           for (const p of frontParts) reparentTo(p, frontHinge);
 
-          // Camera pan target = hinge-back world X (spine centreline)
+          // Camera pan target = central-hinge world X (spine centreline)
           scene.updateMatrixWorld(true);
-          const backWorld = new THREE.Vector3();
-          backHinge.getWorldPosition(backWorld);
-          openLookTarget.set(backWorld.x, 0, 0);
+          const chWorld = new THREE.Vector3();
+          frontHinge.getWorldPosition(chWorld);
+          openLookTarget.set(chWorld.x, 0, 0);
         }
       },
       undefined,
