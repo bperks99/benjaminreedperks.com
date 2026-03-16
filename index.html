@@ -484,12 +484,16 @@
           });
           for (const p of middleParts) reparentTo(p, backHinge);
 
-          // ── 2. frontHinge at cover-front-axis, parented to backHinge ──
-          // carries: cover-front + cover-page (rigid body, rotates 90° relative → 180° world)
+          // ── 2. frontHinge at central-hinge axis, parented to backHinge ──
+          // Using central-hinge as the pivot keeps cover-front coplanar with cover-image at 180°
+          const centralHingeWorld = centralHingeObj
+            ? worldCentre(centralHingeObj)
+            : frontAxisWorld; // fallback if node missing
+
           frontHinge = new THREE.Group();
           scene.updateMatrixWorld(true);
           const invBack = new THREE.Matrix4().copy(backHinge.matrixWorld).invert();
-          frontHinge.position.copy(frontAxisWorld.clone().applyMatrix4(invBack));
+          frontHinge.position.copy(centralHingeWorld.clone().applyMatrix4(invBack));
           backHinge.add(frontHinge);
 
           const frontParts = [];
