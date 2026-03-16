@@ -325,48 +325,31 @@
         }
       }
 
-      // ── OPENING: cover drives 0→180° around central-hinge
-      //    cover-front-axis pin position is computed each frame
-      //    backHinge angle solved so hinge-front+spine always meet the pin ──
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const theta = Math.PI * easeInOutCubic(t);
         if (frontHinge) frontHinge.rotation.z = theta;
         if (backHinge) {
-          // Where is the cover-front-axis pin after cover rotates theta?
-          const cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          backHinge.rotation.z = Math.atan2(cy - kin_By, cx - kin_Bx) - kin_beta0;
+          const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
+          const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+          backHinge.rotation.z = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
         }
-        const cx = openLookTarget.x * easeInOutCubic(t);
-        camera.position.x = cx;
-        camera.lookAt(cx, 0, 0);
-        if (t >= 1) {
-          phase = 'done';
-          portNav.classList.add('visible');
-        }
+        if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
       }
 
-      // ── CLOSING: exact reverse ──
       else if (phase === 'closing') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const theta = Math.PI * (1 - easeInOutCubic(t));
         if (frontHinge) frontHinge.rotation.z = theta;
         if (backHinge) {
-          const cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          backHinge.rotation.z = Math.atan2(cy - kin_By, cx - kin_Bx) - kin_beta0;
+          const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
+          const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+          backHinge.rotation.z = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
         }
-        const cx2 = openLookTarget.x * (1 - easeInOutCubic(t));
-        camera.position.x = cx2;
-        camera.lookAt(cx2, 0, 0);
         if (t >= 1) {
           if (frontHinge) frontHinge.rotation.z = 0;
           if (backHinge)  backHinge.rotation.z  = 0;
-          camera.position.x = 0;
-          camera.lookAt(0, 0, 0);
-          phase = 'unflatten';
-          phaseStart = now;
+          phase = 'unflatten'; phaseStart = now;
         }
       }
 
