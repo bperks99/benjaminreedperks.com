@@ -508,30 +508,29 @@
         coverFront.position.copy(A_loc);
         model.add(coverFront);
 
-        const coverFrontPieces = [];
-        model.traverse(n => {
-          if (!n.name) return;
+        // Only look at direct children of model — NOT traverse (which would grab sub-children too,
+        // causing double-reparenting and corrupted transforms)
+        const directChildren = [...model.children];
+
+        const coverFrontPieces = directChildren.filter(n => {
+          if (!n.name) return false;
           const nm = n.name.toLowerCase();
-          if (nm.startsWith('cover-front') || nm === 'cover-image') {
-            coverFrontPieces.push(n);
-          }
+          return nm.startsWith('cover-front') || nm === 'cover-image';
         });
         coverFrontPieces.forEach(n => reparentTo(n, coverFront));
         console.log('coverFront pieces:', coverFrontPieces.map(n => n.name));
 
         // ── Build hingeSpine group (rotates around hinge-back-axis = B) ──
-        // hinge-front (Group), hinge-front_1 (Group), hinge-front-axis (Mesh), spine (Group)
         hingeSpine = new THREE.Group();
         hingeSpine.position.copy(B_loc);
         model.add(hingeSpine);
 
-        const hingeSpinePieces = [];
-        model.traverse(n => {
-          if (!n.name) return;
+        // Snapshot direct children again after coverFront reparenting changed model.children
+        const directChildren2 = [...model.children];
+        const hingeSpinePieces = directChildren2.filter(n => {
+          if (!n.name) return false;
           const nm = n.name.toLowerCase();
-          if (nm.startsWith('hinge-front') || nm === 'spine') {
-            hingeSpinePieces.push(n);
-          }
+          return nm.startsWith('hinge-front') || nm === 'spine';
         });
         hingeSpinePieces.forEach(n => reparentTo(n, hingeSpine));
         console.log('hingeSpine pieces:', hingeSpinePieces.map(n => n.name));
