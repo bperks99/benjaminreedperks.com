@@ -342,9 +342,9 @@
           const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
           const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
           let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
-          // Continuity: always pick the solution closest to previous frame to prevent flipping
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
+          a = Math.max(0, a); // spine only opens upward, never clips through cover-back
           kin_prevAngle = a;
           backHinge.rotation.z = a;
         }
@@ -361,6 +361,7 @@
           let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
+          a = Math.max(0, a);
           kin_prevAngle = a;
           backHinge.rotation.z = a;
         }
@@ -485,68 +486,69 @@
           return new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
         }
 
-        // Log every object name so we can see exactly what's in the GLB
-        console.log('=== ALL GLB OBJECT NAMES ===');
-        model.traverse(n => { if (n.name) console.log(n.type, ':', n.name); });
-        console.log('=== END ===');
+        // All 4 axis tubes + central-hinge curve
+        const coverFrontAxisObj = model.getObjectByName('cover-front-axis');
+        const hingeFrontAxisObj = model.getObjectByName('hinge-front-axis');
+        const hingeBackAxisObj  = model.getObjectByName('hinge-back-axis');
+        const coverBackAxisObj  = model.getObjectByName('cover-back-axis');
+        const centralHingeObj   = model.getObjectByName('central-hinge');
 
-        const frontAxisObj    = model.getObjectByName('cover-front-axis');
-        const backAxisObj     = model.getObjectByName('cover-back-axis');
-        const centralHingeObj = model.getObjectByName('central-hinge');
+        // Collect ALL named meshes/objects in model so we can explicitly assign each one
+        const allObjs = [];
+        model.traverse(n => { if (n.name && n !== model) allObjs.push(n); });
 
-        if (frontAxisObj)    frontAxisObj.visible    = true;
-        if (backAxisObj)     backAxisObj.visible     = true;
-        if (centralHingeObj) centralHingeObj.visible = true;
+        // Axis helper objects — hidden
+        const axisObjs = new Set([coverFrontAxisObj, hingeFrontAxisObj,
+                                   hingeBackAxisObj, coverBackAxisObj, centralHingeObj]
+                                  .filter(Boolean));
+        axisObjs.forEach(o => o.visible = false);
 
-        if (backAxisObj && centralHingeObj && frontAxisObj) {
-          const A  = worldCentre(centralHingeObj);
-          const B  = worldCentre(backAxisObj);
-          const C0 = worldCentre(frontAxisObj);
-          console.log('central-hinge (A):', A);
-          console.log('cover-back-axis (B):', B);
-          console.log('cover-front-axis (C):', C0);
+        // Decide which group each mesh belongs to by name prefix:
+        //   frontGroup  (driver 0→180° around central-hinge):  cover-front*, cover-page, cover-front-axis tube
+        //   backGroup   (follower kinematic around hinge-back-axis): spine*, hinge-front*, hinge-front-axis, hinge-back-axis tubes
+        //   fixed       (cover-back*, hinge-back*, cover-back-axis): stay in model, never move
+        const frontNames  = new Set(['cover-front-axis']);
+        const backNames   = new Set(['hinge-back-axis', 'hinge-front-axis']);
+
+        allObjs.forEach(n => {
+          const nm = n.name.toLowerCase();
+          if (nm.startsWith('cover-front') || nm === 'cover-page') frontNames.add(n.name);
+          if (nm.startsWith('spine') || nm.startsWith('hinge-front')) backNames.add(n.name);
+        });
+
+        console.log('frontGroup parts:', [...frontNames]);
+        console.log('backGroup parts:',  [...backNames]);
+
+        if (centralHingeObj && hingeBackAxisObj && coverFrontAxisObj) {
+          const A  = worldCentre(centralHingeObj);   // driver pivot (cover rotates here)
+          const B  = worldCentre(hingeBackAxisObj);  // follower pivot (spine rotates here, fixed)
+          const C0 = worldCentre(coverFrontAxisObj); // pin linking cover-front to hinge-front
 
           const invModel = new THREE.Matrix4().copy(model.matrixWorld).invert();
           const A_loc  = A.clone().applyMatrix4(invModel);
           const B_loc  = B.clone().applyMatrix4(invModel);
           const C0_loc = C0.clone().applyMatrix4(invModel);
 
-          // Store kinematic constants for the animation loop
-          kin_Ax   = A_loc.x;  kin_Ay   = A_loc.y;
-          kin_Bx   = B_loc.x;  kin_By   = B_loc.y;
-          kin_rACx = C0_loc.x - A_loc.x;
-          kin_rACy = C0_loc.y - A_loc.y;
-          kin_beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x);
+          // Kinematic constants
+          kin_Ax    = A_loc.x;   kin_Ay    = A_loc.y;
+          kin_Bx    = B_loc.x;   kin_By    = B_loc.y;
+          kin_rACx  = C0_loc.x - A_loc.x;  // vector from A to C in rest pose
+          kin_rACy  = C0_loc.y - A_loc.y;
+          kin_beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x); // initial angle B→C
+          kin_prevAngle = 0;
 
-          // ── 1. frontHinge at central-hinge (A), parented to model ──
-          //    Driver: rotates 0→180°. Carries cover-front + cover-page.
+          // ── frontHinge: driver, at central-hinge, parented to model ──
           frontHinge = new THREE.Group();
           frontHinge.position.copy(A_loc);
           model.add(frontHinge);
+          allObjs.filter(n => frontNames.has(n.name)).forEach(n => reparentTo(n, frontHinge));
 
-          const frontParts = [];
-          model.traverse(n => {
-            if (!n.name) return;
-            if ((n.name.startsWith('cover-front') || n.name === 'cover-page') &&
-                n !== frontAxisObj && n !== backAxisObj && n !== centralHingeObj) frontParts.push(n);
-          });
-          for (const p of frontParts) reparentTo(p, frontHinge);
-
-          // ── 2. backHinge at cover-back-axis (B), parented to model ──
-          //    Follower: angle solved from pin C each frame. Carries hinge-front + spine.
+          // ── backHinge: follower, at hinge-back-axis, parented to model ──
           backHinge = new THREE.Group();
           backHinge.position.copy(B_loc);
           model.add(backHinge);
+          allObjs.filter(n => backNames.has(n.name)).forEach(n => reparentTo(n, backHinge));
 
-          const middleParts = [];
-          model.traverse(n => {
-            if (!n.name) return;
-            if (n.name.startsWith('hinge-front') || n.name.startsWith('spine')) middleParts.push(n);
-          });
-          for (const p of middleParts) reparentTo(p, backHinge);
-
-          // Camera pan target = central-hinge world X
-          scene.updateMatrixWorld(true);
           openLookTarget.set(A_loc.x, 0, 0);
         }
       },
