@@ -461,12 +461,12 @@
 
         // ── Find the two blocks by name ──
         // Block names should match exactly what you named them in Rhino
-        coverFront = model.getObjectByName('cover-front');
-        hingeSpine = model.getObjectByName('hinge-spine');
+        coverFront = model.getObjectByName('Block 1');
+        hingeSpine = model.getObjectByName('Block 2');
 
         // Fallback: try alternate common names if exact match not found
-        if (!coverFront) coverFront = model.getObjectByName('Cover-Front') || model.getObjectByName('cover front');
-        if (!hingeSpine) hingeSpine = model.getObjectByName('hinge-front') || model.getObjectByName('Hinge-Spine') || model.getObjectByName('spine');
+        if (!coverFront) coverFront = model.getObjectByName('Block 1');
+        if (!hingeSpine) hingeSpine = model.getObjectByName('Block 2');
 
         console.log('coverFront found:', coverFront ? coverFront.name : 'NOT FOUND — check name in Rhino');
         console.log('hingeSpine found:', hingeSpine ? hingeSpine.name : 'NOT FOUND — check name in Rhino');
