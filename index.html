@@ -286,6 +286,11 @@
     let kin_beta0 = 0;
     let kin_prevAngle = 0;            // continuity tracker — prevents direction flips
     let pivotShiftX = 0, pivotShiftZ = 0; // world offset applied when opening, undone when closing
+    // Pin-correction refs — set at load time, used every frame to snap hinge-front-axis onto cover-front-axis
+    let modelRef          = null;
+    let coverFrontAxisRef = null;
+    let hingeFrontAxisRef = null;
+    let backHingeBasePos  = new THREE.Vector3();
     let phase          = 'intro';
     let phaseStart     = null;
     let modelSize      = new THREE.Vector3();
@@ -338,15 +343,26 @@
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const theta = Math.PI * easeInOutCubic(t);
         if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge) {
-          const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
+        if (backHinge && coverFrontAxisRef && hingeFrontAxisRef && modelRef) {
+          // Use the actual world position of cover-front-axis as ground-truth pin C
+          scene.updateMatrixWorld(true);
+          const C_world = new THREE.Vector3();
+          coverFrontAxisRef.getWorldPosition(C_world);
+          const C_local = modelRef.worldToLocal(C_world.clone());
+          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_beta0;
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
-          a = Math.max(0, a); // spine only opens upward, never clips through cover-back
+          a = Math.max(0, a);
           kin_prevAngle = a;
+          backHinge.position.copy(backHingeBasePos);
           backHinge.rotation.z = a;
+          // Residual correction: translate backHinge so hinge-front-axis snaps exactly onto cover-front-axis
+          scene.updateMatrixWorld(true);
+          const CH_world = new THREE.Vector3();
+          hingeFrontAxisRef.getWorldPosition(CH_world);
+          const diffW = C_world.clone().sub(CH_world);
+          const diffL = diffW.clone().transformDirection(modelRef.matrixWorld.clone().invert());
+          backHinge.position.add(diffL);
         }
         if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
       }
@@ -355,19 +371,29 @@
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const theta = Math.PI * (1 - easeInOutCubic(t));
         if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge) {
-          const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
+        if (backHinge && coverFrontAxisRef && hingeFrontAxisRef && modelRef) {
+          // Same world-position pin approach as opening
+          scene.updateMatrixWorld(true);
+          const C_world = new THREE.Vector3();
+          coverFrontAxisRef.getWorldPosition(C_world);
+          const C_local = modelRef.worldToLocal(C_world.clone());
+          let a = Math.atan2(C_local.y - kin_By, C_local.x - kin_Bx) - kin_beta0;
           while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
           while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
           a = Math.max(0, a);
           kin_prevAngle = a;
+          backHinge.position.copy(backHingeBasePos);
           backHinge.rotation.z = a;
+          scene.updateMatrixWorld(true);
+          const CH_world = new THREE.Vector3();
+          hingeFrontAxisRef.getWorldPosition(CH_world);
+          const diffW = C_world.clone().sub(CH_world);
+          const diffL = diffW.clone().transformDirection(modelRef.matrixWorld.clone().invert());
+          backHinge.position.add(diffL);
         }
         if (t >= 1) {
           if (frontHinge) frontHinge.rotation.z = 0;
-          if (backHinge)  backHinge.rotation.z  = 0;
+          if (backHinge)  { backHinge.rotation.z = 0; backHinge.position.copy(backHingeBasePos); }
           kin_prevAngle = 0;
           phase = 'unflatten'; phaseStart = now;
         }
@@ -550,6 +576,12 @@
           allObjs.filter(n => backNames.has(n.name)).forEach(n => reparentTo(n, backHinge));
 
           openLookTarget.set(A_loc.x, 0, 0);
+
+          // Store refs for per-frame world-space pin correction
+          modelRef          = model;
+          coverFrontAxisRef = coverFrontAxisObj;
+          hingeFrontAxisRef = hingeFrontAxisObj;
+          backHingeBasePos.copy(B_loc);
         }
       },
       undefined,
