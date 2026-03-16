@@ -279,12 +279,17 @@
     let rise         = 0;
     let coverFront   = null;   // the cover-front block — rotates around its own origin (= central-hinge axis)
     let hingeSpine   = null;   // the hinge+spine block — rotates around its own origin (= hinge-back-axis)
-    // 4-bar constants — measured once at load time in model-local XY, never change
-    let kin_Ax = 0, kin_Ay = 0;     // coverFront pivot = coverFront.position
-    let kin_Bx = 0, kin_By = 0;     // hingeSpine pivot = hingeSpine.position
-    let kin_rACx = 0, kin_rACy = 0; // arm from A to pin (cover-front-axis) at rest
-    let kin_beta0 = 0;               // angle B→pin at rest — follower delta measured from this
+    // 4-bar constants — all model-local XY, measured once at load time
+    let kin_Ax = 0, kin_Ay = 0;       // A: central-hinge (cover pivot, fixed)
+    let kin_Bx = 0, kin_By = 0;       // B: hinge-back-axis (spine pivot, fixed)
+    let kin_rACx = 0, kin_rACy = 0;   // arm A→C at rest
+    let kin_coupler  = 0;              // |CD| rigid coupler length (hinge-front link)
+    let kin_follower = 0;              // |BD| rigid follower length (spine arm)
+    let kin_D0x = 0, kin_D0y = 0;     // D at rest (hinge-front-axis)
+    let kin_C0angle  = 0;              // angle C→D at rest
+    let kin_beta0    = 0;              // angle B→D at rest
     let kin_prevAngle = 0;
+    let hingeFrontGroup = null;        // floating coupler — translates+rotates each frame
     let pivotShiftX = 0, pivotShiftZ = 0;
     let phase      = 'intro';
     let phaseStart = null;
@@ -293,6 +298,54 @@
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
+
+    // ── 4-bar solver: given cover angle theta, position spine + floating hinge-front ──
+    function applyFourBar(theta) {
+      // C = cover-front-axis current position (rotates around A with cover)
+      const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
+      const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
+
+      // Solve D = hinge-front-axis position
+      // D sits on circle(C, coupler) AND circle(B, follower) — two-circle intersection
+      const dx = Cx - kin_Bx, dy = Cy - kin_By;
+      const dist = Math.hypot(dx, dy);
+      let Dx, Dy;
+      if (dist < 1e-9 || dist > kin_coupler + kin_follower + 1e-6) {
+        Dx = kin_D0x; Dy = kin_D0y; // degenerate — hold rest position
+      } else {
+        const cosAngle = (dist*dist + kin_follower*kin_follower - kin_coupler*kin_coupler)
+                         / (2 * dist * kin_follower);
+        const ang = Math.acos(Math.max(-1, Math.min(1, cosAngle)));
+        const phi = Math.atan2(dy, dx);
+        // Two candidate D positions — pick the one closest to D0 (correct side of mechanism)
+        const D1x = kin_Bx + kin_follower * Math.cos(phi + ang);
+        const D1y = kin_By + kin_follower * Math.sin(phi + ang);
+        const D2x = kin_Bx + kin_follower * Math.cos(phi - ang);
+        const D2y = kin_By + kin_follower * Math.sin(phi - ang);
+        if (Math.hypot(D1x-kin_D0x, D1y-kin_D0y) <= Math.hypot(D2x-kin_D0x, D2y-kin_D0y)) {
+          Dx = D1x; Dy = D1y;
+        } else {
+          Dx = D2x; Dy = D2y;
+        }
+      }
+
+      // Spine rotates around B, pointing toward D
+      if (hingeSpine) {
+        let a = Math.atan2(Dy - kin_By, Dx - kin_Bx) - kin_beta0;
+        while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
+        while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
+        kin_prevAngle = a;
+        hingeSpine.rotation.z = a;
+      }
+
+      // Hinge-front FLOATS: its C-end tracks C, its D-end tracks D
+      // Move group origin to C, rotate so C→D direction is correct
+      if (hingeFrontGroup) {
+        hingeFrontGroup.position.x = Cx;
+        hingeFrontGroup.position.y = Cy;
+        hingeFrontGroup.rotation.z = Math.atan2(Dy - Cy, Dx - Cx) - kin_C0angle;
+      }
+    }
 
     (function loop(now) {
       requestAnimationFrame(loop);
@@ -337,16 +390,7 @@
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const theta = Math.PI * easeInOutCubic(t);
         if (coverFront) coverFront.rotation.z = theta;
-        if (hingeSpine) {
-          const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          let a = Math.atan2(Cy - kin_By, Cx - kin_Bx) - kin_beta0;
-          while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
-          while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
-          a = Math.max(0, a);
-          kin_prevAngle = a;
-          hingeSpine.rotation.z = a;
-        }
+        applyFourBar(theta);
         if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
       }
 
@@ -354,19 +398,13 @@
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const theta = Math.PI * (1 - easeInOutCubic(t));
         if (coverFront) coverFront.rotation.z = theta;
-        if (hingeSpine) {
-          const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          let a = Math.atan2(Cy - kin_By, Cx - kin_Bx) - kin_beta0;
-          while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
-          while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
-          a = Math.max(0, a);
-          kin_prevAngle = a;
-          hingeSpine.rotation.z = a;
-        }
+        applyFourBar(theta);
         if (t >= 1) {
-          if (coverFront) coverFront.rotation.z = 0;
-          if (hingeSpine) hingeSpine.rotation.z = 0;
+          if (coverFront)      coverFront.rotation.z      = 0;
+          if (hingeSpine)      hingeSpine.rotation.z      = 0;
+          if (hingeFrontGroup) { hingeFrontGroup.position.x = kin_rACx + kin_Ax;
+                                 hingeFrontGroup.position.y = kin_rACy + kin_Ay;
+                                 hingeFrontGroup.rotation.z = 0; }
           kin_prevAngle = 0;
           phase = 'unflatten'; phaseStart = now;
         }
@@ -494,13 +532,27 @@
         console.log('B (hingeSpine pivot):', B_loc);
         console.log('C0 (pin at rest):',     C0_loc);
 
+        // ── Measure D0 = hinge-front-axis (pin on spine/follower side) ──
+        const hingeFrontAxisObj2 = model.getObjectByName('hinge-front-axis');
+        if (!hingeFrontAxisObj2) { console.error('hinge-front-axis not found'); return; }
+        const D0_world = worldBboxCenter(hingeFrontAxisObj2);
+        const D0_loc   = D0_world.clone().applyMatrix4(invModel);
+
         // ── 4-bar constants (never change) ──
         kin_Ax   = A_loc.x;  kin_Ay   = A_loc.y;
         kin_Bx   = B_loc.x;  kin_By   = B_loc.y;
         kin_rACx = C0_loc.x - A_loc.x;
         kin_rACy = C0_loc.y - A_loc.y;
-        kin_beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x);
-        console.log('rAC:', kin_rACx, kin_rACy, '  beta0 deg:', THREE.MathUtils.radToDeg(kin_beta0));
+        kin_D0x  = D0_loc.x; kin_D0y  = D0_loc.y;
+        kin_coupler  = Math.hypot(D0_loc.x - C0_loc.x, D0_loc.y - C0_loc.y);
+        kin_follower = Math.hypot(D0_loc.x - B_loc.x,  D0_loc.y - B_loc.y);
+        kin_C0angle  = Math.atan2(D0_loc.y - C0_loc.y, D0_loc.x - C0_loc.x);
+        kin_beta0    = Math.atan2(D0_loc.y - B_loc.y,  D0_loc.x - B_loc.x);
+        console.log('A:', kin_Ax.toFixed(4), kin_Ay.toFixed(4));
+        console.log('B:', kin_Bx.toFixed(4), kin_By.toFixed(4));
+        console.log('C0:', C0_loc.x.toFixed(4), C0_loc.y.toFixed(4));
+        console.log('D0:', kin_D0x.toFixed(4), kin_D0y.toFixed(4));
+        console.log('coupler:', kin_coupler.toFixed(4), ' follower:', kin_follower.toFixed(4));
 
         // ── Build coverFront group (rotates around central-hinge axis = A) ──
         // Collect all objects whose name starts with 'cover-front' plus cover-image
