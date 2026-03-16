@@ -421,14 +421,9 @@
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         const model = gltf.scene;
-
         model.traverse(n => {
           if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; }
         });
-
-        // Log everything so we can verify names
-        console.log('=== GLB OBJECTS ===(name : type)');
-        model.traverse(n => { if (n.name) console.log(' ', n.name, ':', n.type); });
 
         // ── Centre model on bbox ──
         scene.add(model);
@@ -438,69 +433,112 @@
         const size   = box.getSize(new THREE.Vector3());
         const maxDim = Math.max(size.x, size.y, size.z);
         modelSize.copy(size);
-
         scene.remove(model);
         model.position.set(-center.x, -center.y, -center.z);
-        model.rotation.set(0, 0, 0);
         pivot = new THREE.Group();
         pivot.add(model);
         scene.add(pivot);
 
-        // Camera setup
+        // Camera
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
         camera.up.set(0, 0, -1);
         camera.lookAt(0, 0, 0);
         resize();
-
-        // Intro spin
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
 
-        // ── Find the two blocks by name ──
-        // Block names should match exactly what you named them in Rhino
-        coverFront = model.getObjectByName('Block 1');
-        hingeSpine = model.getObjectByName('Block 2');
+        scene.updateMatrixWorld(true);
 
-        // Fallback: try alternate common names if exact match not found
-        if (!coverFront) coverFront = model.getObjectByName('Block 1');
-        if (!hingeSpine) hingeSpine = model.getObjectByName('Block 2');
-
-        console.log('coverFront found:', coverFront ? coverFront.name : 'NOT FOUND — check name in Rhino');
-        console.log('hingeSpine found:', hingeSpine ? hingeSpine.name : 'NOT FOUND — check name in Rhino');
-
-        if (coverFront && hingeSpine) {
-          scene.updateMatrixWorld(true);
-
-          // A and B are the block origins — their .position IS the pivot point in model-local space
-          // because Rhino blocks bake the insertion point as the local origin
-          kin_Ax = coverFront.position.x;
-          kin_Ay = coverFront.position.y;
-          kin_Bx = hingeSpine.position.x;
-          kin_By = hingeSpine.position.y;
-
-          // C0 = the cover-front-axis pin at rest — it lives inside coverFront block
-          // at rest (rotation=0) we can read its world position and convert to model-local
-          const pinObj = coverFront.getObjectByName('cover-front-axis');
-          if (pinObj) {
-            const pinWorld = new THREE.Vector3();
-            pinObj.getWorldPosition(pinWorld);
-            const pinLocal = model.worldToLocal(pinWorld);
-            kin_rACx = pinLocal.x - kin_Ax;
-            kin_rACy = pinLocal.y - kin_Ay;
-            kin_beta0 = Math.atan2(pinLocal.y - kin_By, pinLocal.x - kin_Bx);
-            console.log('A:', kin_Ax, kin_Ay, '  B:', kin_Bx, kin_By);
-            console.log('rAC:', kin_rACx, kin_rACy, '  beta0 (deg):', THREE.MathUtils.radToDeg(kin_beta0));
-          } else {
-            console.warn('cover-front-axis not found inside coverFront block — check Rhino grouping');
-          }
-
-          // pivotShift: slide pivot so coverFront origin lands at world centre during open
-          pivotShiftX = -(coverFront.position.x);
-          pivotShiftZ = -(coverFront.position.z);
+        // ── Helpers ──
+        // Get bbox centre of an object in world space
+        function worldBboxCenter(obj) {
+          return new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
         }
+        // Reparent node into newParent, preserving exact world transform
+        function reparentTo(node, newParent) {
+          scene.updateMatrixWorld(true);
+          const wm = node.matrixWorld.clone();
+          node.removeFromParent();
+          newParent.add(node);
+          scene.updateMatrixWorld(true);
+          new THREE.Matrix4()
+            .copy(newParent.matrixWorld).invert()
+            .multiply(wm)
+            .decompose(node.position, node.quaternion, node.scale);
+        }
+
+        // ── Locate pivot axes ──
+        const centralHingeObj  = model.getObjectByName('central-hinge');   // coverFront pivot
+        const hingeBackAxisObj = model.getObjectByName('hinge-back-axis'); // hingeSpine pivot
+        const coverFrontAxisObj = model.getObjectByName('cover-front-axis'); // the linking pin
+
+        if (!centralHingeObj)  { console.error('central-hinge not found');   return; }
+        if (!hingeBackAxisObj) { console.error('hinge-back-axis not found');  return; }
+        if (!coverFrontAxisObj){ console.error('cover-front-axis not found'); return; }
+
+        // Measure all 3 pivot/pin positions in world space BEFORE any reparenting
+        const A_world  = worldBboxCenter(centralHingeObj);   // coverFront pivot
+        const B_world  = worldBboxCenter(hingeBackAxisObj);  // hingeSpine pivot
+        const C0_world = worldBboxCenter(coverFrontAxisObj); // pin at rest
+
+        // Convert to model-local (model.position already offset by bbox center above)
+        const invModel = new THREE.Matrix4().copy(model.matrixWorld).invert();
+        const A_loc  = A_world.clone().applyMatrix4(invModel);
+        const B_loc  = B_world.clone().applyMatrix4(invModel);
+        const C0_loc = C0_world.clone().applyMatrix4(invModel);
+
+        console.log('A (coverFront pivot):', A_loc);
+        console.log('B (hingeSpine pivot):', B_loc);
+        console.log('C0 (pin at rest):',     C0_loc);
+
+        // ── 4-bar constants (never change) ──
+        kin_Ax   = A_loc.x;  kin_Ay   = A_loc.y;
+        kin_Bx   = B_loc.x;  kin_By   = B_loc.y;
+        kin_rACx = C0_loc.x - A_loc.x;
+        kin_rACy = C0_loc.y - A_loc.y;
+        kin_beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x);
+        console.log('rAC:', kin_rACx, kin_rACy, '  beta0 deg:', THREE.MathUtils.radToDeg(kin_beta0));
+
+        // ── Build coverFront group (rotates around central-hinge axis = A) ──
+        // Collect all objects whose name starts with 'cover-front' plus cover-image
+        coverFront = new THREE.Group();
+        coverFront.position.copy(A_loc);
+        model.add(coverFront);
+
+        const coverFrontPieces = [];
+        model.traverse(n => {
+          if (!n.name) return;
+          const nm = n.name.toLowerCase();
+          if (nm.startsWith('cover-front') || nm === 'cover-image') {
+            coverFrontPieces.push(n);
+          }
+        });
+        coverFrontPieces.forEach(n => reparentTo(n, coverFront));
+        console.log('coverFront pieces:', coverFrontPieces.map(n => n.name));
+
+        // ── Build hingeSpine group (rotates around hinge-back-axis = B) ──
+        // hinge-front (Group), hinge-front_1 (Group), hinge-front-axis (Mesh), spine (Group)
+        hingeSpine = new THREE.Group();
+        hingeSpine.position.copy(B_loc);
+        model.add(hingeSpine);
+
+        const hingeSpinePieces = [];
+        model.traverse(n => {
+          if (!n.name) return;
+          const nm = n.name.toLowerCase();
+          if (nm.startsWith('hinge-front') || nm === 'spine') {
+            hingeSpinePieces.push(n);
+          }
+        });
+        hingeSpinePieces.forEach(n => reparentTo(n, hingeSpine));
+        console.log('hingeSpine pieces:', hingeSpinePieces.map(n => n.name));
+
+        // pivotShift: during open, slide world so A lands at screen centre
+        pivotShiftX = -A_loc.x;
+        pivotShiftZ = -A_loc.z;
       },
       undefined,
       err => console.error('GLB load error', err)
