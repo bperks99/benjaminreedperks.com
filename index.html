@@ -272,67 +272,29 @@
     let pivot        = null;
     let finalCamY    = 0;
     let rise         = 0;
-    // Two moving groups:
-    let coverGroup   = null;  // cover-front pieces — rotate 0→π around A (central-hinge axis)
-    let couplerGroup = null;  // hinge-front pieces — floating coupler, translates+rotates
 
-    // 4-bar constants (all model-local XY, set at load time)
-    let kin_Ax = 0, kin_Ay = 0;       // A: central-hinge pivot (cover rotates here)
-    let kin_Bx = 0, kin_By = 0;       // B: hinge-back-axis (spine pivot, fixed)
-    let kin_rACx = 0, kin_rACy = 0;   // arm A→C0 at rest
-    let kin_coupler  = 0;              // |C0D0| — hinge-front rigid length
-    let kin_follower = 0;              // |BD0| — spine arm length (spine is fixed, but D is constrained to circle)
-    let kin_beta0    = 0;              // angle B→D0 at rest
-    let kin_C0angle  = 0;              // angle C→D at rest (coupler rest orientation)
-    let kin_D0x = 0, kin_D0y = 0;     // D0 rest position (hinge-front-axis center)
+    // ── Three moving groups ──
+    // Confirmed from GLB analysis:
+    //   cover-front rotates 180° around A (central-hinge)
+    //   hinge-front rotates  90° around B (hinge-back-axis)
+    //   spine       rotates  90° around B (hinge-back-axis)
+    let coverGroup  = null;  // cover-front pieces — 0 → π around A
+    let spineGroup  = null;  // spine + hinge-front — 0 → π/2 around B
 
     let pivotShiftX = 0, pivotShiftZ = 0;
     let phase       = 'intro';
     let phaseStart  = null;
     let modelSize   = new THREE.Vector3();
-    let openLookTarget = new THREE.Vector3();
     let currentPage = 1;
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
 
-    // ── 4-bar solver ──
-    // Only cover-front and hinge-front move.
-    // Cover rotates theta around A, dragging C (cover-front-axis pin) in an arc.
-    // D (hinge-front-axis) is constrained: must stay on circle(B, follower).
-    // Solve D, then position couplerGroup at C pointing toward D.
-    function solveFourBar(theta) {
-      // C = current position of cover-front-axis pin
-      const Cx = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-      const Cy = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-
-      // D is constrained on circle(C, coupler) ∩ circle(B, follower)
-      const dx = Cx - kin_Bx, dy = Cy - kin_By;
-      const dist = Math.hypot(dx, dy);
-      let Dx, Dy;
-      if (dist < 1e-9 || dist > kin_coupler + kin_follower + 1e-6) {
-        Dx = kin_D0x; Dy = kin_D0y;
-      } else {
-        const cosA = (dist*dist + kin_follower*kin_follower - kin_coupler*kin_coupler)
-                     / (2 * dist * kin_follower);
-        const ang = Math.acos(Math.max(-1, Math.min(1, cosA)));
-        const phi = Math.atan2(dy, dx);
-        // Two candidates — pick the one closest to D0 rest position (correct branch)
-        const D1x = kin_Bx + kin_follower * Math.cos(phi + ang);
-        const D1y = kin_By + kin_follower * Math.sin(phi + ang);
-        const D2x = kin_Bx + kin_follower * Math.cos(phi - ang);
-        const D2y = kin_By + kin_follower * Math.sin(phi - ang);
-        if (Math.hypot(D1x-kin_D0x, D1y-kin_D0y) <= Math.hypot(D2x-kin_D0x, D2y-kin_D0y)) {
-          Dx = D1x; Dy = D1y;
-        } else { Dx = D2x; Dy = D2y; }
-      }
-
-      // Move couplerGroup: origin at C, rotate to face D
-      if (couplerGroup) {
-        couplerGroup.position.x = Cx;
-        couplerGroup.position.y = Cy;
-        couplerGroup.rotation.z = Math.atan2(Dy - Cy, Dx - Cx) - kin_C0angle;
-      }
+    function drive(theta) {
+      // cover opens 0 → π (180°)
+      if (coverGroup) coverGroup.rotation.z = theta;
+      // spine+hinge-front open 0 → π/2 (90°) in opposite direction
+      if (spineGroup) spineGroup.rotation.z = -(theta * 0.5);
     }
 
     (function loop(now) {
@@ -368,21 +330,14 @@
       }
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
-        const theta = Math.PI * easeInOutCubic(t);
-        if (coverGroup) coverGroup.rotation.z = theta;
-        solveFourBar(theta);
+        drive(Math.PI * easeInOutCubic(t));
         if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
       }
       else if (phase === 'closing') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
-        const theta = Math.PI * (1 - easeInOutCubic(t));
-        if (coverGroup) coverGroup.rotation.z = theta;
-        solveFourBar(theta);
+        drive(Math.PI * (1 - easeInOutCubic(t)));
         if (t >= 1) {
-          if (coverGroup)   coverGroup.rotation.z = 0;
-          if (couplerGroup) { couplerGroup.position.x = kin_Ax + kin_rACx;
-                              couplerGroup.position.y = kin_Ay + kin_rACy;
-                              couplerGroup.rotation.z = 0; }
+          drive(0);
           phase = 'unflatten'; phaseStart = now;
         }
       }
@@ -418,7 +373,6 @@
     });
     document.getElementById('btn-next').addEventListener('click', () => {
       if (phase !== 'done') return;
-      console.log('next');
     });
 
     // ── Load GLB ──
@@ -426,9 +380,8 @@
       'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
       gltf => {
         const model = gltf.scene;
-        model.traverse(n => { if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; } });
+        model.traverse(n => { if (n.isMesh) { n.castShadow=false; n.receiveShadow=false; } });
 
-        // Centre on bbox
         scene.add(model);
         scene.updateMatrixWorld(true);
         const box    = new THREE.Box3().setFromObject(model);
@@ -454,15 +407,12 @@
 
         scene.updateMatrixWorld(true);
 
-        // ── Helper: get bbox center of a named object in world space ──
         function worldCentre(name) {
           const obj = model.getObjectByName(name);
-          if (!obj) { console.warn('not found:', name); return null; }
+          if (!obj) { console.warn('not found:', name); return new THREE.Vector3(); }
           return new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
         }
 
-        // ── Helper: reparent preserving world transform ──
-        // Only call on DIRECT children of model — nested children come along automatically
         function reparentTo(node, newParent) {
           scene.updateMatrixWorld(true);
           const wm = node.matrixWorld.clone();
@@ -473,66 +423,43 @@
             .multiply(wm).decompose(node.position, node.quaternion, node.scale);
         }
 
-        // ── Measure all 4 pivot/pin positions BEFORE any reparenting ──
-        const A_w  = worldCentre('central-hinge');
-        const B_w  = worldCentre('hinge-back-axis');
-        const C0_w = worldCentre('cover-front-axis');
-        const D0_w = worldCentre('hinge-front-axis');
-        if (!A_w || !B_w || !C0_w || !D0_w) { console.error('Missing axis objects'); return; }
+        // Measure A and B in world space BEFORE any reparenting
+        const A_world = worldCentre('central-hinge');   // cover pivot
+        const B_world = worldCentre('hinge-back-axis'); // spine+hinge-front pivot
 
-        // Convert to model-local (cancel out model.position offset + pivot rotation)
         const inv = new THREE.Matrix4().copy(model.matrixWorld).invert();
-        const A  = A_w.clone().applyMatrix4(inv);
-        const B  = B_w.clone().applyMatrix4(inv);
-        const C0 = C0_w.clone().applyMatrix4(inv);
-        const D0 = D0_w.clone().applyMatrix4(inv);
+        const A_loc = A_world.clone().applyMatrix4(inv);
+        const B_loc = B_world.clone().applyMatrix4(inv);
 
-        console.log('A:', A.x.toFixed(5), A.y.toFixed(5));
-        console.log('B:', B.x.toFixed(5), B.y.toFixed(5));
-        console.log('C0:', C0.x.toFixed(5), C0.y.toFixed(5));
-        console.log('D0:', D0.x.toFixed(5), D0.y.toFixed(5));
+        console.log('A (cover pivot):', A_loc.x.toFixed(5), A_loc.y.toFixed(5));
+        console.log('B (spine pivot):', B_loc.x.toFixed(5), B_loc.y.toFixed(5));
 
-        // 4-bar constants
-        kin_Ax = A.x;  kin_Ay = A.y;
-        kin_Bx = B.x;  kin_By = B.y;
-        kin_rACx = C0.x - A.x;  kin_rACy = C0.y - A.y;
-        kin_coupler  = Math.hypot(D0.x - C0.x, D0.y - C0.y);
-        kin_follower = Math.hypot(D0.x - B.x,  D0.y - B.y);
-        kin_beta0    = Math.atan2(D0.y - B.y,  D0.x - B.x);   // B→D (NOT B→C!)
-        kin_C0angle  = Math.atan2(D0.y - C0.y, D0.x - C0.x);  // C→D direction at rest
-        kin_D0x = D0.x; kin_D0y = D0.y;
-        console.log('coupler:', kin_coupler.toFixed(5), 'follower:', kin_follower.toFixed(5));
-        console.log('beta0:', THREE.MathUtils.radToDeg(kin_beta0).toFixed(1)+'°',
-                    'C0angle:', THREE.MathUtils.radToDeg(kin_C0angle).toFixed(1)+'°');
+        // Pivot shift so A is at screen centre when open
+        pivotShiftX = -A_world.x;
+        pivotShiftZ = -A_world.z;
 
-        // Pivot shift: slide scene so A lands at world centre when opening
-        pivotShiftX = -A_w.x;
-        pivotShiftZ = -A_w.z;
-
-        // ── Collect ONLY direct children of model (not nested) ──
-        // Nested children come along automatically when their parent is reparented
+        // Only take direct children of model to avoid double-reparenting nested meshes
         const direct = [...model.children];
 
-        // ── coverGroup: rotates 0→π around A ──
+        // ── coverGroup: cover-front pieces rotate 180° around A ──
         coverGroup = new THREE.Group();
-        coverGroup.position.set(A.x, A.y, A.z);
+        coverGroup.position.set(A_loc.x, A_loc.y, A_loc.z);
         model.add(coverGroup);
         direct.filter(n => n.name && n.name.toLowerCase().startsWith('cover-front'))
               .forEach(n => reparentTo(n, coverGroup));
         console.log('coverGroup children:', coverGroup.children.length);
 
-        // ── couplerGroup: floating coupler (hinge-front), starts at C0 ──
-        couplerGroup = new THREE.Group();
-        couplerGroup.position.set(C0.x, C0.y, C0.z);
-        model.add(couplerGroup);
-        // Snapshot again since coverGroup reparenting changed model.children
+        // ── spineGroup: spine + hinge-front rotate 90° around B ──
+        spineGroup = new THREE.Group();
+        spineGroup.position.set(B_loc.x, B_loc.y, B_loc.z);
+        model.add(spineGroup);
         const direct2 = [...model.children];
-        direct2.filter(n => n.name && n.name.toLowerCase().startsWith('hinge-front'))
-               .forEach(n => reparentTo(n, couplerGroup));
-        console.log('couplerGroup children:', couplerGroup.children.length);
-
-        // Everything else stays fixed in model (cover-back, spine, hinge-back, etc.)
-        openLookTarget.set(A.x, 0, 0);
+        direct2.filter(n => {
+          if (!n.name) return false;
+          const nm = n.name.toLowerCase();
+          return nm === 'spine' || nm.startsWith('hinge-front');
+        }).forEach(n => reparentTo(n, spineGroup));
+        console.log('spineGroup children:', spineGroup.children.length);
       },
       undefined,
       err => console.error('GLB load error', err)
