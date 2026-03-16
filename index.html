@@ -270,10 +270,8 @@
     const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
     const INTRO_DUR      = 5500;
     const FLATTEN_DUR    = 2000;
-    const OPEN1_DUR      = 1800;  // cover-front swings 90°
-    const OPEN2_DUR      = 2200;  // whole assembly lays flat + camera pan
-    const CLOSE1_DUR     = 2200;  // reverse: assembly folds back up + camera pan
-    const CLOSE2_DUR     = 1800;  // cover-front closes
+    const OPEN_DUR       = 3200;  // live-hinge: both hinges rotate simultaneously 0→90°
+    const CLOSE_DUR      = 3200;  // live-hinge: both hinges rotate simultaneously 90→0°
     const UNFLATTEN_DUR  = 2000;
 
     let pivot          = null;
@@ -317,33 +315,27 @@
         pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
         if (t >= 1) {
           pivot.rotation.z = 0;
-          phase = 'open1';
+          phase = 'opening';
           phaseStart = now;
         }
       }
 
-      // ── OPEN 1: front cover lifts 90° around cover-front-axis ──
-      else if (phase === 'open1') {
-        const t = Math.min((now - phaseStart) / OPEN1_DUR, 1);
+      // ── OPENING: live hinge — both hinges rotate simultaneously 0→90°
+      //    backHinge rotates hinge-front+spine+frontHinge group around hinge-back axis
+      //    frontHinge rotates cover-front+cover-page around cover-front axis
+      //    Net: cover sweeps ~180° around the central spine — no clipping guaranteed
+      //    because each hinge only ever closes its own gap. ──
+      else if (phase === 'opening') {
+        const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
         const e = easeInOutCubic(t);
+        if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * e;
         if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * e;
-        if (t >= 1) {
-          if (frontHinge) frontHinge.rotation.z = Math.PI / 2;
-          phase = 'open2';
-          phaseStart = now;
-        }
-      }
-
-      // ── OPEN 2: whole assembly lays flat 90° around cover-back-axis + camera pan ──
-      else if (phase === 'open2') {
-        const t = Math.min((now - phaseStart) / OPEN2_DUR, 1);
-        const e = easeInOutCubic(t);
-        if (backHinge) backHinge.rotation.z = (Math.PI / 2) * e;
         const cx = openLookTarget.x * e;
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
         if (t >= 1) {
-          if (backHinge) backHinge.rotation.z = Math.PI / 2;
+          if (backHinge)  backHinge.rotation.z  = Math.PI / 2;
+          if (frontHinge) frontHinge.rotation.z = Math.PI / 2;
           camera.position.x = openLookTarget.x;
           camera.lookAt(openLookTarget.x, 0, 0);
           phase = 'done';
@@ -351,30 +343,21 @@
         }
       }
 
-      // ── CLOSE 1: assembly folds back up + camera pans to center ──
-      else if (phase === 'close1') {
-        const t = Math.min((now - phaseStart) / CLOSE1_DUR, 1);
+      // ── CLOSING: live hinge — both hinges rotate simultaneously 90→0°
+      //    Exact reverse of opening; camera pans back to centre. ──
+      else if (phase === 'closing') {
+        const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
         const e = easeInOutCubic(t);
-        if (backHinge) backHinge.rotation.z = (Math.PI / 2) * (1 - e);
+        if (backHinge)  backHinge.rotation.z  = (Math.PI / 2) * (1 - e);
+        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * (1 - e);
         const cx = openLookTarget.x * (1 - e);
         camera.position.x = cx;
         camera.lookAt(cx, 0, 0);
         if (t >= 1) {
-          if (backHinge) backHinge.rotation.z = 0;
+          if (backHinge)  backHinge.rotation.z  = 0;
+          if (frontHinge) frontHinge.rotation.z = 0;
           camera.position.x = 0;
           camera.lookAt(0, 0, 0);
-          phase = 'close2';
-          phaseStart = now;
-        }
-      }
-
-      // ── CLOSE 2: front cover swings back down ──
-      else if (phase === 'close2') {
-        const t = Math.min((now - phaseStart) / CLOSE2_DUR, 1);
-        const e = easeInOutCubic(t);
-        if (frontHinge) frontHinge.rotation.z = (Math.PI / 2) * (1 - e);
-        if (t >= 1) {
-          if (frontHinge) frontHinge.rotation.z = 0;
           phase = 'unflatten';
           phaseStart = now;
         }
@@ -407,7 +390,7 @@
       if (phase !== 'done') return;
       if (currentPage === 1) {
         portNav.classList.remove('visible');
-        phase = 'close1';
+        phase = 'closing';
         phaseStart = performance.now();
       } else {
         currentPage--;
@@ -478,12 +461,14 @@
           return new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
         }
 
-        const frontAxisObj = model.getObjectByName('cover-front-axis');
-        const backAxisObj  = model.getObjectByName('cover-back-axis');
+        const frontAxisObj    = model.getObjectByName('cover-front-axis');
+        const backAxisObj     = model.getObjectByName('cover-back-axis');
+        const centralHingeObj = model.getObjectByName('central-hinge');
 
         if (frontAxisObj && backAxisObj) {
-          frontAxisObj.visible = false;
-          backAxisObj.visible  = false;
+          frontAxisObj.visible  = false;
+          backAxisObj.visible   = false;
+          if (centralHingeObj) centralHingeObj.visible = false;
 
           // Grab world positions before any reparenting
           const frontAxisWorld = worldCentre(frontAxisObj);
@@ -496,13 +481,13 @@
           backHinge.position.copy(backAxisWorld.clone().applyMatrix4(invModel));
           model.add(backHinge);
 
-          // Collect & reparent middle parts (hinge-front, spine, hinge-back)
+          // Collect & reparent middle parts into backHinge.
+          // hinge-back stays fixed with cover-back — only hinge-front and spine travel.
           const middleParts = [];
           model.traverse(n => {
             if (!n.name) return;
             if (n.name.startsWith('hinge-front') ||
-                n.name.startsWith('spine') ||
-                n.name.startsWith('hinge-back')) middleParts.push(n);
+                n.name.startsWith('spine')) middleParts.push(n);
           });
           for (const p of middleParts) reparentTo(p, backHinge);
 
@@ -513,10 +498,13 @@
           frontHinge.position.copy(frontAxisWorld.clone().applyMatrix4(invBack));
           backHinge.add(frontHinge);
 
-          // Collect & reparent cover-front parts
+          // Collect & reparent cover-front parts + cover-page.
+          // cover-page and cover-front are grouped together — they stay rigid
+          // relative to each other throughout the live-hinge motion.
           const frontParts = [];
           model.traverse(n => {
-            if (n.name && n.name.startsWith('cover-front') &&
+            if (!n.name) return;
+            if ((n.name.startsWith('cover-front') || n.name === 'cover-page') &&
                 n !== frontAxisObj && n !== backAxisObj) frontParts.push(n);
           });
           for (const p of frontParts) reparentTo(p, frontHinge);
