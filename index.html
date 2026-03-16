@@ -277,13 +277,15 @@
     let pivot          = null;
     let finalCamY      = 0;
     let rise           = 0;
-    let backHinge      = null;   // at cover-back-axis: carries hinge-front + spine, angle solved kinematically
-    let frontHinge     = null;   // at central-hinge: carries cover-front + cover-page, drives 0→180°
-    // Kinematic precompute (set at GLB load, used every frame)
-    let kin_Ax = 0, kin_Ay = 0;   // central-hinge in model-local XY
-    let kin_Bx = 0, kin_By = 0;   // cover-back-axis in model-local XY
-    let kin_rACx = 0, kin_rACy = 0; // cover-front-axis relative to central-hinge (initial)
-    let kin_beta0 = 0;              // initial angle of cover-front-axis around cover-back-axis
+    let backHinge      = null;
+    let frontHinge     = null;
+    // Kinematic precompute
+    let kin_Ax = 0, kin_Ay = 0;
+    let kin_Bx = 0, kin_By = 0;
+    let kin_rACx = 0, kin_rACy = 0;
+    let kin_beta0 = 0;
+    let kin_prevAngle = 0;            // continuity tracker — prevents direction flips
+    let pivotShiftX = 0, pivotShiftZ = 0; // world offset applied when opening, undone when closing
     let phase          = 'intro';
     let phaseStart     = null;
     let modelSize      = new THREE.Vector3();
@@ -314,12 +316,19 @@
         }
       }
 
-      // ── FLATTEN: tilt eases to 0 ──
+      // ── FLATTEN: tilt eases to 0, and shift pivot so central-hinge is at screen centre ──
       else if (phase === 'flatten') {
         const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
-        pivot.rotation.z = FINAL_ROT_Z * (1 - easeInOutCubic(t));
+        const e = easeInOutCubic(t);
+        pivot.rotation.z = FINAL_ROT_Z * (1 - e);
+        // Gradually slide pivot so central-hinge lands at world origin
+        pivot.position.x = pivotShiftX * e;
+        pivot.position.z = pivotShiftZ * e;
         if (t >= 1) {
           pivot.rotation.z = 0;
+          pivot.position.x = pivotShiftX;
+          pivot.position.z = pivotShiftZ;
+          kin_prevAngle = 0;
           phase = 'opening';
           phaseStart = now;
         }
@@ -333,10 +342,11 @@
           const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
           const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
           let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
-          // Normalise to [0, PI] — spine always swings up, never through the table
-          while (a < 0)       a += Math.PI * 2;
-          while (a > Math.PI) a -= Math.PI * 2;
-          backHinge.rotation.z = Math.max(0, Math.min(Math.PI, a));
+          // Continuity: always pick the solution closest to previous frame to prevent flipping
+          while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
+          while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
+          kin_prevAngle = a;
+          backHinge.rotation.z = a;
         }
         if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
       }
@@ -349,23 +359,30 @@
           const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
           const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
           let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
-          while (a < 0)       a += Math.PI * 2;
-          while (a > Math.PI) a -= Math.PI * 2;
-          backHinge.rotation.z = Math.max(0, Math.min(Math.PI, a));
+          while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
+          while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
+          kin_prevAngle = a;
+          backHinge.rotation.z = a;
         }
         if (t >= 1) {
           if (frontHinge) frontHinge.rotation.z = 0;
           if (backHinge)  backHinge.rotation.z  = 0;
+          kin_prevAngle = 0;
           phase = 'unflatten'; phaseStart = now;
         }
       }
 
-      // ── UNFLATTEN: tilt eases back in ──
+      // ── UNFLATTEN: tilt eases back in, shift pivot back to bbox centre ──
       else if (phase === 'unflatten') {
         const t = Math.min((now - phaseStart) / UNFLATTEN_DUR, 1);
-        pivot.rotation.z = FINAL_ROT_Z * easeInOutCubic(t);
+        const e = easeInOutCubic(t);
+        pivot.rotation.z = FINAL_ROT_Z * e;
+        pivot.position.x = pivotShiftX * (1 - e);
+        pivot.position.z = pivotShiftZ * (1 - e);
         if (t >= 1) {
           pivot.rotation.z = FINAL_ROT_Z;
+          pivot.position.x = 0;
+          pivot.position.z = 0;
           phase = 'idle';
           btn.classList.add('visible');
         }
@@ -410,8 +427,7 @@
           if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; }
         });
 
-        // Centre the model at the origin inside a pivot group
-        // We offset X/Z so central-hinge lands at world origin (camera looks at 0,0,0)
+        // Centre the model on bbox for intro — central-hinge shift happens at open time
         scene.add(model);
         scene.updateMatrixWorld(true);
         const box    = new THREE.Box3().setFromObject(model);
@@ -420,15 +436,17 @@
         const maxDim = Math.max(size.x, size.y, size.z);
         modelSize.copy(size);
 
-        // Find central-hinge world position BEFORE any offset, use it as X/Z centre
+        // Pre-compute pivot shift so central-hinge lands at world origin when opening
         const _ch = model.getObjectByName('central-hinge');
-        const _chPos = _ch
-          ? new THREE.Box3().setFromObject(_ch).getCenter(new THREE.Vector3())
-          : center;
+        if (_ch) {
+          const _chPos = new THREE.Box3().setFromObject(_ch).getCenter(new THREE.Vector3());
+          // After bbox-centering, central-hinge will be at (_chPos - center) in world space
+          pivotShiftX = -(_chPos.x - center.x);
+          pivotShiftZ = -(_chPos.z - center.z);
+        }
 
         scene.remove(model);
-        // X/Z centred on central-hinge so camera (looking at 0,0,0) always sees the spine mid-line
-        model.position.set(-_chPos.x, -center.y, -_chPos.z);
+        model.position.set(-center.x, -center.y, -center.z);
         model.rotation.set(0, 0, 0);
         pivot = new THREE.Group();
         pivot.add(model);
