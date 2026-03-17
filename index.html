@@ -304,6 +304,9 @@
     const titles = { portfolio:'', resume:'Resume', contact:'Contact' };
     const themes = { portfolio:'dark', resume:'grey', contact:'light' };
     function switchView(name) {
+      if (name !== 'portfolio' && typeof disposeThree === 'function') {
+        disposeThree();
+      }
       Object.values(views).forEach(v => v.classList.remove('active'));
       Object.values(btns).forEach(b => b.classList.remove('active'));
       views[name].classList.add('active'); btns[name].classList.add('active');
@@ -499,6 +502,7 @@
 
     // ── Dispose Three.js resources ──
     function disposeThree() {
+      if (!threeAlive) return;
       threeAlive = false;
       scene.traverse(obj => {
         if (obj.geometry) obj.geometry.dispose();
@@ -511,8 +515,9 @@
         }
       });
       renderer.dispose();
-      canvas.style.display = 'none'; // fully remove from layout after fade
+      canvas.style.display = 'none';
     }
+    window.disposeThree = disposeThree;
 
     // ── Swap GLB → spread image ──
     function swapToSpreads() {
@@ -566,9 +571,19 @@
       canvas.style.opacity = '0';
       overlay.classList.add('visible');
       portNav.classList.add('visible');
+      // Three.js stays alive — needed if user hits prev on spread 0 to close the book
+    }
 
-      // Dispose Three.js after canvas has fully faded
-      setTimeout(() => { disposeThree(); }, 1000);
+    // ── Reverse: close book animation, swap spread back to GLB ──
+    function closeToGLB() {
+      const overlay = document.getElementById('spread-overlay');
+      portNav.classList.remove('visible');
+      overlay.classList.remove('visible');     // fade spread out
+      canvas.style.opacity = '1';              // fade canvas back in
+      threeAlive = true;                       // re-enable render loop
+      kin_prevAngle = Math.PI;                 // closing starts from fully open
+      phase = 'closing';
+      phaseStart = performance.now();
     }
 
     // ── Page flip — split-spine book turn ──
@@ -681,7 +696,11 @@
     // ── Prev / Next ──
     document.getElementById('btn-prev').addEventListener('click', () => {
       if (phase !== 'done' || isFlipping) return;
-      if (currentSpread > 0) flipTo(currentSpread - 1, 'prev');
+      if (currentSpread === 0) {
+        closeToGLB();
+      } else {
+        flipTo(currentSpread - 1, 'prev');
+      }
     });
     document.getElementById('btn-next').addEventListener('click', () => {
       if (phase !== 'done' || isFlipping) return;
