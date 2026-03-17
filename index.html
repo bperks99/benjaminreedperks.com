@@ -112,6 +112,28 @@
     .contact-val:hover { color:var(--accent); }
     .contact-right { overflow:hidden; }
     .contact-photo { width:100%; height:100%; object-fit:cover; display:block; }
+
+    /* ── Spread overlay ── */
+    #spread-overlay {
+      position:absolute; z-index:6;
+      opacity:0; pointer-events:none;
+      transition:opacity 0.8s ease;
+    }
+    #spread-overlay.visible { opacity:1; pointer-events:auto; }
+    #portfolio-canvas { transition:opacity 0.8s ease; }
+    .spread-scene { width:100%; height:100%; perspective:2400px; }
+    #spread-card {
+      width:100%; height:100%;
+      transform-style:preserve-3d;
+      transform:rotateY(0deg);
+    }
+    #spread-card.flipping-out-next { transition:transform 0.38s cubic-bezier(0.4,0,1,1); transform:rotateY(-90deg); }
+    #spread-card.flipping-out-prev { transition:transform 0.38s cubic-bezier(0.4,0,1,1); transform:rotateY(90deg); }
+    #spread-card.flipping-in-next  { transition:none; transform:rotateY(90deg); }
+    #spread-card.flipping-in-prev  { transition:none; transform:rotateY(-90deg); }
+    #spread-card.flipping-settle   { transition:transform 0.38s cubic-bezier(0,0,0.2,1); transform:rotateY(0deg); }
+    #spread-img { width:100%; height:100%; object-fit:fill; display:block; }
+    .portfolio-nav-btn.disabled { opacity:0.2; pointer-events:none; }
   </style>
 </head>
 <body>
@@ -131,6 +153,13 @@
   <div class="view active" id="view-portfolio">
     <canvas id="portfolio-canvas"></canvas>
     <button id="btn-open-portfolio">Open Portfolio &nbsp;↗</button>
+    <div id="spread-overlay">
+      <div class="spread-scene">
+        <div id="spread-card">
+          <img id="spread-img" src="" alt="Portfolio spread">
+        </div>
+      </div>
+    </div>
     <div id="portfolio-nav">
       <button class="portfolio-nav-btn" id="btn-prev">← Prev</button>
       <span id="portfolio-page-num">1 / 1</span>
@@ -235,6 +264,14 @@
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+    // ── Spread images — add filenames here as you upload them ──
+    const BASE = 'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/';
+    const SPREADS = [
+      BASE + 'spread0.jpg',
+      BASE + 'spread1.jpg',
+      // BASE + 'spread2.jpg',  ← uncomment and add as you go
+    ];
+
     const canvas   = document.getElementById('portfolio-canvas');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -291,12 +328,16 @@
     let modelSize      = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
     let currentPage    = 1;
+    let currentSpread  = 0;
+    let isFlipping     = false;
+    let threeAlive     = true;
 
     const btn     = document.getElementById('btn-open-portfolio');
     const portNav = document.getElementById('portfolio-nav');
 
     (function loop(now) {
       requestAnimationFrame(loop);
+      if (!threeAlive) return;
       if (!pivot) { renderer.render(scene, camera); return; }
 
       // ── INTRO: spin down + zoom in ──
@@ -348,7 +389,7 @@
           kin_prevAngle = a;
           backHinge.rotation.z = a;
         }
-        if (t >= 1) { phase = 'done'; portNav.classList.add('visible'); }
+        if (t >= 1) { phase = 'done'; swapToSpreads(); }
       }
 
       else if (phase === 'closing') {
@@ -400,21 +441,122 @@
       phaseStart = performance.now();
     });
 
+    // ── Dispose Three.js resources ──
+    function disposeThree() {
+      threeAlive = false;
+      scene.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          (Array.isArray(obj.material) ? obj.material : [obj.material])
+            .forEach(m => { Object.values(m).forEach(v => v && v.isTexture && v.dispose()); m.dispose(); });
+        }
+      });
+      renderer.dispose();
+      renderer.forceContextLoss();
+    }
+
+    // ── Swap GLB → spread image ──
+    function swapToSpreads() {
+      // Project open book bounding box to screen pixels
+      scene.updateMatrixWorld(true);
+      const box  = new THREE.Box3().setFromObject(pivot);
+      const topY = box.max.y;
+      const W = canvas.clientWidth, H = canvas.clientHeight;
+      const corners = [
+        new THREE.Vector3(box.min.x, topY, box.min.z),
+        new THREE.Vector3(box.max.x, topY, box.min.z),
+        new THREE.Vector3(box.min.x, topY, box.max.z),
+        new THREE.Vector3(box.max.x, topY, box.max.z),
+      ];
+      let minSx=Infinity, maxSx=-Infinity, minSy=Infinity, maxSy=-Infinity;
+      corners.forEach(c => {
+        const p = c.clone().project(camera);
+        const sx=(p.x+1)/2*W, sy=(-p.y+1)/2*H;
+        if(sx<minSx) minSx=sx; if(sx>maxSx) maxSx=sx;
+        if(sy<minSy) minSy=sy; if(sy>maxSy) maxSy=sy;
+      });
+
+      // Use projected height; width = 2× height (20"×10" spread aspect ratio)
+      const imgH   = maxSy - minSy;
+      const imgW   = imgH * 2;
+      const cx     = (minSx + maxSx) / 2;
+      const cy     = (minSy + maxSy) / 2;
+
+      // Position overlay to match book on screen
+      const overlay = document.getElementById('spread-overlay');
+      const card    = document.getElementById('spread-card');
+      const img     = document.getElementById('spread-img');
+      overlay.style.left   = (cx - imgW/2) + 'px';
+      overlay.style.top    = (cy - imgH/2) + 'px';
+      overlay.style.width  = imgW + 'px';
+      overlay.style.height = imgH + 'px';
+      card.style.width     = imgW + 'px';
+      card.style.height    = imgH + 'px';
+
+      currentSpread = 0;
+      img.src = SPREADS[0];
+      updatePageNum();
+      updateNavBtns();
+
+      img.onload = () => {
+        overlay.classList.add('visible');              // fade spread in
+        canvas.style.opacity = '0';                   // fade canvas out
+        setTimeout(() => { disposeThree(); }, 900);   // then free GPU memory
+        setTimeout(() => { portNav.classList.add('visible'); }, 600);
+      };
+    }
+
+    // ── Page flip ──
+    function flipTo(index, direction) {
+      if (isFlipping) return;
+      isFlipping = true;
+      const card = document.getElementById('spread-card');
+      const img  = document.getElementById('spread-img');
+
+      // Half 1 — current spread rotates edge-on
+      card.className = direction === 'next' ? 'flipping-out-next' : 'flipping-out-prev';
+      card.addEventListener('transitionend', () => {
+        // Swap image while edge-on (invisible)
+        currentSpread = index;
+        img.src = SPREADS[index];
+        updatePageNum();
+        updateNavBtns();
+
+        // Half 2 — new spread rotates in from edge
+        card.className = direction === 'next' ? 'flipping-in-next' : 'flipping-in-prev';
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            card.className = 'flipping-settle';
+            card.addEventListener('transitionend', () => {
+              card.className = '';
+              card.style.transform = '';
+              isFlipping = false;
+            }, { once:true });
+          });
+        });
+      }, { once:true });
+    }
+
+    function updatePageNum() {
+      document.getElementById('portfolio-page-num').textContent =
+        (currentSpread + 1) + ' / ' + SPREADS.length;
+    }
+
+    function updateNavBtns() {
+      const prev = document.getElementById('btn-prev');
+      const next = document.getElementById('btn-next');
+      prev.classList.toggle('disabled', currentSpread === 0);
+      next.classList.toggle('disabled', currentSpread === SPREADS.length - 1);
+    }
+
     // ── Prev / Next ──
     document.getElementById('btn-prev').addEventListener('click', () => {
-      if (phase !== 'done') return;
-      if (currentPage === 1) {
-        portNav.classList.remove('visible');
-        phase = 'closing';
-        phaseStart = performance.now();
-      } else {
-        currentPage--;
-        document.getElementById('portfolio-page-num').textContent = currentPage + ' / 1';
-      }
+      if (phase !== 'done' || isFlipping) return;
+      if (currentSpread > 0) flipTo(currentSpread - 1, 'prev');
     });
     document.getElementById('btn-next').addEventListener('click', () => {
-      if (phase !== 'done') return;
-      console.log('next');
+      if (phase !== 'done' || isFlipping) return;
+      if (currentSpread < SPREADS.length - 1) flipTo(currentSpread + 1, 'next');
     });
 
     // ── Load GLB ──
