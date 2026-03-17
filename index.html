@@ -578,10 +578,13 @@
     function closeToGLB() {
       const overlay = document.getElementById('spread-overlay');
       portNav.classList.remove('visible');
-      overlay.classList.remove('visible');     // fade spread out
-      canvas.style.opacity = '1';              // fade canvas back in
-      threeAlive = true;                       // re-enable render loop
-      kin_prevAngle = Math.PI;                 // closing starts from fully open
+      overlay.classList.remove('visible');          // fade spread out
+      canvas.style.display  = 'block';              // ensure canvas is visible
+      canvas.style.opacity  = '1';                  // fade canvas back in
+      threeAlive = true;                            // re-enable render loop
+      // kin_prevAngle must match backHinge's actual current rotation so the
+      // continuity tracker doesn't flip direction on the first closing frame
+      kin_prevAngle = backHinge ? backHinge.rotation.z : Math.PI;
       phase = 'closing';
       phaseStart = performance.now();
     }
@@ -715,7 +718,14 @@
 
         // Disable shadows on all meshes
         model.traverse(n => {
-          if (n.isMesh) { n.castShadow = false; n.receiveShadow = false; }
+          if (n.isMesh) {
+            n.castShadow = false;
+            n.receiveShadow = false;
+            if (n.material.map) {
+              n.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+              n.material.map.needsUpdate = true;
+            }
+          }
         });
 
         // Centre the model on bbox for intro — central-hinge shift happens at open time
