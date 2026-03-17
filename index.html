@@ -602,32 +602,30 @@
         leafFrontImg.style.left  = '';
         leafFrontImg.src = curSrc;
 
-        // Back face: left half of incoming spread (readable from behind)
+        // Back face: left half of incoming spread
         leafBackImg.style.left  = '0';
         leafBackImg.style.right = '';
         leafBackImg.src = nextSrc;
 
-        // Left half of current spread stays — right half is the leaf
         leftImg.src  = curSrc;
         rightImg.src = curSrc;
 
       } else {
-        // RIGHT half of current spread folds RIGHT (backward) — mirror of next
-        leaf.className = 'from-right';
+        // LEFT half of current spread folds RIGHT over the spine
+        leaf.className = 'from-left';
         leafFront.style.transform = '';
-        leafBack.style.transform  = 'rotateY(-180deg)'; // pre-flip opposite direction
+        leafBack.style.transform  = 'rotateY(-180deg)';
 
-        // Front face: right half of current spread
-        leafFrontImg.style.right = '0';
-        leafFrontImg.style.left  = '';
+        // Front face: left half of current spread
+        leafFrontImg.style.left  = '0';
+        leafFrontImg.style.right = '';
         leafFrontImg.src = curSrc;
 
-        // Back face: right half of incoming spread (readable from behind as leaf swings right)
+        // Back face: RIGHT half of incoming spread
         leafBackImg.style.right = '0';
         leafBackImg.style.left  = '';
         leafBackImg.src = nextSrc;
 
-        // Left half of current spread stays — right half is the leaf
         leftImg.src  = curSrc;
         rightImg.src = curSrc;
       }
@@ -637,10 +635,13 @@
       leaf.style.transition = 'none';
       leaf.style.transform  = 'rotateY(0deg)';
 
-      // Both directions: right half is always the leaf — hide it so under layer shows through
       const rightHalf = document.getElementById('spread-right-half');
       const leftHalf  = document.getElementById('spread-left-half');
-      rightHalf.style.visibility = 'hidden';
+      if (direction === 'next') {
+        rightHalf.style.visibility = 'hidden';
+      } else {
+        leftHalf.style.visibility = 'hidden';
+      }
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
