@@ -637,11 +637,15 @@
       leaf.style.transition = 'none';
       leaf.style.transform  = 'rotateY(0deg)';
 
-      // Hide the static half that the leaf is replacing so under layer shows through
+      // Hide the static half(s) that need to reveal the under layer during the flip
       const rightHalf = document.getElementById('spread-right-half');
       const leftHalf  = document.getElementById('spread-left-half');
-      if (direction === 'next') rightHalf.style.visibility = 'hidden';
-      else                      leftHalf.style.visibility  = 'hidden';
+      if (direction === 'next') {
+        rightHalf.style.visibility = 'hidden'; // leaf covers right, reveals under on right
+      } else {
+        leftHalf.style.visibility  = 'hidden'; // leaf covers left
+        rightHalf.style.visibility = 'hidden'; // leaf sweeps over right too — reveals under
+      }
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
