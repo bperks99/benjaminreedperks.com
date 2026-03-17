@@ -267,9 +267,9 @@
     // ── Spread images — add filenames here as you upload them ──
     const BASE = 'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/';
     const SPREADS = [
-      BASE + 'spread0.jpg',
-      BASE + 'spread1.jpg',
-      // BASE + 'spread2.jpg',  ← uncomment and add as you go
+      BASE + 'Spread0.jpg',
+      BASE + 'Spread1.jpg',
+      // BASE + 'Spread2.jpg',  ← uncomment and add as you go
     ];
 
     const canvas   = document.getElementById('portfolio-canvas');
@@ -448,62 +448,69 @@
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
           (Array.isArray(obj.material) ? obj.material : [obj.material])
-            .forEach(m => { Object.values(m).forEach(v => v && v.isTexture && v.dispose()); m.dispose(); });
+            .forEach(m => {
+              Object.values(m).forEach(v => { if (v && v.isTexture) v.dispose(); });
+              m.dispose();
+            });
         }
       });
       renderer.dispose();
-      renderer.forceContextLoss();
+      canvas.style.display = 'none'; // fully remove from layout after fade
     }
 
     // ── Swap GLB → spread image ──
     function swapToSpreads() {
+      const overlay = document.getElementById('spread-overlay');
+      const card    = document.getElementById('spread-card');
+      const img     = document.getElementById('spread-img');
+
       // Project open book bounding box to screen pixels
       scene.updateMatrixWorld(true);
-      const box  = new THREE.Box3().setFromObject(pivot);
-      const topY = box.max.y;
+      const box = new THREE.Box3().setFromObject(pivot);
       const W = canvas.clientWidth, H = canvas.clientHeight;
+
+      // Sample multiple points along the top face of the open book
       const corners = [
-        new THREE.Vector3(box.min.x, topY, box.min.z),
-        new THREE.Vector3(box.max.x, topY, box.min.z),
-        new THREE.Vector3(box.min.x, topY, box.max.z),
-        new THREE.Vector3(box.max.x, topY, box.max.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+        new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+        new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+        new THREE.Vector3(0,          box.max.y, box.min.z),
+        new THREE.Vector3(0,          box.max.y, box.max.z),
       ];
       let minSx=Infinity, maxSx=-Infinity, minSy=Infinity, maxSy=-Infinity;
       corners.forEach(c => {
         const p = c.clone().project(camera);
-        const sx=(p.x+1)/2*W, sy=(-p.y+1)/2*H;
-        if(sx<minSx) minSx=sx; if(sx>maxSx) maxSx=sx;
-        if(sy<minSy) minSy=sy; if(sy>maxSy) maxSy=sy;
+        const sx = (p.x + 1) / 2 * W;
+        const sy = (-p.y + 1) / 2 * H;
+        if (sx < minSx) minSx = sx; if (sx > maxSx) maxSx = sx;
+        if (sy < minSy) minSy = sy; if (sy > maxSy) maxSy = sy;
       });
 
-      // Use projected height; width = 2× height (20"×10" spread aspect ratio)
-      const imgH   = maxSy - minSy;
-      const imgW   = imgH * 2;
-      const cx     = (minSx + maxSx) / 2;
-      const cy     = (minSy + maxSy) / 2;
+      // Size overlay: use projected height, force 2:1 aspect (20"×10" spread)
+      const imgH = maxSy - minSy;
+      const imgW = imgH * 2;
+      const cx   = (minSx + maxSx) / 2;
+      const cy   = (minSy + maxSy) / 2;
 
-      // Position overlay to match book on screen
-      const overlay = document.getElementById('spread-overlay');
-      const card    = document.getElementById('spread-card');
-      const img     = document.getElementById('spread-img');
-      overlay.style.left   = (cx - imgW/2) + 'px';
-      overlay.style.top    = (cy - imgH/2) + 'px';
       overlay.style.width  = imgW + 'px';
       overlay.style.height = imgH + 'px';
-      card.style.width     = imgW + 'px';
-      card.style.height    = imgH + 'px';
+      overlay.style.left   = (cx - imgW / 2) + 'px';
+      overlay.style.top    = (cy - imgH / 2) + 'px';
 
+      // Load first spread
       currentSpread = 0;
       img.src = SPREADS[0];
       updatePageNum();
       updateNavBtns();
 
-      img.onload = () => {
-        overlay.classList.add('visible');              // fade spread in
-        canvas.style.opacity = '0';                   // fade canvas out
-        setTimeout(() => { disposeThree(); }, 900);   // then free GPU memory
-        setTimeout(() => { portNav.classList.add('visible'); }, 600);
-      };
+      // Fade canvas out and spread in immediately — don't wait for img.onload
+      canvas.style.opacity = '0';
+      overlay.classList.add('visible');
+      portNav.classList.add('visible');
+
+      // Dispose Three.js after canvas has fully faded
+      setTimeout(() => { disposeThree(); }, 1000);
     }
 
     // ── Page flip ──
