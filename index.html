@@ -690,9 +690,7 @@
     }
 
     function updateNavBtns() {
-      const prev = document.getElementById('btn-prev');
       const next = document.getElementById('btn-next');
-      prev.classList.toggle('disabled', currentSpread === 0);
       next.classList.toggle('disabled', currentSpread === SPREADS.length - 1);
     }
 
