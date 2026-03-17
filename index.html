@@ -637,14 +637,13 @@
       leaf.style.transition = 'none';
       leaf.style.transform  = 'rotateY(0deg)';
 
-      // Hide the static half(s) that need to reveal the under layer during the flip
+      // Hide only the half the leaf lifts from — the other stays visible until the leaf covers it
       const rightHalf = document.getElementById('spread-right-half');
       const leftHalf  = document.getElementById('spread-left-half');
       if (direction === 'next') {
-        rightHalf.style.visibility = 'hidden'; // leaf covers right, reveals under on right
+        rightHalf.style.visibility = 'hidden';
       } else {
-        leftHalf.style.visibility  = 'hidden'; // leaf covers left
-        rightHalf.style.visibility = 'hidden'; // leaf sweeps over right too — reveals under
+        leftHalf.style.visibility = 'hidden';
       }
 
       requestAnimationFrame(() => {
