@@ -121,18 +121,67 @@
     }
     #spread-overlay.visible { opacity:1; pointer-events:auto; }
     #portfolio-canvas { transition:opacity 0.8s ease; }
-    .spread-scene { width:100%; height:100%; perspective:2400px; }
-    #spread-card {
+
+    /* Wrapper holds perspective so the leaf gets proper 3D depth */
+    #spread-wrapper {
       width:100%; height:100%;
-      transform-style:preserve-3d;
-      transform:rotateY(0deg);
+      position:relative;
+      perspective:2400px;
     }
-    #spread-card.flipping-out-next { transition:transform 0.38s cubic-bezier(0.4,0,1,1); transform:rotateY(-90deg); }
-    #spread-card.flipping-out-prev { transition:transform 0.38s cubic-bezier(0.4,0,1,1); transform:rotateY(90deg); }
-    #spread-card.flipping-in-next  { transition:none; transform:rotateY(90deg); }
-    #spread-card.flipping-in-prev  { transition:none; transform:rotateY(-90deg); }
-    #spread-card.flipping-settle   { transition:transform 0.38s cubic-bezier(0,0,0.2,1); transform:rotateY(0deg); }
-    #spread-img { width:100%; height:100%; object-fit:fill; display:block; }
+
+    /* Under layer — incoming spread sits here, always behind */
+    #spread-under {
+      position:absolute; inset:0; overflow:hidden; z-index:0;
+    }
+    #spread-under img { width:100%; height:100%; display:block; }
+
+    /* Two static halves — sit on top of under layer at rest */
+    #spread-left-half {
+      position:absolute; left:0; top:0;
+      width:50%; height:100%; overflow:hidden; z-index:1;
+    }
+    #spread-left-half img {
+      position:absolute; left:0; top:0;
+      width:200%; height:100%;
+    }
+    #spread-right-half {
+      position:absolute; right:0; top:0;
+      width:50%; height:100%; overflow:hidden; z-index:1;
+    }
+    #spread-right-half img {
+      position:absolute; right:0; top:0;
+      width:200%; height:100%;
+    }
+
+    /* The turning leaf — repositioned by JS per direction */
+    #turning-leaf {
+      position:absolute; top:0; height:100%;
+      transform-style:preserve-3d;
+      z-index:2; display:none;
+    }
+    #turning-leaf.from-right {
+      left:50%; width:50%;
+      transform-origin:left center;
+    }
+    #turning-leaf.from-left {
+      left:0; width:50%;
+      transform-origin:right center;
+    }
+
+    /* Front and back faces of the leaf */
+    .leaf-face {
+      position:absolute; inset:0; overflow:hidden;
+      backface-visibility:hidden;
+      -webkit-backface-visibility:hidden;
+    }
+    .leaf-face img {
+      position:absolute; top:0;
+      width:200%; height:100%;
+    }
+    #leaf-front img { right:0; }   /* default: right-half leaf shows right portion */
+    #leaf-back { transform:rotateY(180deg); }
+    #leaf-back img { left:0; }     /* default: back shows left portion of incoming */
+
     .portfolio-nav-btn.disabled { opacity:0.2; pointer-events:none; }
   </style>
 </head>
@@ -154,9 +203,16 @@
     <canvas id="portfolio-canvas"></canvas>
     <button id="btn-open-portfolio">Open Portfolio &nbsp;↗</button>
     <div id="spread-overlay">
-      <div class="spread-scene">
-        <div id="spread-card">
-          <img id="spread-img" src="" alt="Portfolio spread">
+      <div id="spread-wrapper">
+        <!-- Incoming spread always sits underneath -->
+        <div id="spread-under"><img id="spread-under-img" alt=""></div>
+        <!-- Two static halves of the current spread -->
+        <div id="spread-left-half"><img id="spread-left-img" alt=""></div>
+        <div id="spread-right-half"><img id="spread-right-img" alt=""></div>
+        <!-- The half that physically turns -->
+        <div id="turning-leaf">
+          <div class="leaf-face" id="leaf-front"><img id="leaf-front-img" alt=""></div>
+          <div class="leaf-face" id="leaf-back"><img id="leaf-back-img" alt=""></div>
         </div>
       </div>
     </div>
@@ -498,9 +554,11 @@
       overlay.style.left   = (cx - imgW / 2) + 'px';
       overlay.style.top    = (cy - imgH / 2) + 'px';
 
-      // Load first spread
+      // Load first spread into both static halves
       currentSpread = 0;
-      img.src = SPREADS[0];
+      const src0 = SPREADS[0];
+      document.getElementById('spread-left-img').src  = src0;
+      document.getElementById('spread-right-img').src = src0;
       updatePageNum();
       updateNavBtns();
 
@@ -513,35 +571,91 @@
       setTimeout(() => { disposeThree(); }, 1000);
     }
 
-    // ── Page flip ──
+    // ── Page flip — split-spine book turn ──
     function flipTo(index, direction) {
       if (isFlipping) return;
       isFlipping = true;
-      const card = document.getElementById('spread-card');
-      const img  = document.getElementById('spread-img');
 
-      // Half 1 — current spread rotates edge-on
-      card.className = direction === 'next' ? 'flipping-out-next' : 'flipping-out-prev';
-      card.addEventListener('transitionend', () => {
-        // Swap image while edge-on (invisible)
+      const leaf        = document.getElementById('turning-leaf');
+      const leafFront   = document.getElementById('leaf-front');
+      const leafBack    = document.getElementById('leaf-back');
+      const leafFrontImg = document.getElementById('leaf-front-img');
+      const leafBackImg  = document.getElementById('leaf-back-img');
+      const underImg    = document.getElementById('spread-under-img');
+      const leftImg     = document.getElementById('spread-left-img');
+      const rightImg    = document.getElementById('spread-right-img');
+
+      const curSrc  = SPREADS[currentSpread];
+      const nextSrc = SPREADS[index];
+
+      // Full incoming spread sits underneath as the reveal
+      underImg.src = nextSrc;
+
+      if (direction === 'next') {
+        // RIGHT half of current spread folds LEFT over the spine
+        leaf.className = 'from-right';
+        leafFront.style.transform = '';
+        leafBack.style.transform  = 'rotateY(180deg)';
+
+        // Front face: right half of current spread
+        leafFrontImg.style.right = '0';
+        leafFrontImg.style.left  = '';
+        leafFrontImg.src = curSrc;
+
+        // Back face: left half of incoming spread (readable from behind)
+        leafBackImg.style.left  = '0';
+        leafBackImg.style.right = '';
+        leafBackImg.src = nextSrc;
+
+        // Left half of current spread stays put — right half is the leaf
+        leftImg.src  = curSrc;
+        rightImg.src = curSrc; // will be hidden by leaf during flip
+
+      } else {
+        // LEFT half of current spread folds RIGHT over the spine
+        leaf.className = 'from-left';
+        leafFront.style.transform = '';
+        leafBack.style.transform  = 'rotateY(-180deg)';
+
+        // Front face: left half of current spread
+        leafFrontImg.style.left  = '0';
+        leafFrontImg.style.right = '';
+        leafFrontImg.src = curSrc;
+
+        // Back face: right half of incoming spread (readable from behind)
+        leafBackImg.style.right = '0';
+        leafBackImg.style.left  = '';
+        leafBackImg.src = nextSrc;
+
+        // Right half of current spread stays put — left half is the leaf
+        leftImg.src  = curSrc;
+        rightImg.src = curSrc;
+      }
+
+      // Show leaf, reset to flat, then animate
+      leaf.style.display    = 'block';
+      leaf.style.transition = 'none';
+      leaf.style.transform  = 'rotateY(0deg)';
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          leaf.style.transition = 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)';
+          leaf.style.transform  = direction === 'next' ? 'rotateY(-180deg)' : 'rotateY(180deg)';
+        });
+      });
+
+      leaf.addEventListener('transitionend', () => {
+        // Snap both static halves to incoming spread, hide leaf
         currentSpread = index;
-        img.src = SPREADS[index];
+        leftImg.src   = SPREADS[index];
+        rightImg.src  = SPREADS[index];
+        leaf.style.transition = 'none';
+        leaf.style.transform  = 'rotateY(0deg)';
+        leaf.style.display    = 'none';
         updatePageNum();
         updateNavBtns();
-
-        // Half 2 — new spread rotates in from edge
-        card.className = direction === 'next' ? 'flipping-in-next' : 'flipping-in-prev';
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            card.className = 'flipping-settle';
-            card.addEventListener('transitionend', () => {
-              card.className = '';
-              card.style.transform = '';
-              isFlipping = false;
-            }, { once:true });
-          });
-        });
-      }, { once:true });
+        isFlipping = false;
+      }, { once: true });
     }
 
     function updatePageNum() {
