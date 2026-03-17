@@ -637,18 +637,26 @@
       leaf.style.transition = 'none';
       leaf.style.transform  = 'rotateY(0deg)';
 
+      // Hide the static half that the leaf is replacing so under layer shows through
+      const rightHalf = document.getElementById('spread-right-half');
+      const leftHalf  = document.getElementById('spread-left-half');
+      if (direction === 'next') rightHalf.style.visibility = 'hidden';
+      else                      leftHalf.style.visibility  = 'hidden';
+
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          leaf.style.transition = 'transform 0.65s cubic-bezier(0.4, 0, 0.2, 1)';
+          leaf.style.transition = 'transform 0.95s cubic-bezier(0.4, 0, 0.2, 1)';
           leaf.style.transform  = direction === 'next' ? 'rotateY(-180deg)' : 'rotateY(180deg)';
         });
       });
 
       leaf.addEventListener('transitionend', () => {
-        // Snap both static halves to incoming spread, hide leaf
+        // Snap both static halves to incoming spread, restore visibility, hide leaf
         currentSpread = index;
         leftImg.src   = SPREADS[index];
         rightImg.src  = SPREADS[index];
+        rightHalf.style.visibility = '';
+        leftHalf.style.visibility  = '';
         leaf.style.transition = 'none';
         leaf.style.transform  = 'rotateY(0deg)';
         leaf.style.display    = 'none';
