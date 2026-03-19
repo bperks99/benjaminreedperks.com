@@ -20,8 +20,12 @@
       --font:'Century Gothic','AppleGothic','Gill Sans',sans-serif;
     }
     html, body { width:100%; height:100%; overflow:hidden; display:flex; flex-direction:column; font-family:var(--font); font-weight:300; background:#030302; }
+
+    /* ── Intro overlay ── */
     #intro-overlay { position:fixed; inset:0; z-index:9999; background:#030302; pointer-events:none; opacity:1; transition:opacity 0.9s ease; }
     #intro-overlay.fade-out { opacity:0; }
+
+    /* ── Nav ── */
     nav { flex-shrink:0; display:grid; grid-template-columns:1fr 1fr 1fr; align-items:center; padding:clamp(16px,3vw,28px) clamp(20px,5vw,56px); }
     nav button { font-family:var(--font); font-weight:300; background:none; border:none; cursor:pointer; text-transform:uppercase; transition:color 0.3s; }
     .nav-logo { font-size:clamp(0.55rem,1.2vw,0.75rem); letter-spacing:0.22em; text-align:left; }
@@ -32,19 +36,20 @@
     .nav-links button::after { content:''; position:absolute; bottom:-3px; left:0; right:0; height:1px; background:var(--accent); transform:scaleX(0); transform-origin:left; transition:transform 0.3s; }
     .nav-links button:hover::after, .nav-links button.active::after { transform:scaleX(1); }
     nav.dark { background:transparent; }
-    nav.dark button { color:#fff; }
-    nav.dark .nav-title { color:#fff; }
+    nav.dark button, nav.dark .nav-title { color:#fff; }
     nav.light { background:var(--white); }
-    nav.light button { color:var(--ink); }
-    nav.light .nav-title { color:var(--ink); }
+    nav.light button, nav.light .nav-title { color:var(--ink); }
     nav.grey { background:#383836; }
-    nav.grey button { color:var(--paper); }
-    nav.grey .nav-title { color:var(--paper); }
+    nav.grey button, nav.grey .nav-title { color:var(--paper); }
     nav.show-title .nav-title { opacity:1; }
+
+    /* ── Views ── */
     .view { display:none; }
     .view.active { display:flex; flex:1; position:relative; align-items:center; justify-content:center; }
     #view-portfolio { background:transparent; }
-    #portfolio-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    #portfolio-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; transition:opacity 0.8s ease; }
+
+    /* ── Open button ── */
     #btn-open-portfolio {
       position:absolute; right:56px; top:50%; transform:translateY(-50%);
       z-index:10; font-family:var(--font); font-size:0.85rem; font-weight:300;
@@ -56,6 +61,8 @@
     }
     #btn-open-portfolio.visible { opacity:1; pointer-events:auto; }
     #btn-open-portfolio:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
+
+    /* ── Portfolio nav ── */
     #portfolio-nav {
       position:absolute; bottom:36px; left:50%; transform:translateX(-50%);
       z-index:10; display:flex; align-items:center; gap:40px;
@@ -70,7 +77,10 @@
       cursor:pointer; transition:color 0.3s, border-color 0.3s;
     }
     .portfolio-nav-btn:hover { color:rgba(245,243,238,0.9); border-color:var(--accent); }
+    .portfolio-nav-btn.disabled { opacity:0.2; pointer-events:none; }
     #portfolio-page-num { font-family:var(--font); font-size:0.58rem; font-weight:300; letter-spacing:0.2em; color:rgba(245,243,238,0.3); }
+
+    /* ── Resume ── */
     #view-resume.active { display:flex; flex-direction:column; align-items:stretch; justify-content:flex-start; background:#383836; color:var(--paper); }
     .resume-name-row { padding:28px 8vw; border-bottom:1px solid rgba(245,243,238,0.1); flex-shrink:0; }
     .resume-name { font-size:1.5rem; font-weight:300; letter-spacing:0.02em; margin-bottom:5px; color:var(--paper); }
@@ -102,6 +112,8 @@
     .resume-footer { text-align:center; padding:20px 0; border-top:1px solid rgba(245,243,238,0.08); flex-shrink:0; }
     .resume-dl { font-size:0.65rem; font-weight:300; letter-spacing:0.2em; text-transform:uppercase; color:var(--paper); text-decoration:none; padding-bottom:3px; border-bottom:1px solid var(--accent); transition:color 0.25s; }
     .resume-dl:hover { color:var(--accent); }
+
+    /* ── Contact ── */
     #view-contact.active { display:grid; grid-template-columns:1fr 1fr; background:var(--white); }
     .contact-left { display:flex; align-items:center; justify-content:center; padding:0 72px; border-right:1px solid var(--rule); }
     .contact-list { display:flex; flex-direction:column; width:100%; }
@@ -120,22 +132,16 @@
       transition:opacity 0.8s ease;
     }
     #spread-overlay.visible { opacity:1; pointer-events:auto; }
-    #portfolio-canvas { transition:opacity 0.8s ease; }
 
-    /* Wrapper holds perspective so the leaf gets proper 3D depth */
     #spread-wrapper {
       width:100%; height:100%;
       position:relative;
       perspective:2400px;
     }
-
-    /* Under layer — incoming spread sits here, always behind */
     #spread-under {
       position:absolute; inset:0; overflow:hidden; z-index:0;
     }
     #spread-under img { width:100%; height:100%; display:block; }
-
-    /* Two static halves — sit on top of under layer at rest */
     #spread-left-half {
       position:absolute; left:0; top:0;
       width:50%; height:100%; overflow:hidden; z-index:1;
@@ -152,8 +158,6 @@
       position:absolute; right:0; top:0;
       width:200%; height:100%;
     }
-
-    /* The turning leaf — repositioned by JS per direction */
     #turning-leaf {
       position:absolute; top:0; height:100%;
       transform-style:preserve-3d;
@@ -167,8 +171,6 @@
       left:0; width:50%;
       transform-origin:right center;
     }
-
-    /* Front and back faces of the leaf */
     .leaf-face {
       position:absolute; inset:0; overflow:hidden;
       backface-visibility:hidden;
@@ -178,11 +180,9 @@
       position:absolute; top:0;
       width:200%; height:100%;
     }
-    #leaf-front img { right:0; }   /* default: right-half leaf shows right portion */
+    #leaf-front img { right:0; }
     #leaf-back { transform:rotateY(180deg); }
-    #leaf-back img { left:0; }     /* default: back shows left portion of incoming */
-
-    .portfolio-nav-btn.disabled { opacity:0.2; pointer-events:none; }
+    #leaf-back img { left:0; }
   </style>
 </head>
 <body>
@@ -204,12 +204,9 @@
     <button id="btn-open-portfolio">Open Portfolio &nbsp;↗</button>
     <div id="spread-overlay">
       <div id="spread-wrapper">
-        <!-- Incoming spread always sits underneath -->
         <div id="spread-under"><img id="spread-under-img" alt=""></div>
-        <!-- Two static halves of the current spread -->
         <div id="spread-left-half"><img id="spread-left-img" alt=""></div>
         <div id="spread-right-half"><img id="spread-right-img" alt=""></div>
-        <!-- The half that physically turns -->
         <div id="turning-leaf">
           <div class="leaf-face" id="leaf-front"><img id="leaf-front-img" alt=""></div>
           <div class="leaf-face" id="leaf-back"><img id="leaf-back-img" alt=""></div>
@@ -294,49 +291,99 @@
     <div class="contact-right"><img src="ReverseHeadshot.jpg" alt="Benjamin Reed Perks" class="contact-photo"></div>
   </div>
 
-  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-    setTimeout(() => { document.getElementById('intro-overlay').classList.add('fade-out'); }, 700);
-    const nav = document.getElementById('main-nav');
+  <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+
+  <!-- ═══════════════════════════════════════════
+       Navigation (vanilla, runs immediately)
+       ═══════════════════════════════════════════ -->
+  <script>
+  {
+    setTimeout(() => document.getElementById('intro-overlay').classList.add('fade-out'), 700);
+
+    const nav      = document.getElementById('main-nav');
     const navTitle = document.getElementById('nav-title');
-    const views = { portfolio:document.getElementById('view-portfolio'), resume:document.getElementById('view-resume'), contact:document.getElementById('view-contact') };
-    const btns  = { portfolio:document.getElementById('nav-portfolio'), resume:document.getElementById('nav-resume'), contact:document.getElementById('nav-contact') };
-    const logo  = document.getElementById('nav-logo');
-    const titles = { portfolio:'', resume:'Resume', contact:'Contact' };
-    const themes = { portfolio:'dark', resume:'grey', contact:'light' };
+    const views    = { portfolio: document.getElementById('view-portfolio'), resume: document.getElementById('view-resume'), contact: document.getElementById('view-contact') };
+    const btns     = { portfolio: document.getElementById('nav-portfolio'), resume: document.getElementById('nav-resume'), contact: document.getElementById('nav-contact') };
+    const titles   = { portfolio: '', resume: 'Resume', contact: 'Contact' };
+    const themes   = { portfolio: 'dark', resume: 'grey', contact: 'light' };
+
     function switchView(name) {
-      if (name !== 'portfolio' && typeof disposeThree === 'function') {
-        disposeThree();
-      }
-      Object.values(views).forEach(v => v.classList.remove('active'));
-      Object.values(btns).forEach(b => b.classList.remove('active'));
-      views[name].classList.add('active'); btns[name].classList.add('active');
-      nav.className = themes[name]; navTitle.textContent = titles[name];
-      if (titles[name]) nav.classList.add('show-title'); else nav.classList.remove('show-title');
+      if (name !== 'portfolio' && typeof disposeThree === 'function') disposeThree();
+      for (const v of Object.values(views)) v.classList.remove('active');
+      for (const b of Object.values(btns))  b.classList.remove('active');
+      views[name].classList.add('active');
+      btns[name].classList.add('active');
+      nav.className = themes[name];
+      navTitle.textContent = titles[name];
+      nav.classList.toggle('show-title', !!titles[name]);
     }
-    btns.portfolio.addEventListener('click', () => switchView('portfolio'));
-    btns.resume.addEventListener('click',    () => switchView('resume'));
-    btns.contact.addEventListener('click',   () => switchView('contact'));
-    logo.addEventListener('click',           () => switchView('portfolio'));
+
+    for (const [name, b] of Object.entries(btns)) b.addEventListener('click', () => switchView(name));
+    document.getElementById('nav-logo').addEventListener('click', () => switchView('portfolio'));
+  }
   </script>
 
+  <!-- ═══════════════════════════════════════════
+       Three.js scene + spread viewer (module)
+       ═══════════════════════════════════════════ -->
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-    // ── Spread images — add filenames here as you upload them ──
-    const BASE = 'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/';
+    // ─── Config ───────────────────────────────────
+    const BASE    = 'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/';
     const SPREADS = [
       BASE + 'Spread0.jpg',
       BASE + 'Spread1.jpg',
-      // BASE + 'Spread2.jpg',  ← uncomment and add as you go
+      // Spread2–11: add here in order as you upload them
+      BASE + 'Spread12.jpg',
+      BASE + 'Spread13.jpg',
+      BASE + 'Spread14.jpg',
+      BASE + 'Spread15.jpg',
+      // Spread16+: add here
     ];
 
-    const canvas   = document.getElementById('portfolio-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
-    renderer.setPixelRatio(window.devicePixelRatio);
+    const FINAL_ROT_Z  = THREE.MathUtils.degToRad(30);
+    const START_ROT_Z  = FINAL_ROT_Z + Math.PI * 4;
+    const INTRO_DUR    = 5500;
+    const FLATTEN_DUR  = 2000;
+    const OPEN_DUR     = 3200;
+    const CLOSE_DUR    = 3200;
+    const UNFLATTEN_DUR = 2000;
+    const FLIP_MS      = 950;
+    const FLIP_SAFETY  = FLIP_MS + 300;  // timeout fallback if transitionend never fires
+
+    // ─── Preload spread images ────────────────────
+    const spreadCache = SPREADS.map(src => {
+      const img = new Image();
+      img.src = src;
+      return img;
+    });
+
+    // ─── Cached DOM refs (grabbed once, used forever) ──
+    const canvas     = document.getElementById('portfolio-canvas');
+    const btn        = document.getElementById('btn-open-portfolio');
+    const portNav    = document.getElementById('portfolio-nav');
+    const overlay    = document.getElementById('spread-overlay');
+    const pageNumEl  = document.getElementById('portfolio-page-num');
+    const btnNext    = document.getElementById('btn-next');
+    const btnPrev    = document.getElementById('btn-prev');
+    const leaf       = document.getElementById('turning-leaf');
+    const leafFront  = document.getElementById('leaf-front');
+    const leafBack   = document.getElementById('leaf-back');
+    const leafFImg   = document.getElementById('leaf-front-img');
+    const leafBImg   = document.getElementById('leaf-back-img');
+    const underImg   = document.getElementById('spread-under-img');
+    const leftImg    = document.getElementById('spread-left-img');
+    const rightImg   = document.getElementById('spread-right-img');
+    const leftHalf   = document.getElementById('spread-left-half');
+    const rightHalf  = document.getElementById('spread-right-half');
+
+    // ─── Renderer / Scene / Camera ────────────────
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));  // cap at 2× for perf
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
-    renderer.shadowMap.enabled = false; // shadows off — no artefacts during animation
     renderer.setClearColor(0x000000, 0);
 
     const scene  = new THREE.Scene();
@@ -350,50 +397,58 @@
     fill.position.set(10, 3, 8);
     scene.add(fill);
 
+    // ─── Resize ───────────────────────────────────
     function resize() {
       const w = canvas.clientWidth, h = canvas.clientHeight;
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+      if (canvas.width !== w || canvas.height !== h) {
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        needsRender = true;
+      }
     }
     new ResizeObserver(resize).observe(canvas);
-    resize();
 
-    function easeInOutCubic(t)  { return t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2; }
-    function easeInOutQuint(t)  { return t<0.5?16*t*t*t*t*t:1-Math.pow(-2*t+2,5)/2; }
+    // ─── Easing ───────────────────────────────────
+    const easeIO3 = t => t < 0.5 ? 4*t*t*t : 1 - (-2*t+2)**3 / 2;
+    const easeIO5 = t => t < 0.5 ? 16*t*t*t*t*t : 1 - (-2*t+2)**5 / 2;
 
-    const FINAL_ROT_Z   = THREE.MathUtils.degToRad(30);
-    const START_ROT_Z   = FINAL_ROT_Z + Math.PI * 4;
-    const INTRO_DUR      = 5500;
-    const FLATTEN_DUR    = 2000;
-    const OPEN_DUR       = 3200;  // live-hinge: both hinges rotate simultaneously 0→90°
-    const CLOSE_DUR      = 3200;  // live-hinge: both hinges rotate simultaneously 90→0°
-    const UNFLATTEN_DUR  = 2000;
-
-    let pivot          = null;
-    let finalCamY      = 0;
-    let rise           = 0;
-    let backHinge      = null;
-    let frontHinge     = null;
-    // Kinematic precompute
-    let kin_Ax = 0, kin_Ay = 0;
-    let kin_Bx = 0, kin_By = 0;
-    let kin_rACx = 0, kin_rACy = 0;
-    let kin_beta0 = 0;
-    let kin_prevAngle = 0;            // continuity tracker — prevents direction flips
-    let pivotShiftX = 0, pivotShiftZ = 0; // world offset applied when opening, undone when closing
-    let phase          = 'intro';
-    let phaseStart     = null;
-    let modelSize      = new THREE.Vector3();
+    // ─── State ────────────────────────────────────
+    let pivot       = null;
+    let finalCamY   = 0;
+    let rise        = 0;
+    let frontHinge  = null;
+    let backHinge   = null;
+    let modelSize   = new THREE.Vector3();
     let openLookTarget = new THREE.Vector3();
-    let currentPage    = 1;
-    let currentSpread  = 0;
-    let isFlipping     = false;
-    let threeAlive     = true;
 
-    const btn     = document.getElementById('btn-open-portfolio');
-    const portNav = document.getElementById('portfolio-nav');
+    // Kinematic precompute
+    let kin = { Ax:0, Ay:0, Bx:0, By:0, rACx:0, rACy:0, beta0:0, prevAngle:0 };
+    let pivotShiftX = 0, pivotShiftZ = 0;
 
+    let phase       = 'intro';
+    let phaseStart  = null;
+    let currentSpread = 0;
+    let isFlipping  = false;
+    let threeAlive  = true;
+    let needsRender = true;  // dirty flag — only render when something changed
+
+    // ─── Shared kinematic solver ──────────────────
+    // Given driver angle theta, returns follower angle for backHinge.
+    // Mutates kin.prevAngle for continuity tracking.
+    function solveFollower(theta) {
+      const px = kin.Ax + kin.rACx * Math.cos(theta) - kin.rACy * Math.sin(theta);
+      const py = kin.Ay + kin.rACx * Math.sin(theta) + kin.rACy * Math.cos(theta);
+      let a = Math.atan2(py - kin.By, px - kin.Bx) - kin.beta0;
+      // Unwrap for continuity
+      while (a - kin.prevAngle >  Math.PI) a -= Math.PI * 2;
+      while (a - kin.prevAngle < -Math.PI) a += Math.PI * 2;
+      a = Math.max(0, a);  // spine only opens, never clips through cover-back
+      kin.prevAngle = a;
+      return a;
+    }
+
+    // ─── Animation loop ───────────────────────────
     (function loop(now) {
       requestAnimationFrame(loop);
       if (!threeAlive) return;
@@ -403,10 +458,11 @@
       if (phase === 'intro') {
         if (!phaseStart) phaseStart = now;
         const t = Math.min((now - phaseStart) / INTRO_DUR, 1);
-        const e = easeInOutQuint(t);
+        const e = easeIO5(t);
         camera.position.y = finalCamY * (1 + 0.1 * (1 - e));
         camera.lookAt(0, 0, -rise * (1 - e));
         pivot.rotation.z = START_ROT_Z + (FINAL_ROT_Z - START_ROT_Z) * e;
+        needsRender = true;
         if (t >= 1) {
           camera.position.set(0, finalCamY, 0);
           camera.lookAt(0, 0, 0);
@@ -416,70 +472,58 @@
         }
       }
 
-      // ── FLATTEN: tilt eases to 0, and shift pivot so central-hinge is at screen centre ──
+      // ── FLATTEN: tilt → 0, shift pivot so central-hinge hits screen centre ──
       else if (phase === 'flatten') {
         const t = Math.min((now - phaseStart) / FLATTEN_DUR, 1);
-        const e = easeInOutCubic(t);
+        const e = easeIO3(t);
         pivot.rotation.z = FINAL_ROT_Z * (1 - e);
-        // Gradually slide pivot so central-hinge lands at world origin
         pivot.position.x = pivotShiftX * e;
         pivot.position.z = pivotShiftZ * e;
+        needsRender = true;
         if (t >= 1) {
           pivot.rotation.z = 0;
           pivot.position.x = pivotShiftX;
           pivot.position.z = pivotShiftZ;
-          kin_prevAngle = 0;
+          kin.prevAngle = 0;
           phase = 'opening';
           phaseStart = now;
         }
       }
 
+      // ── OPENING: hinges 0 → π ──
       else if (phase === 'opening') {
         const t = Math.min((now - phaseStart) / OPEN_DUR, 1);
-        const theta = Math.PI * easeInOutCubic(t);
+        const theta = Math.PI * easeIO3(t);
         if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge) {
-          const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
-          while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
-          while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
-          a = Math.max(0, a); // spine only opens upward, never clips through cover-back
-          kin_prevAngle = a;
-          backHinge.rotation.z = a;
-        }
+        if (backHinge)  backHinge.rotation.z  = solveFollower(theta);
+        needsRender = true;
         if (t >= 1) { phase = 'done'; swapToSpreads(); }
       }
 
+      // ── CLOSING: hinges π → 0 ──
       else if (phase === 'closing') {
         const t = Math.min((now - phaseStart) / CLOSE_DUR, 1);
-        const theta = Math.PI * (1 - easeInOutCubic(t));
+        const theta = Math.PI * (1 - easeIO3(t));
         if (frontHinge) frontHinge.rotation.z = theta;
-        if (backHinge) {
-          const px = kin_Ax + kin_rACx * Math.cos(theta) - kin_rACy * Math.sin(theta);
-          const py = kin_Ay + kin_rACx * Math.sin(theta) + kin_rACy * Math.cos(theta);
-          let a = Math.atan2(py - kin_By, px - kin_Bx) - kin_beta0;
-          while (a - kin_prevAngle >  Math.PI) a -= Math.PI * 2;
-          while (a - kin_prevAngle < -Math.PI) a += Math.PI * 2;
-          a = Math.max(0, a);
-          kin_prevAngle = a;
-          backHinge.rotation.z = a;
-        }
+        if (backHinge)  backHinge.rotation.z  = solveFollower(theta);
+        needsRender = true;
         if (t >= 1) {
           if (frontHinge) frontHinge.rotation.z = 0;
           if (backHinge)  backHinge.rotation.z  = 0;
-          kin_prevAngle = 0;
-          phase = 'unflatten'; phaseStart = now;
+          kin.prevAngle = 0;
+          phase = 'unflatten';
+          phaseStart = now;
         }
       }
 
-      // ── UNFLATTEN: tilt eases back in, shift pivot back to bbox centre ──
+      // ── UNFLATTEN: tilt eases back, pivot slides home ──
       else if (phase === 'unflatten') {
         const t = Math.min((now - phaseStart) / UNFLATTEN_DUR, 1);
-        const e = easeInOutCubic(t);
+        const e = easeIO3(t);
         pivot.rotation.z = FINAL_ROT_Z * e;
         pivot.position.x = pivotShiftX * (1 - e);
         pivot.position.z = pivotShiftZ * (1 - e);
+        needsRender = true;
         if (t >= 1) {
           pivot.rotation.z = FINAL_ROT_Z;
           pivot.position.x = 0;
@@ -489,10 +533,14 @@
         }
       }
 
-      renderer.render(scene, camera);
+      // Only render when something actually changed
+      if (needsRender) {
+        renderer.render(scene, camera);
+        needsRender = false;
+      }
     })(0);
 
-    // ── Open Portfolio button ──
+    // ─── Open Portfolio button ────────────────────
     btn.addEventListener('click', () => {
       if (phase !== 'idle') return;
       btn.classList.remove('visible');
@@ -500,18 +548,18 @@
       phaseStart = performance.now();
     });
 
-    // ── Dispose Three.js resources ──
+    // ─── Dispose Three.js resources ───────────────
     function disposeThree() {
       if (!threeAlive) return;
       threeAlive = false;
       scene.traverse(obj => {
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
-          (Array.isArray(obj.material) ? obj.material : [obj.material])
-            .forEach(m => {
-              Object.values(m).forEach(v => { if (v && v.isTexture) v.dispose(); });
-              m.dispose();
-            });
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          for (const m of mats) {
+            for (const val of Object.values(m)) { if (val?.isTexture) val.dispose(); }
+            m.dispose();
+          }
         }
       });
       renderer.dispose();
@@ -519,18 +567,13 @@
     }
     window.disposeThree = disposeThree;
 
-    // ── Swap GLB → spread image ──
+    // ─── Swap GLB → spread viewer ─────────────────
     function swapToSpreads() {
-      const overlay = document.getElementById('spread-overlay');
-      const card    = document.getElementById('spread-card');
-      const img     = document.getElementById('spread-img');
-
-      // Project open book bounding box to screen pixels
+      // Project open-book bbox to screen pixels
       scene.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(pivot);
       const W = canvas.clientWidth, H = canvas.clientHeight;
 
-      // Sample multiple points along the top face of the open book
       const corners = [
         new THREE.Vector3(box.min.x, box.max.y, box.min.z),
         new THREE.Vector3(box.max.x, box.max.y, box.min.z),
@@ -539,137 +582,93 @@
         new THREE.Vector3(0,          box.max.y, box.min.z),
         new THREE.Vector3(0,          box.max.y, box.max.z),
       ];
-      let minSx=Infinity, maxSx=-Infinity, minSy=Infinity, maxSy=-Infinity;
-      corners.forEach(c => {
-        const p = c.clone().project(camera);
-        const sx = (p.x + 1) / 2 * W;
-        const sy = (-p.y + 1) / 2 * H;
+      let minSx = Infinity, maxSx = -Infinity, minSy = Infinity, maxSy = -Infinity;
+      for (const c of corners) {
+        const p = c.project(camera);  // mutates in place — no clone needed
+        const sx = (p.x + 1) * 0.5 * W;
+        const sy = (-p.y + 1) * 0.5 * H;
         if (sx < minSx) minSx = sx; if (sx > maxSx) maxSx = sx;
         if (sy < minSy) minSy = sy; if (sy > maxSy) maxSy = sy;
-      });
+      }
 
-      // Size overlay: use projected height, force 2:1 aspect (20"×10" spread)
       const imgH = maxSy - minSy;
-      const imgW = imgH * 2;
-      const cx   = (minSx + maxSx) / 2;
-      const cy   = (minSy + maxSy) / 2;
+      const imgW = imgH * 2;  // 2:1 aspect for 20"×10" spread
+      const cx = (minSx + maxSx) * 0.5;
+      const cy = (minSy + maxSy) * 0.5;
 
       overlay.style.width  = imgW + 'px';
       overlay.style.height = imgH + 'px';
-      overlay.style.left   = (cx - imgW / 2) + 'px';
-      overlay.style.top    = (cy - imgH / 2) + 'px';
+      overlay.style.left   = (cx - imgW * 0.5) + 'px';
+      overlay.style.top    = (cy - imgH * 0.5) + 'px';
 
-      // Load first spread into both static halves
       currentSpread = 0;
-      const src0 = SPREADS[0];
-      document.getElementById('spread-left-img').src  = src0;
-      document.getElementById('spread-right-img').src = src0;
-      updatePageNum();
-      updateNavBtns();
+      leftImg.src  = SPREADS[0];
+      rightImg.src = SPREADS[0];
+      updateUI();
 
-      // Fade canvas out and spread in immediately — don't wait for img.onload
       canvas.style.opacity = '0';
       overlay.classList.add('visible');
       portNav.classList.add('visible');
-      // Three.js stays alive — needed if user hits prev on spread 0 to close the book
     }
 
-    // ── Reverse: close book animation, swap spread back to GLB ──
+    // ─── Close book: spread → GLB ─────────────────
     function closeToGLB() {
-      const overlay = document.getElementById('spread-overlay');
       portNav.classList.remove('visible');
-      overlay.classList.remove('visible');          // fade spread out
-      canvas.style.display  = 'block';              // ensure canvas is visible
-      canvas.style.opacity  = '1';                  // fade canvas back in
-      threeAlive = true;                            // re-enable render loop
-      // kin_prevAngle must match backHinge's actual current rotation so the
-      // continuity tracker doesn't flip direction on the first closing frame
-      kin_prevAngle = backHinge ? backHinge.rotation.z : Math.PI;
+      overlay.classList.remove('visible');
+      canvas.style.display = 'block';
+      canvas.style.opacity = '1';
+      threeAlive = true;
+      needsRender = true;
+      kin.prevAngle = backHinge ? backHinge.rotation.z : Math.PI;
       phase = 'closing';
       phaseStart = performance.now();
     }
 
-    // ── Page flip — split-spine book turn ──
+    // ─── Page flip ────────────────────────────────
     function flipTo(index, direction) {
       if (isFlipping) return;
       isFlipping = true;
 
-      const leaf        = document.getElementById('turning-leaf');
-      const leafFront   = document.getElementById('leaf-front');
-      const leafBack    = document.getElementById('leaf-back');
-      const leafFrontImg = document.getElementById('leaf-front-img');
-      const leafBackImg  = document.getElementById('leaf-back-img');
-      const underImg    = document.getElementById('spread-under-img');
-      const leftImg     = document.getElementById('spread-left-img');
-      const rightImg    = document.getElementById('spread-right-img');
-
       const curSrc  = SPREADS[currentSpread];
       const nextSrc = SPREADS[index];
-
-      // Full incoming spread sits underneath as the reveal
-      underImg.src = nextSrc;
+      underImg.src  = nextSrc;
 
       if (direction === 'next') {
-        // RIGHT half of current spread folds LEFT over the spine
         leaf.className = 'from-right';
         leafFront.style.transform = '';
         leafBack.style.transform  = 'rotateY(180deg)';
-
-        // Front face: right half of current spread
-        leafFrontImg.style.right = '0';
-        leafFrontImg.style.left  = 'auto';
-        leafFrontImg.src = curSrc;
-
-        // Back face: left half of incoming spread
-        leafBackImg.style.left  = '0';
-        leafBackImg.style.right = 'auto';
-        leafBackImg.src = nextSrc;
-
-        leftImg.src  = curSrc;
-        rightImg.src = curSrc;
-
+        leafFImg.style.cssText = 'right:0; left:auto;';
+        leafBImg.style.cssText = 'left:0; right:auto;';
+        leafFImg.src = curSrc;
+        leafBImg.src = nextSrc;
+        rightHalf.style.visibility = 'hidden';
       } else {
-        // LEFT half of current spread folds RIGHT over the spine
         leaf.className = 'from-left';
         leafFront.style.transform = '';
         leafBack.style.transform  = 'rotateY(-180deg)';
-
-        // Front face: left half of current spread
-        leafFrontImg.style.left  = '0';
-        leafFrontImg.style.right = 'auto';
-        leafFrontImg.src = curSrc;
-
-        // Back face: RIGHT half of incoming spread
-        leafBackImg.style.right = '0';
-        leafBackImg.style.left  = 'auto';
-        leafBackImg.src = nextSrc;
-
-        leftImg.src  = curSrc;
-        rightImg.src = curSrc;
+        leafFImg.style.cssText = 'left:0; right:auto;';
+        leafBImg.style.cssText = 'right:0; left:auto;';
+        leafFImg.src = curSrc;
+        leafBImg.src = nextSrc;
+        leftHalf.style.visibility = 'hidden';
       }
 
-      // Show leaf, reset to flat, then animate
+      leftImg.src  = curSrc;
+      rightImg.src = curSrc;
+
+      // Show leaf flat, then animate on next frame
       leaf.style.display    = 'block';
       leaf.style.transition = 'none';
       leaf.style.transform  = 'rotateY(0deg)';
 
-      const rightHalf = document.getElementById('spread-right-half');
-      const leftHalf  = document.getElementById('spread-left-half');
-      if (direction === 'next') {
-        rightHalf.style.visibility = 'hidden';
-      } else {
-        leftHalf.style.visibility = 'hidden';
-      }
+      // Force reflow then animate (more reliable than double-rAF)
+      leaf.offsetHeight;  // eslint-disable-line no-unused-expressions
+      leaf.style.transition = `transform ${FLIP_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+      leaf.style.transform  = direction === 'next' ? 'rotateY(-180deg)' : 'rotateY(180deg)';
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          leaf.style.transition = 'transform 0.95s cubic-bezier(0.4, 0, 0.2, 1)';
-          leaf.style.transform  = direction === 'next' ? 'rotateY(-180deg)' : 'rotateY(180deg)';
-        });
-      });
-
-      leaf.addEventListener('transitionend', () => {
-        // Snap both static halves to incoming spread, restore visibility, hide leaf
+      // Settle: snap halves to new spread, clean up leaf
+      function settle() {
+        clearTimeout(safetyTimer);
         currentSpread = index;
         leftImg.src   = SPREADS[index];
         rightImg.src  = SPREADS[index];
@@ -678,55 +677,52 @@
         leaf.style.transition = 'none';
         leaf.style.transform  = 'rotateY(0deg)';
         leaf.style.display    = 'none';
-        updatePageNum();
-        updateNavBtns();
+        updateUI();
         isFlipping = false;
-      }, { once: true });
-    }
-
-    function updatePageNum() {
-      document.getElementById('portfolio-page-num').textContent =
-        (currentSpread + 1) + ' / ' + SPREADS.length;
-    }
-
-    function updateNavBtns() {
-      const next = document.getElementById('btn-next');
-      next.classList.toggle('disabled', currentSpread === SPREADS.length - 1);
-    }
-
-    // ── Prev / Next ──
-    document.getElementById('btn-prev').addEventListener('click', () => {
-      if (phase !== 'done' || isFlipping) return;
-      if (currentSpread === 0) {
-        closeToGLB();
-      } else {
-        flipTo(currentSpread - 1, 'prev');
       }
+
+      leaf.addEventListener('transitionend', settle, { once: true });
+      // Safety net: if transitionend never fires, settle anyway
+      const safetyTimer = setTimeout(() => {
+        leaf.removeEventListener('transitionend', settle);
+        settle();
+      }, FLIP_SAFETY);
+    }
+
+    // ─── UI updates (page number + nav button state) ──
+    function updateUI() {
+      pageNumEl.textContent = (currentSpread + 1) + ' / ' + SPREADS.length;
+      btnNext.classList.toggle('disabled', currentSpread >= SPREADS.length - 1);
+    }
+
+    // ─── Prev / Next handlers ─────────────────────
+    btnPrev.addEventListener('click', () => {
+      if (phase !== 'done' || isFlipping) return;
+      currentSpread === 0 ? closeToGLB() : flipTo(currentSpread - 1, 'prev');
     });
-    document.getElementById('btn-next').addEventListener('click', () => {
+    btnNext.addEventListener('click', () => {
       if (phase !== 'done' || isFlipping) return;
       if (currentSpread < SPREADS.length - 1) flipTo(currentSpread + 1, 'next');
     });
 
-    // ── Load GLB ──
+    // ─── Load GLB ─────────────────────────────────
     new GLTFLoader().load(
-      'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/cover.glb',
+      BASE + 'cover.glb',
       gltf => {
         const model = gltf.scene;
+        const maxAniso = renderer.capabilities.getMaxAnisotropy();
 
-        // Disable shadows on all meshes
+        // Disable shadows, crank anisotropy on all meshes
         model.traverse(n => {
-          if (n.isMesh) {
-            n.castShadow = false;
-            n.receiveShadow = false;
-            if (n.material.map) {
-              n.material.map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-              n.material.map.needsUpdate = true;
-            }
+          if (!n.isMesh) return;
+          n.castShadow = n.receiveShadow = false;
+          if (n.material.map) {
+            n.material.map.anisotropy = maxAniso;
+            n.material.map.needsUpdate = true;
           }
         });
 
-        // Centre the model on bbox for intro — central-hinge shift happens at open time
+        // Centre model on bbox
         scene.add(model);
         scene.updateMatrixWorld(true);
         const box    = new THREE.Box3().setFromObject(model);
@@ -736,12 +732,16 @@
         modelSize.copy(size);
 
         // Pre-compute pivot shift so central-hinge lands at world origin when opening
-        const _ch = model.getObjectByName('central-hinge');
-        if (_ch) {
-          const _chPos = new THREE.Box3().setFromObject(_ch).getCenter(new THREE.Vector3());
-          // After bbox-centering, central-hinge will be at (_chPos - center) in world space
-          pivotShiftX = -(_chPos.x - center.x);
-          pivotShiftZ = -(_chPos.z - center.z);
+        const centralHingeObj   = model.getObjectByName('central-hinge');
+        const coverFrontAxisObj = model.getObjectByName('cover-front-axis');
+        const hingeFrontAxisObj = model.getObjectByName('hinge-front-axis');
+        const hingeBackAxisObj  = model.getObjectByName('hinge-back-axis');
+        const coverBackAxisObj  = model.getObjectByName('cover-back-axis');
+
+        if (centralHingeObj) {
+          const chPos = new THREE.Box3().setFromObject(centralHingeObj).getCenter(new THREE.Vector3());
+          pivotShiftX = -(chPos.x - center.x);
+          pivotShiftZ = -(chPos.z - center.z);
         }
 
         scene.remove(model);
@@ -751,7 +751,7 @@
         pivot.add(model);
         scene.add(pivot);
 
-        // Position camera above, looking straight down
+        // Camera: above, looking straight down
         const fov = camera.fov * (Math.PI / 180);
         finalCamY = (maxDim / 2) / Math.tan(fov / 2) * 1.5;
         camera.position.set(0, finalCamY, 0);
@@ -759,93 +759,74 @@
         camera.lookAt(0, 0, 0);
         resize();
 
-        // Start intro with spin + rise
+        // Intro: start spun + risen
         pivot.rotation.z = START_ROT_Z;
         rise = maxDim * 3;
         camera.lookAt(0, 0, -rise);
 
-        // ── Build hinges at load time ──
-        // Helper: reparent a node into a new parent, preserving world transform
-        function reparentTo(node, newParent) {
-          scene.updateMatrixWorld(true);
-          const worldMat = node.matrixWorld.clone();
-          node.removeFromParent();
-          newParent.add(node);
-          scene.updateMatrixWorld(true);
-          const localMat = new THREE.Matrix4()
-            .copy(newParent.matrixWorld).invert()
-            .multiply(worldMat);
-          localMat.decompose(node.position, node.quaternion, node.scale);
-        }
+        // ── Build hinge groups ────────────────────
+        const axisRefs = [centralHingeObj, coverFrontAxisObj, hingeFrontAxisObj, hingeBackAxisObj, coverBackAxisObj];
+        const axisSet  = new Set(axisRefs.filter(Boolean));
+        for (const o of axisSet) o.visible = false;
 
-        // Helper: get world-centre of a named object
-        function worldCentre(obj) {
-          scene.updateMatrixWorld(true);
-          return new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
-        }
+        // Collect all named children, classify in one pass
+        const frontParts = new Set(['cover-front-axis']);
+        const backParts  = new Set(['hinge-back-axis', 'hinge-front-axis']);
+        const allNamed = [];
 
-        // All 4 axis tubes + central-hinge curve
-        const coverFrontAxisObj = model.getObjectByName('cover-front-axis');
-        const hingeFrontAxisObj = model.getObjectByName('hinge-front-axis');
-        const hingeBackAxisObj  = model.getObjectByName('hinge-back-axis');
-        const coverBackAxisObj  = model.getObjectByName('cover-back-axis');
-        const centralHingeObj   = model.getObjectByName('central-hinge');
-
-        // Collect ALL named meshes/objects in model so we can explicitly assign each one
-        const allObjs = [];
-        model.traverse(n => { if (n.name && n !== model) allObjs.push(n); });
-
-        // Axis helper objects — hidden
-        const axisObjs = new Set([coverFrontAxisObj, hingeFrontAxisObj,
-                                   hingeBackAxisObj, coverBackAxisObj, centralHingeObj]
-                                  .filter(Boolean));
-        axisObjs.forEach(o => o.visible = false);
-
-        // Decide which group each mesh belongs to by name prefix:
-        //   frontGroup  (driver 0→180° around central-hinge):  cover-front*, cover-page, cover-front-axis tube
-        //   backGroup   (follower kinematic around hinge-back-axis): spine*, hinge-front*, hinge-front-axis, hinge-back-axis tubes
-        //   fixed       (cover-back*, hinge-back*, cover-back-axis): stay in model, never move
-        const frontNames  = new Set(['cover-front-axis']);
-        const backNames   = new Set(['hinge-back-axis', 'hinge-front-axis']);
-
-        allObjs.forEach(n => {
+        model.traverse(n => {
+          if (!n.name || n === model) return;
+          allNamed.push(n);
           const nm = n.name.toLowerCase();
-          if (nm.startsWith('cover-front') || nm === 'cover-page') frontNames.add(n.name);
-          if (nm.startsWith('spine') || nm.startsWith('hinge-front')) backNames.add(n.name);
+          if (nm.startsWith('cover-front') || nm === 'cover-page') frontParts.add(n.name);
+          else if (nm.startsWith('spine') || nm.startsWith('hinge-front')) backParts.add(n.name);
         });
 
-        console.log('frontGroup parts:', [...frontNames]);
-        console.log('backGroup parts:',  [...backNames]);
-
         if (centralHingeObj && hingeBackAxisObj && coverFrontAxisObj) {
-          const A  = worldCentre(centralHingeObj);   // driver pivot (cover rotates here)
-          const B  = worldCentre(hingeBackAxisObj);  // follower pivot (spine rotates here, fixed)
-          const C0 = worldCentre(coverFrontAxisObj); // pin linking cover-front to hinge-front
+          // Single updateMatrixWorld for all bbox reads
+          scene.updateMatrixWorld(true);
+
+          const bboxCenter = obj => new THREE.Box3().setFromObject(obj).getCenter(new THREE.Vector3());
+          const A  = bboxCenter(centralHingeObj);
+          const B  = bboxCenter(hingeBackAxisObj);
+          const C0 = bboxCenter(coverFrontAxisObj);
 
           const invModel = new THREE.Matrix4().copy(model.matrixWorld).invert();
           const A_loc  = A.clone().applyMatrix4(invModel);
           const B_loc  = B.clone().applyMatrix4(invModel);
           const C0_loc = C0.clone().applyMatrix4(invModel);
 
-          // Kinematic constants
-          kin_Ax    = A_loc.x;   kin_Ay    = A_loc.y;
-          kin_Bx    = B_loc.x;   kin_By    = B_loc.y;
-          kin_rACx  = C0_loc.x - A_loc.x;  // vector from A to C in rest pose
-          kin_rACy  = C0_loc.y - A_loc.y;
-          kin_beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x); // initial angle B→C
-          kin_prevAngle = 0;
+          kin.Ax   = A_loc.x;  kin.Ay   = A_loc.y;
+          kin.Bx   = B_loc.x;  kin.By   = B_loc.y;
+          kin.rACx = C0_loc.x - A_loc.x;
+          kin.rACy = C0_loc.y - A_loc.y;
+          kin.beta0 = Math.atan2(C0_loc.y - B_loc.y, C0_loc.x - B_loc.x);
+          kin.prevAngle = 0;
 
-          // ── frontHinge: driver, at central-hinge, parented to model ──
+          // Reparent helper: preserves world transform when moving to new parent
+          function reparentTo(node, newParent) {
+            scene.updateMatrixWorld(true);
+            const wm = node.matrixWorld.clone();
+            node.removeFromParent();
+            newParent.add(node);
+            scene.updateMatrixWorld(true);
+            new THREE.Matrix4()
+              .copy(newParent.matrixWorld).invert()
+              .multiply(wm)
+              .decompose(node.position, node.quaternion, node.scale);
+          }
+
+          // frontHinge: driver at central-hinge
           frontHinge = new THREE.Group();
           frontHinge.position.copy(A_loc);
           model.add(frontHinge);
-          allObjs.filter(n => frontNames.has(n.name)).forEach(n => reparentTo(n, frontHinge));
+          for (const n of allNamed) if (frontParts.has(n.name)) reparentTo(n, frontHinge);
 
-          // ── backHinge: follower, at hinge-back-axis, parented to model ──
+          // backHinge: follower at hinge-back-axis
           backHinge = new THREE.Group();
           backHinge.position.copy(B_loc);
           model.add(backHinge);
-          allObjs.filter(n => backNames.has(n.name)).forEach(n => reparentTo(n, backHinge));
+          for (const n of allNamed) if (backParts.has(n.name)) reparentTo(n, backHinge);
 
           openLookTarget.set(A_loc.x, 0, 0);
         }
