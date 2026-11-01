@@ -331,33 +331,12 @@
 
     // ─── Config ───────────────────────────────────
     const BASE    = 'https://raw.githubusercontent.com/bperks99/benjaminreedperks.com/main/';
-    const SPREADS = [
-      BASE + 'Spread1.jpg',
-      BASE + 'Spread2.jpg',
-      BASE + 'Spread3.jpg',
-      BASE + 'Spread4.jpg',
-      BASE + 'Spread5.jpg',
-      BASE + 'Spread6.jpg',
-      BASE + 'Spread7.jpg',
-      BASE + 'Spread8.jpg',
-      BASE + 'Spread9.jpg',
-      BASE + 'Spread10.jpg',
-      BASE + 'Spread11.jpg',
-      BASE + 'Spread12.jpg',
-      BASE + 'Spread13.jpg',
-      BASE + 'Spread14.jpg',
-      BASE + 'Spread15.jpg',
-      // BASE + 'Spread16.jpg',
-      // BASE + 'Spread17.jpg',
-      // BASE + 'Spread18.jpg',
-      // BASE + 'Spread19.jpg',
-      // BASE + 'Spread20.jpg',
-      // BASE + 'Spread21.jpg',
-      // BASE + 'Spread22.jpg',
-      // BASE + 'Spread23.jpg',
-      // BASE + 'Spread24.jpg',
-      // BASE + 'Spread25.jpg',
-    ];
+    // Spreads are named the way InDesign exports them: Spread_01.jpg, Spread_02.jpg, ...
+    // To add or remove spreads, upload/delete the JPGs and change this one number.
+    const SPREAD_COUNT = 20;
+    const SPREADS = Array.from({ length: SPREAD_COUNT }, (_, i) =>
+      BASE + 'Spread_' + String(i + 1).padStart(2, '0') + '.jpg'
+    );
 
     const FINAL_ROT_Z  = THREE.MathUtils.degToRad(30);
     const START_ROT_Z  = FINAL_ROT_Z + Math.PI * 4;
